@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser, type SessionUser } from "@/lib/auth";
-import { assertAthlete, audit, notify, sessionWhere } from "@/lib/access";
+import { assertAthlete, audit, notify, sessionWhere, visibleGroups } from "@/lib/access";
 
 const itemSchema = z.object({
   exerciseId: z.string().min(1),
@@ -175,4 +175,47 @@ export async function commentLog(fd: FormData) {
   await db.workoutLog.update({ where: { id: log.id }, data: { coachComment: comment || null } });
   if (comment) await notify([log.athleteId], { kind: "SESION", title: `Comentario de ${u.name} en "${log.session.title}"`, body: comment, link: `/app/sessions/${log.sessionId}` });
   revalidatePath(`/app/sessions/${log.sessionId}`);
+}
+
+export type RecentUse = { date: string; title: string; who: string; times: number };
+
+/**
+ * Ejercicios que el destinatario de la sesión (deportista o grupo) ya tuvo
+ * en los 30 días anteriores a la fecha de la sesión. Incluye sesiones
+ * individuales y sesiones de los grupos a los que pertenece.
+ */
+export async function recentExerciseUse(target: string, dateIso: string, excludeId?: string): Promise<Record<string, RecentUse>> {
+  const u = await requireUser(["COACH", "ADMIN"]);
+  const date = new Date(dateIso);
+  if (!target || isNaN(date.getTime())) return {};
+  const [kind, id] = target.split(":");
+  let athleteIds: string[] = [];
+  if (kind === "a") {
+    await assertAthlete(u, id);
+    athleteIds = [id];
+  } else if (kind === "g") {
+    if (!(await visibleGroups(u)).some((g) => g.id === id)) return {};
+    athleteIds = (await db.groupMember.findMany({ where: { groupId: id }, select: { athleteId: true } })).map((m) => m.athleteId);
+  } else return {};
+  const groupIds = [...new Set((await db.groupMember.findMany({ where: { athleteId: { in: athleteIds } }, select: { groupId: true } })).map((g) => g.groupId))];
+  if (kind === "g" && !groupIds.includes(id)) groupIds.push(id);
+
+  const sessions = await db.session.findMany({
+    where: {
+      orgId: u.orgId,
+      ...(excludeId ? { id: { not: excludeId } } : {}),
+      date: { gte: new Date(date.getTime() - 30 * 86400000), lt: date },
+      OR: [{ athleteId: { in: athleteIds } }, { groupId: { in: groupIds } }],
+    },
+    select: { title: true, date: true, athlete: { select: { name: true } }, group: { select: { name: true } }, items: { select: { exerciseId: true } } },
+    orderBy: { date: "desc" },
+  });
+  const out: Record<string, RecentUse> = {};
+  for (const s of sessions) {
+    for (const exId of new Set(s.items.map((i) => i.exerciseId))) {
+      if (out[exId]) out[exId].times++;
+      else out[exId] = { date: s.date.toISOString(), title: s.title, who: s.group?.name ?? s.athlete?.name ?? "", times: 1 };
+    }
+  }
+  return out;
 }

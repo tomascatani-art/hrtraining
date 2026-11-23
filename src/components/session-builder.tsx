@@ -1,7 +1,9 @@
 "use client";
-import { useMemo, useState } from "react";
-import { Plus, Trash2, ArrowUp, ArrowDown, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Plus, Trash2, ArrowUp, ArrowDown, Search, RotateCcw } from "lucide-react";
 import { Submit } from "./forms";
+import { fmtDate } from "./ui";
+import { recentExerciseUse, type RecentUse } from "@/app/app/sessions/actions";
 
 type Ex = { id: string; name: string; primaryMuscle: string; pattern: string; suggestedSets: string | null; suggestedReps: string | null };
 type Item = { key: string; exerciseId: string; sets: number; reps: string; loadKg: string; percent1RM: string; targetRir: string; restSec: string; tempo: string; notes: string };
@@ -21,6 +23,17 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
   const [items, setItems] = useState<Item[]>(initial.items.map((i, k) => ({ ...i, key: String(k) + Math.random() })));
   const [q, setQ] = useState("");
   const [repeat, setRepeat] = useState(0);
+  // Ejercicios que este deportista o grupo ya hizo en los 30 días anteriores a la fecha de la sesión
+  const [used, setUsed] = useState<Record<string, RecentUse>>({});
+  useEffect(() => {
+    if (!f.target || !f.date) { setUsed({}); return; }
+    let live = true;
+    const t = setTimeout(() => {
+      recentExerciseUse(f.target, new Date(f.date).toISOString(), f.id).then((r) => live && setUsed(r)).catch(() => live && setUsed({}));
+    }, 300);
+    return () => { live = false; clearTimeout(t); };
+  }, [f.target, f.date, f.id]);
+  const repeated = items.filter((i) => used[i.exerciseId]).length;
   const byId = useMemo(() => Object.fromEntries(exercises.map((e) => [e.id, e])), [exercises]);
   const filtered = useMemo(() => {
     const s = q.toLowerCase().trim();
@@ -72,6 +85,7 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
 
         <section className="card">
           <div className="flex items-center justify-between p-4 sm:p-5"><h2 className="h2">Ejercicios</h2><span className="label">{items.length} ejercicios</span></div>
+          {repeated > 0 && <p className="mx-3 mb-3 flex items-center gap-2 rounded-xl border border-volt/40 bg-volt/10 px-3 py-2 text-sm text-volt sm:mx-5"><RotateCcw size={15} className="shrink-0" />{repeated === 1 ? "1 ejercicio se repite" : `${repeated} ejercicios se repiten`} respecto del último mes para {f.target.startsWith("g:") ? "este grupo" : "este deportista"}.</p>}
           {items.length === 0 && <p className="px-5 pb-5 text-sm muted">Agregá ejercicios desde la biblioteca (panel derecho).</p>}
           <ol className="space-y-3 px-3 pb-4 sm:px-5">
             {items.map((it, i) => (
@@ -92,6 +106,7 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
                   <Mini label="Pausa (s)"><input type="number" className="input py-1.5" value={it.restSec} onChange={(e) => upd(it.key, { restSec: e.target.value })} /></Mini>
                   <Mini label="Tempo"><input className="input py-1.5" value={it.tempo} placeholder="3-1-X" onChange={(e) => upd(it.key, { tempo: e.target.value })} /></Mini>
                 </div>
+                {used[it.exerciseId] && <RepeatNote u={used[it.exerciseId]} />}
                 <input className="input mt-2 py-1.5" value={it.notes} placeholder="Nota para el deportista (opcional)" onChange={(e) => upd(it.key, { notes: e.target.value })} />
               </li>
             ))}
@@ -109,6 +124,7 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
               <button type="button" onClick={() => add(e)} className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition hover:bg-ink-800">
                 <Plus size={15} className="shrink-0 text-volt" />
                 <span className="flex-1"><span className="block text-white">{e.name}</span><span className="text-xs muted">{e.primaryMuscle}</span></span>
+                {used[e.id] && <span className="chip-volt shrink-0 !px-1.5 !py-0.5 text-[10px]" title={`Usado el ${dayLabel(used[e.id].date)} en “${used[e.id].title}”`}>Usado</span>}
               </button>
             </li>
           ))}
@@ -122,6 +138,20 @@ function toLocal(iso: string) {
   if (!iso) return "";
   const d = new Date(iso);
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
+const dayLabel = (iso: string) => fmtDate(iso);
+
+function RepeatNote({ u }: { u: RecentUse }) {
+  return (
+    <div className="mt-2 flex items-start gap-2 rounded-lg border border-volt/40 bg-volt/10 px-3 py-2 text-xs text-volt">
+      <RotateCcw size={14} className="mt-0.5 shrink-0" />
+      <span>
+        <b>Lo está usando de nuevo.</b> Ya lo hizo el {dayLabel(u.date)} en “{u.title}”{u.who ? ` (${u.who})` : ""}
+        {u.times > 1 ? ` y ${u.times - 1} ${u.times === 2 ? "vez más" : "veces más"}` : ""} en los últimos 30 días.
+      </span>
+    </div>
+  );
 }
 
 function L({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {

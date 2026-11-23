@@ -6,9 +6,10 @@ import { CAPACITIES, EQUIPMENT, TEST_MAP } from "@/lib/catalog";
 import { generateWeek, PRESCRIPTION } from "@/lib/generator";
 import { monitoringFor } from "@/lib/queries";
 import { improvement, wellnessScore } from "@/lib/metrics";
-import { PageHeader, Card, Field } from "@/components/ui";
+import { PageHeader, Card, Field, fmtDate } from "@/components/ui";
 import { Submit } from "@/components/forms";
 import { createFromProposal } from "./actions";
+import { recentExerciseUse, type RecentUse } from "../sessions/actions";
 
 export const metadata = { title: "Asistente" };
 
@@ -33,7 +34,9 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
 
   // Recomendaciones basadas en el historial del deportista elegido
   const recs: string[] = [];
+  let used: Record<string, RecentUse> = {};
   if (athlete) {
+    used = await recentExerciseUse(`a:${athlete}`, new Date().toISOString());
     const [m] = await monitoringFor([athlete]);
     const evals = await db.evaluation.findMany({ where: { athleteId: athlete }, orderBy: { date: "asc" } });
     const keys = [...new Set(evals.map((e) => e.testKey))].filter((k) => TEST_MAP[k] && !k.startsWith("FMS_"));
@@ -82,7 +85,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
                   {proposal.map((d) => (
                     <div key={d.title} className="rounded-xl border border-ink-700 bg-ink-900 p-3">
                       <div className="mb-2 font-display font-semibold text-volt">{d.title}</div>
-                      <ol className="space-y-1.5 text-sm">{d.items.map((it, i) => <li key={i} className="flex gap-2"><span className="num text-neutral-500">{i + 1}</span><span className="flex-1 text-white">{it.name}</span><span className="num text-xs text-neutral-400">{it.sets}×{it.reps}{it.percent1RM ? ` @${it.percent1RM}%` : ""}{it.targetRir != null ? ` RIR${it.targetRir}` : ""}</span></li>)}</ol>
+                      <ol className="space-y-1.5 text-sm">{d.items.map((it, i) => <li key={i} className="flex gap-2"><span className="num text-neutral-500">{i + 1}</span><span className="flex-1 text-white">{it.name}{used[it.exerciseId] && <span className="chip-volt ml-2 !px-1.5 !py-0.5 text-[10px]" title={`Ya lo hizo el ${fmtDate(used[it.exerciseId].date)} en “${used[it.exerciseId].title}”`}>Repite · último mes</span>}</span><span className="num text-xs text-neutral-400">{it.sets}×{it.reps}{it.percent1RM ? ` @${it.percent1RM}%` : ""}{it.targetRir != null ? ` RIR${it.targetRir}` : ""}</span></li>)}</ol>
                     </div>
                   ))}
                 </div>
