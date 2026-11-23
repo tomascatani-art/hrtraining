@@ -1,0 +1,465 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  COACH
+  ATHLETE
+}
+
+// Organización: un gimnasio, club o equipo. Permite múltiples entrenadores.
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  isDemo    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  users       User[]
+  groups      Group[]
+  exercises   Exercise[]
+  plans       Plan[]
+  sessions    Session[]
+  competitions Competition[]
+  files       FileAsset[]
+  auditLogs   AuditLog[]
+  conversations Conversation[]
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String?
+  name         String
+  role         Role
+  orgId        String
+  org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  inviteToken  String?   @unique
+  active       Boolean   @default(true)
+  isDemo       Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  lastLoginAt  DateTime?
+
+  athleteProfile   AthleteProfile? @relation("profile")
+  coachedAthletes  AthleteProfile[] @relation("coach")
+  groupsCoached    Group[]
+  memberships      GroupMember[]
+  workoutLogs      WorkoutLog[]
+  wellness         Wellness[]
+  evaluations      Evaluation[]     @relation("evalAthlete")
+  evaluationsDone  Evaluation[]     @relation("evalCoach")
+  goals            Goal[]
+  messages         Message[]
+  conversationMembers ConversationMember[]
+  notifications    Notification[]
+  files            FileAsset[]      @relation("fileOwner")
+  athleteFiles     FileAsset[]      @relation("fileAthlete")
+  videoAnalyses    VideoAnalysis[]  @relation("vaAthlete")
+  videoComments    VideoComment[]
+  sessionsAssigned Session[]        @relation("sessionAthlete")
+  sessionsCreated  Session[]        @relation("sessionCoach")
+  plansAthlete     Plan[]           @relation("planAthlete")
+  plansCoach       Plan[]           @relation("planCoach")
+  competitionsAthlete Competition[] @relation("compAthlete")
+  exercisesCreated Exercise[]
+  auditLogs        AuditLog[]
+
+  @@index([orgId, role])
+}
+
+model AthleteProfile {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  user       User      @relation("profile", fields: [userId], references: [id], onDelete: Cascade)
+  coachId    String?
+  coach      User?     @relation("coach", fields: [coachId], references: [id], onDelete: SetNull)
+  sport      String    @default("GENERAL")
+  position   String?
+  birthDate  DateTime?
+  sex        String?
+  heightCm   Float?
+  weightKg   Float?
+  level      String?   // iniciación, intermedio, avanzado, élite
+  objective  String?
+  notes      String?
+}
+
+model Group {
+  id        String   @id @default(cuid())
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  coachId   String
+  coach     User     @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  name      String
+  sport     String   @default("GENERAL")
+  color     String   @default("#ffd60a")
+  description String?
+  isDemo    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  members       GroupMember[]
+  sessions      Session[]
+  plans         Plan[]
+  competitions  Competition[]
+  conversations Conversation[]
+}
+
+model GroupMember {
+  groupId   String
+  group     Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  athleteId String
+  athlete   User   @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, athleteId])
+}
+
+model Exercise {
+  id            String   @id @default(cuid())
+  orgId         String?  // null = biblioteca base de la plataforma
+  org           Organization? @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdById   String?
+  createdBy     User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  name          String
+  muscles       String[]
+  primaryMuscle String
+  kineticChain  String   // ABIERTA | CERRADA | MIXTA
+  pattern       String   // SENTADILLA, BISAGRA, EMPUJE_H, ...
+  capacities    String[]
+  sports        String[]
+  equipment     String[]
+  difficulty    Int      @default(2) // 1-3
+  objective     String?
+  description   String?
+  cues          String?
+  commonErrors  String?
+  variants      String?
+  videoUrl      String?
+  imageUrl      String?
+  suggestedSets String?
+  suggestedReps String?
+  isDemo        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  sessionItems  SessionExercise[]
+}
+
+// Planificación: árbol de bloques (macrociclo > mesociclo > microciclo)
+model Plan {
+  id         String   @id @default(cuid())
+  orgId      String
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  coachId    String
+  coach      User     @relation("planCoach", fields: [coachId], references: [id], onDelete: Cascade)
+  athleteId  String?
+  athlete    User?    @relation("planAthlete", fields: [athleteId], references: [id], onDelete: SetNull)
+  groupId    String?
+  group      Group?   @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  name       String
+  sport      String   @default("GENERAL")
+  goal       String?
+  startDate  DateTime
+  endDate    DateTime
+  isDemo     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  blocks     PlanBlock[]
+  sessions   Session[]
+}
+
+model PlanBlock {
+  id          String    @id @default(cuid())
+  planId      String
+  plan        Plan      @relation(fields: [planId], references: [id], onDelete: Cascade)
+  parentId    String?
+  parent      PlanBlock?  @relation("tree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    PlanBlock[] @relation("tree")
+  level       String    // MACRO | MESO | MICRO
+  name        String
+  phase       String    // PREP_GENERAL, PREP_ESPECIFICO, PRECOMPETITIVO, COMPETITIVO, PUESTA_A_PUNTO, TRANSICION
+  microType   String?   // CARGA, CHOQUE, RECUPERACION, COMPETENCIA, ACTIVACION
+  startDate   DateTime
+  endDate     DateTime
+  capacities  String[]
+  plannedVolume    Int  @default(5) // escala 1-10
+  plannedIntensity Int  @default(5) // escala 1-10
+  plannedLoad      Int? // UA (sRPE) objetivo semanal
+  notes       String?
+}
+
+model Session {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  coachId     String
+  coach       User     @relation("sessionCoach", fields: [coachId], references: [id], onDelete: Cascade)
+  athleteId   String?
+  athlete     User?    @relation("sessionAthlete", fields: [athleteId], references: [id], onDelete: Cascade)
+  groupId     String?
+  group       Group?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  planId      String?
+  plan        Plan?    @relation(fields: [planId], references: [id], onDelete: SetNull)
+  title       String
+  date        DateTime
+  type        String   @default("FUERZA") // FUERZA, PISTA, TECNICO, RESISTENCIA, RECUPERACION, COMPETENCIA, EVALUACION
+  capacities  String[]
+  durationMin Int      @default(60)
+  targetRpe   Int?
+  notes       String?
+  isDemo      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  items       SessionExercise[]
+  logs        WorkoutLog[]
+}
+
+model SessionExercise {
+  id          String   @id @default(cuid())
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exerciseId  String
+  exercise    Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  order       Int
+  sets        Int      @default(3)
+  reps        String   @default("8")
+  loadKg      Float?
+  percent1RM  Float?
+  targetRir   Int?
+  restSec     Int?
+  tempo       String?
+  notes       String?
+
+  setLogs     SetLog[]
+}
+
+model WorkoutLog {
+  id          String   @id @default(cuid())
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  athleteId   String
+  athlete     User     @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  status      String   @default("COMPLETADO") // COMPLETADO, PARCIAL, AUSENTE, JUSTIFICADO
+  durationMin Int?
+  rpe         Int?     // RPE de sesión (CR-10)
+  load        Int?     // sRPE = rpe * duración (UA)
+  feeling     String?
+  coachComment String?
+  completedAt DateTime @default(now())
+
+  sets        SetLog[]
+
+  @@unique([sessionId, athleteId])
+}
+
+model SetLog {
+  id          String   @id @default(cuid())
+  logId       String
+  log         WorkoutLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+  itemId      String
+  item        SessionExercise @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  setNumber   Int
+  reps        Int?
+  loadKg      Float?
+  rir         Int?
+  rpe         Float?
+  velocity    Float?   // m/s (VBT)
+  timeSec     Float?
+}
+
+model Wellness {
+  id          String   @id @default(cuid())
+  athleteId   String
+  athlete     User     @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  date        DateTime @db.Date
+  sleepHours  Float?
+  sleepQuality Int     // 1-5 (5 = mejor)
+  fatigue     Int      // 1-5 (5 = más fresco)
+  soreness    Int      // 1-5 (5 = sin dolor muscular)
+  stress      Int      // 1-5 (5 = sin estrés)
+  mood        Int      // 1-5
+  readiness   Int      // 1-10 disponibilidad para entrenar
+  painArea    String?
+  notes       String?
+  isDemo      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@unique([athleteId, date])
+}
+
+model Evaluation {
+  id          String   @id @default(cuid())
+  athleteId   String
+  athlete     User     @relation("evalAthlete", fields: [athleteId], references: [id], onDelete: Cascade)
+  coachId     String?
+  coach       User?    @relation("evalCoach", fields: [coachId], references: [id], onDelete: SetNull)
+  testKey     String
+  date        DateTime
+  value       Float
+  unit        String
+  details     Json?
+  notes       String?
+  videoId     String?
+  video       FileAsset? @relation(fields: [videoId], references: [id], onDelete: SetNull)
+  isDemo      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([athleteId, testKey, date])
+}
+
+model Competition {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  athleteId   String?
+  athlete     User?    @relation("compAthlete", fields: [athleteId], references: [id], onDelete: Cascade)
+  groupId     String?
+  group       Group?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  name        String
+  date        DateTime
+  location    String?
+  sport       String   @default("GENERAL")
+  priority    String   @default("B") // A, B, C
+  result      String?
+  mark        String?
+  position    Int?
+  isDemo      Boolean  @default(false)
+}
+
+model Goal {
+  id          String   @id @default(cuid())
+  athleteId   String
+  athlete     User     @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  title       String
+  metric      String?
+  target      Float?
+  current     Float?
+  dueDate     DateTime?
+  weekly      Boolean  @default(false)
+  done        Boolean  @default(false)
+  isDemo      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Conversation {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  kind        String   @default("DIRECT") // DIRECT | GROUP
+  title       String?
+  groupId     String?  @unique
+  group       Group?   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  members     ConversationMember[]
+  messages    Message[]
+}
+
+model ConversationMember {
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadAt     DateTime @default(now())
+
+  @@id([conversationId, userId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body           String
+  fileId         String?
+  file           FileAsset? @relation(fields: [fileId], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+model FileAsset {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  ownerId     String
+  owner       User     @relation("fileOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  athleteId   String?
+  athlete     User?    @relation("fileAthlete", fields: [athleteId], references: [id], onDelete: Cascade)
+  name        String
+  mime        String
+  size        Int
+  storageKey  String   @unique
+  kind        String   // VIDEO | IMAGEN | DOCUMENTO
+  shared      Boolean  @default(false) // visible para todo el equipo de la organización
+  createdAt   DateTime @default(now())
+
+  messages      Message[]
+  evaluations   Evaluation[]
+  analysesA     VideoAnalysis[] @relation("videoA")
+  analysesB     VideoAnalysis[] @relation("videoB")
+}
+
+model VideoAnalysis {
+  id          String   @id @default(cuid())
+  athleteId   String
+  athlete     User     @relation("vaAthlete", fields: [athleteId], references: [id], onDelete: Cascade)
+  videoId     String
+  video       FileAsset @relation("videoA", fields: [videoId], references: [id], onDelete: Cascade)
+  compareId   String?
+  compare     FileAsset? @relation("videoB", fields: [compareId], references: [id], onDelete: SetNull)
+  title       String
+  movement    String?
+  drawings    Json     @default("[]")
+  status      String   @default("PENDIENTE") // PENDIENTE | REVISADO
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  comments    VideoComment[]
+}
+
+model VideoComment {
+  id          String   @id @default(cuid())
+  analysisId  String
+  analysis    VideoAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  atSecond    Float?
+  body        String
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind        String   // MENSAJE, SESION, EVALUACION, ALERTA, COMPETENCIA, VIDEO
+  title       String
+  body        String?
+  link        String?
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([userId, readAt])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action      String   // CREAR, EDITAR, ELIMINAR, LOGIN
+  entity      String
+  entityId    String?
+  summary     String
+  createdAt   DateTime @default(now())
+
+  @@index([orgId, createdAt])
+}

@@ -1,0 +1,14 @@
+import Link from "next/link";
+import { RegisterForm } from "@/components/auth-forms";
+
+export const metadata = { title: "Crear cuenta" };
+
+export default function RegisterPage() {
+  return (
+    <div className="animate-rise">
+      <h1 className="h1">Crear cuenta</h1>
+      <p className="mt-1 mb-6 text-sm muted">Vas a ser el administrador de tu organización. Después podés sumar entrenadores y deportistas. <Link href="/login" className="text-volt hover:underline">Ya tengo cuenta</Link></p>
+      <RegisterForm />
+    </div>
+  );
+}
