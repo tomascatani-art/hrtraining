@@ -84,7 +84,7 @@ Para producción: `npm run build` y luego `npm start`.
 Supabase guarda la base de datos y los archivos (bucket privado `hrtraining`, se crea solo). Vercel corre la app.
 Los videos se suben directo del navegador a Supabase con un enlace temporal, así que no pasan por el límite de tamaño de Vercel.
 
-1. **Supabase** → New project (región São Paulo). Anotar la contraseña de la base.
+1. **Supabase** → New project (idealmente región São Paulo; si queda en otra, poner la misma región en `vercel.json` → `regions`). Anotar la contraseña de la base.
    - *Connect* → **Session pooler** → copiar la URI y agregarle `?connection_limit=1` al final: esa es `DATABASE_URL`.
    - *Project Settings → API*: copiar la **Project URL** (`SUPABASE_URL`) y la clave **service_role** (`SUPABASE_SERVICE_ROLE_KEY`, pestaña "Legacy API keys"; es secreta, va solo en Vercel).
 2. **Vercel** → Add New → Project → importar el repo `hrtraining`. Antes de *Deploy*, cargar las variables:
