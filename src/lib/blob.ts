@@ -15,7 +15,8 @@ const safe = (key: string) => path.basename(key);
 async function sb(pathname: string, init: RequestInit = {}) {
   const r = await fetch(`${SB_URL}/storage/v1${pathname}`, {
     ...init,
-    headers: { Authorization: `Bearer ${SB_KEY}`, apikey: SB_KEY, ...(init.headers ?? {}) },
+    // Claves nuevas (sb_secret_…) van solo en "apikey"; las legacy (JWT eyJ…) también como Bearer
+    headers: { apikey: SB_KEY, ...(SB_KEY.startsWith("eyJ") ? { Authorization: `Bearer ${SB_KEY}` } : {}), ...(init.headers ?? {}) },
     cache: "no-store",
   });
   return r;
