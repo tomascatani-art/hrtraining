@@ -208,7 +208,7 @@ async function AthleteHome({ userId, name }: { userId: string; name: string }) {
         actions={streak > 0 ? <div className="flex items-center gap-2 rounded-xl border border-volt/40 bg-volt/10 px-4 py-2"><Flame size={18} className="text-volt" /><span className="num text-2xl font-bold text-white">{streak}</span><span className="text-xs leading-tight text-neutral-300">{streak === 1 ? "sesión" : "sesiones"}<br />seguidas</span></div> : undefined} />
       {feeDue && (
         <Link href="/app/paused" className="card card-pad mb-6 flex items-center gap-3 border-red-500/40 card-hover">
-          <div className="flex-1 text-sm"><b className="text-white">Cuota de {monthLabel(monthKey()).toLowerCase()} pendiente</b><div className="muted">Vence el día {fee.org!.feeDueDay}. Tocá para ver cómo regularizarla.</div></div>
+          <div className="flex-1 text-sm"><b className="text-white">Cuota de {monthLabel(monthKey()).toLowerCase()} pendiente</b><div className="muted">Vence el día {fee.org!.feeDueDay}. Tocá para pagarla o ver cómo regularizarla.</div></div>
           <span className="num font-semibold text-white">$ {fee.amount!.toLocaleString("es-AR", { maximumFractionDigits: 0 })}</span>
         </Link>
       )}

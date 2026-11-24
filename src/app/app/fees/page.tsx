@@ -69,7 +69,7 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
                   <Avatar name={a.name} size={34} />
                   <div className="min-w-[150px] flex-1">
                     <Link href={`/app/athletes/${a.id}`} className="font-semibold text-white hover:text-volt">{a.name}</Link> {a.isDemo && <DemoBadge />}
-                    <div className="text-xs muted">{money(amount)}{fee?.paidAt && status === "PAGADO" ? ` · pagó el ${fmtDate(fee.paidAt)}` : ""}{paused ? " · cuenta pausada" : ""}</div>
+                    <div className="text-xs muted">{money(amount)}{fee?.paidAt && status === "PAGADO" ? ` · pagó el ${fmtDate(fee.paidAt)}${fee.paidVia === "MERCADOPAGO" ? " por Mercado Pago" : ""}` : ""}{paused ? " · cuenta pausada" : ""}</div>
                   </div>
                   <span className={STATUS[status].cls}>{STATUS[status].label}</span>
                   <div className="flex flex-wrap gap-1">

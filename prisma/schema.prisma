@@ -22,6 +22,13 @@ model Organization {
   whatsapp  String? // número de contacto para cuotas (formato internacional, solo dígitos)
   feeDueDay Int      @default(10)
   feeAmount Float? // cuota mensual por defecto
+  // Marca propia del club
+  slug       String? @unique // enlace de ingreso: /c/<slug>
+  brandName  String?
+  brandColor String? // hex claro (texto negro encima)
+  logoKey    String? // archivo en el almacenamiento
+  logoMime   String?
+  mpToken    String? // Access Token de Mercado Pago, cifrado (lib/secret.ts)
 
   users         User[]
   fees          Fee[]
@@ -63,6 +70,8 @@ model User {
   notifications       Notification[]
   files               FileAsset[]          @relation("fileOwner")
   athleteFiles        FileAsset[]          @relation("fileAthlete")
+  anthropometry       Anthropometry[]      @relation("anthroAthlete")
+  anthropometryDone   Anthropometry[]      @relation("anthroBy")
   videoAnalyses       VideoAnalysis[]      @relation("vaAthlete")
   videoComments       VideoComment[]
   sessionsAssigned    Session[]            @relation("sessionAthlete")
@@ -521,9 +530,42 @@ model Fee {
   status    String       @default("PENDIENTE") // PENDIENTE, PAGADO, BONIFICADO
   paidAt    DateTime?
   note      String?
+  paidVia     String? // MANUAL | MERCADOPAGO
+  mpPaymentId String? @unique
   isDemo    Boolean      @default(false)
   createdAt DateTime     @default(now())
 
   @@unique([athleteId, period])
   @@index([orgId, period])
+}
+
+/// Medición antropométrica (pliegues en mm, perímetros y tallas en cm). Seguimiento, no diagnóstico.
+model Anthropometry {
+  id              String   @id @default(cuid())
+  athleteId       String
+  athlete         User     @relation("anthroAthlete", fields: [athleteId], references: [id], onDelete: Cascade)
+  measuredById    String?
+  measuredBy      User?    @relation("anthroBy", fields: [measuredById], references: [id], onDelete: SetNull)
+  date            DateTime
+  weightKg        Float?
+  heightCm        Float?
+  sittingHeightCm Float?
+  armSpanCm       Float?
+  triceps         Float?
+  subscapular     Float?
+  supraspinale    Float?
+  abdominal       Float?
+  thigh           Float?
+  calf            Float?
+  armRelaxedCm    Float?
+  armFlexedCm     Float?
+  waistCm         Float?
+  hipCm           Float?
+  thighMidCm      Float?
+  calfGirthCm     Float?
+  note            String?
+  isDemo          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([athleteId, date])
 }

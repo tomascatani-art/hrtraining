@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { canSeeAthlete } from "@/lib/access";
 import { SPORTS, sportLabel } from "@/lib/catalog";
 import { FolderPanel } from "@/components/folder-panel";
+import { AnthropometryPanel } from "@/components/anthropometry-panel";
 import { Avatar, DemoBadge, Tabs, Card, Field } from "@/components/ui";
 import { Submit, CopyField } from "@/components/forms";
 import { LoadPanel, EvalPanel, HistoryPanel, GoalsPanel } from "@/components/athlete-panels";
@@ -66,10 +67,12 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
         { key: "evaluaciones", label: "Evaluaciones", href: `${base}?tab=evaluaciones` },
         { key: "historial", label: "Historial", href: `${base}?tab=historial` },
         { key: "objetivos", label: "Objetivos", href: `${base}?tab=objetivos` },
+        { key: "antropometria", label: "Antropometría", href: `${base}?tab=antropometria` },
         { key: "carpeta", label: "Carpeta", href: `${base}?tab=carpeta` },
       ]} />
 
       {tab === "carga" && <LoadPanel athleteId={id} />}
+      {tab === "antropometria" && <AnthropometryPanel athleteId={id} canEdit />}
       {tab === "carpeta" && <FolderPanel athleteId={id} viewerId={u.id} staff base={`${base}?tab=carpeta`} active={sp.carpeta} />}
       {tab === "rm" && <RMPanel athleteId={id} viewer="COACH" />}
       {tab === "evaluaciones" && <EvalPanel athleteId={id} canEdit />}

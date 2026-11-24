@@ -48,7 +48,7 @@ export async function createDemo(db: PrismaClient) {
   await deleteDemo(db);
   const r = rng(42);
   const hash = await bcrypt.hash("demo1234", 10);
-  const org = await db.organization.create({ data: { name: "Club Demo Hrtraining", isDemo: true, feeAmount: 25000, feeDueDay: 10 } });
+  const org = await db.organization.create({ data: { slug: "club-demo", name: "Club Demo Hrtraining", isDemo: true, feeAmount: 25000, feeDueDay: 10 } });
 
   const coach = await db.user.create({ data: { orgId: org.id, email: "entrenador.demo@hrtraining.co", name: "Martina Demo", role: "ADMIN", passwordHash: hash, isDemo: true } });
   const coach2 = await db.user.create({ data: { orgId: org.id, email: "preparador.demo@hrtraining.co", name: "Joaquín Demo", role: "COACH", passwordHash: hash, isDemo: true } });
@@ -271,6 +271,26 @@ export async function createDemo(db: PrismaClient) {
     if (!pending) await db.fee.create({ data: { orgId: org.id, athleteId: a.id, period: cur, amount: a.name.startsWith("Valentina") ? 0 : 25000, status: a.name.startsWith("Valentina") ? "BONIFICADO" : "PAGADO", paidAt: new Date(now0.getFullYear(), now0.getMonth(), Math.min(now0.getDate(), 2 + i)), isDemo: true } });
   }
   await db.athleteProfile.updateMany({ where: { user: { name: "Nicolás Demo", orgId: org.id } }, data: { paused: true } });
+
+  // ---- Antropometría (DEMO, valores ficticios) ----
+  {
+    const series: [number, number, number[], number[]][] = [
+      // [índice deportista, peso, 6 pliegues, perímetros brazo relajado/flexionado/cintura/cadera/muslo/pantorrilla]
+      [0, 58.8, [10, 9, 7, 13, 16, 9], [26.1, 27.6, 66.0, 92.0, 51.4, 34.8]],
+      [0, 58.4, [10, 8, 7, 12, 15, 9], [26.2, 27.8, 65.5, 91.8, 51.6, 34.9]],
+      [0, 58.1, [9, 8, 6, 12, 15, 8], [26.4, 28.0, 65.2, 91.5, 51.8, 35.0]],
+      [0, 58.0, [9, 8, 6, 11, 14, 8], [26.5, 28.2, 65.0, 91.4, 52.0, 35.0]],
+    ];
+    for (const [i, [ai, w, sk, pe]] of series.entries()) {
+      const [triceps, subscapular, supraspinale, abdominal, thigh, calf] = sk;
+      const [armRelaxedCm, armFlexedCm, waistCm, hipCm, thighMidCm, calfGirthCm] = pe;
+      await db.anthropometry.create({ data: { athleteId: athletes[ai].id, measuredById: coach.id, date: day0(-42 * (series.length - 1 - i) - 3), weightKg: w, heightCm: 168, sittingHeightCm: 88, armSpanCm: 171, triceps, subscapular, supraspinale, abdominal, thigh, calf, armRelaxedCm, armFlexedCm, waistCm, hipCm, thighMidCm, calfGirthCm, note: i === 0 ? "Medición inicial (DEMO)" : null, isDemo: true } });
+    }
+    const mateo = athletes.find((a) => a.name.startsWith("Mateo"));
+    if (mateo) for (const [i, w] of [78.5, 79.2, 79.6].entries()) {
+      await db.anthropometry.create({ data: { athleteId: mateo.id, measuredById: coach.id, date: day0(-56 * (2 - i) - 5), weightKg: w, heightCm: 180, triceps: 8 - i * 0.5, subscapular: 10, supraspinale: 7, abdominal: 12 - i, thigh: 11, calf: 7, armFlexedCm: 35 + i * 0.4, waistCm: 80, isDemo: true } });
+    }
+  }
 
   // ---- Carpeta del perfil: un documento de ejemplo (DEMO, valores ficticios) ----
   {

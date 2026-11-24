@@ -18,8 +18,8 @@ export async function setFeeStatus(fd: FormData) {
   const amount = amountRaw ? Number(amountRaw.replace(",", ".")) : undefined;
   await db.fee.upsert({
     where: { athleteId_period: { athleteId, period } },
-    create: { orgId: u.orgId, athleteId, period, status, amount: amount ?? null, paidAt: status === "PAGADO" ? new Date() : null },
-    update: { status, ...(amount !== undefined ? { amount } : {}), paidAt: status === "PAGADO" ? new Date() : null },
+    create: { orgId: u.orgId, athleteId, period, status, amount: amount ?? null, paidAt: status === "PAGADO" ? new Date() : null, paidVia: status === "PAGADO" ? "MANUAL" : null },
+    update: { status, ...(amount !== undefined ? { amount } : {}), paidAt: status === "PAGADO" ? new Date() : null, paidVia: status === "PAGADO" ? "MANUAL" : null },
   });
   // Al marcar «Pagó», la cuenta pausada se reactiva sola
   if (status !== "PENDIENTE") await db.athleteProfile.update({ where: { userId: athleteId }, data: { paused: false } });

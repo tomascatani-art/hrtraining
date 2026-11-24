@@ -62,10 +62,11 @@ const pick = (items: Item[], hrefs: string[]) => hrefs.map((h) => items.find((i)
 const isActive = (path: string, href: string) => (href === "/app" ? path === "/app" : path.startsWith(href));
 
 export function Shell({
-  user, unreadMessages, unreadNotifications, isDemo, paused = false, children,
+  user, unreadMessages, unreadNotifications, isDemo, paused = false, brand, children,
 }: {
   user: { name: string; role: string; org: string };
   unreadMessages: number; unreadNotifications: number; isDemo: boolean; paused?: boolean; children: React.ReactNode;
+  brand?: { name: string; logo?: string | null } | null;
 }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
@@ -97,7 +98,7 @@ export function Shell({
     <div className="min-h-dvh lg:pl-64">
       {/* Sidebar escritorio */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-ink-700 bg-ink-950 lg:flex">
-        <div className="flex h-16 items-center px-5"><Link href="/app"><Logo /></Link></div>
+        <div className="flex h-16 min-w-0 items-center px-5"><Link href="/app" className="min-w-0"><Logo brand={brand} /></Link></div>
         <div className="mx-4 mb-3 rounded-xl border border-ink-700 bg-ink-900 px-3 py-2">
           <div className="label">Organización</div>
           <div className="truncate text-sm font-semibold text-white">{user.org}</div>
@@ -112,12 +113,13 @@ export function Shell({
             </div>
             <form action={logoutAction}><button className="rounded-lg p-2 text-neutral-500 hover:bg-ink-800 hover:text-white" title="Cerrar sesión"><LogOut size={16} /></button></form>
           </div>
+          {brand && <div className="px-2 pt-1 text-[11px] text-neutral-600">Con tecnología Hrtraining.co</div>}
         </div>
       </aside>
 
       {/* Barra superior */}
       <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-ink-700 bg-ink-950/85 px-4 backdrop-blur lg:h-16 lg:px-8">
-        <div className="lg:hidden"><Link href="/app"><Logo size={28} /></Link></div>
+        <div className="min-w-0 lg:hidden"><Link href="/app" className="min-w-0"><Logo size={28} brand={brand} /></Link></div>
         {isDemo && (
           <div className="hidden sm:flex items-center gap-2 rounded-full border border-volt/40 bg-volt/10 px-3 py-1 text-xs text-volt">
             <span className="h-1.5 w-1.5 rounded-full bg-volt animate-pulse" /> Modo demostración: datos ficticios

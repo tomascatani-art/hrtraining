@@ -21,6 +21,9 @@ Plataforma de entrenamiento de alto rendimiento para entrenadores, preparadores 
 | **Cuotas** | Estado de pago mensual, cuota propia por deportista, recordatorio, bonificación y pausa de cuenta (el deportista solo ve su cuota y el chat; al marcar «Pagó» se reactiva). Contacto por WhatsApp. |
 | **Herramientas** | Temporizador por intervalos (Tabata, EMOM, 30/30), calculadora de fuerza con tabla de % y discos por lado, y estimación de energía y macros. |
 | **Carpeta del deportista** | Documentos por perfil en secciones (Antropometría, Estudios médicos, Nutrición, Evaluaciones externas, Fotos de seguimiento, Otros) con nota. Solo los ven el deportista y sus entrenadores; la app no interpreta estudios médicos. |
+| **Antropometría** | Mediciones por fecha (peso, tallas, 6 pliegues, perímetros), sumatoria de 6 pliegues, evolución en gráficos e historial. La carga el entrenador; el deportista la ve en Mi carpeta. Seguimiento, no diagnóstico. |
+| **Marca propia** | Nombre, logo y color de acento del club en toda la app, pantalla de ingreso propia en `/c/<enlace>` e invitaciones con la marca. El color se valida para que el texto negro se lea bien. |
+| **Cobro con Mercado Pago** | Cada club conecta su Access Token (se guarda cifrado con AES-256-GCM). El deportista paga su cuota desde la app (Checkout Pro); el pago se verifica consultando a Mercado Pago, la cuota se marca pagada, se reactiva la cuenta y se avisa al entrenador. Aviso automático en `/api/payments/mercadopago` cuando la app está publicada con https. |
 | **Uso en celular** | Diseño adaptable a computadora y celular; en el celular la biblioteca de ejercicios se abre a pantalla completa para armar sesiones. Se puede instalar en la pantalla de inicio (manifest web). |
 | **Comunicación** | Chats directos y grupales con adjuntos, avisos masivos y notificaciones. |
 | **Estadísticas e informes** | Comparación de períodos, asistencia, cumplimiento e informe imprimible en PDF por deportista. |

@@ -1,7 +1,20 @@
 import Link from "next/link";
 import clsx from "clsx";
 
-export function Logo({ size = 32, withText = true }: { size?: number; withText?: boolean }) {
+export function Logo({ size = 32, withText = true, brand }: { size?: number; withText?: boolean; brand?: { name: string; logo?: string | null } | null }) {
+  if (brand) {
+    return (
+      <span className="inline-flex min-w-0 items-center gap-2.5">
+        {brand.logo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={brand.logo} alt="" width={size} height={size} className="shrink-0 rounded-[10px] bg-white/5 object-contain" style={{ width: size, height: size }} />
+        ) : (
+          <span className="grid shrink-0 place-items-center rounded-[10px] bg-volt font-display font-bold text-black" style={{ width: size, height: size, fontSize: size * 0.45 }}>{brand.name.trim().charAt(0).toUpperCase()}</span>
+        )}
+        {withText && <span className="truncate font-display text-[17px] font-bold tracking-tight text-white">{brand.name}</span>}
+      </span>
+    );
+  }
   return (
     <span className="inline-flex items-center gap-2.5">
       <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden>

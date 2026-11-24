@@ -2,13 +2,19 @@ import { requireUser } from "@/lib/auth";
 import { sportLabel } from "@/lib/catalog";
 import { PageHeader, Card, Field } from "@/components/ui";
 import { Submit } from "@/components/forms";
-import { updateProfile, changePassword, updateOrg } from "./actions";
+import { headers } from "next/headers";
+import { updateProfile, changePassword, updateOrg, updateBrand } from "./actions";
+import { BrandColorPicker } from "@/components/brand-color";
+import { Logo } from "@/components/ui";
+import { DEFAULT_ACCENT, logoUrl } from "@/lib/brand";
 
 export const metadata = { title: "Ajustes" };
 
 export default async function SettingsPage() {
   const u = await requireUser();
   const p = u.athleteProfile;
+  const h = await headers();
+  const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
   return (
     <>
       <PageHeader title={u.role === "ATHLETE" ? "Mi perfil" : "Ajustes"} />
@@ -45,7 +51,35 @@ export default async function SettingsPage() {
                 <Field label="Cuota mensual"><input name="feeAmount" inputMode="decimal" defaultValue={u.org.feeAmount ?? ""} className="input" placeholder="Ej: 25000" /></Field>
                 <Field label="Vence el día"><input name="feeDueDay" type="number" min={1} max={28} defaultValue={u.org.feeDueDay} className="input" /></Field>
               </div>
+              <div className="rounded-xl border border-ink-700 p-3">
+                <Field label="Mercado Pago: Access Token de producción" hint="Lo sacás en Mercado Pago Developers › Tus integraciones › Credenciales de producción. Se guarda cifrado y no se vuelve a mostrar.">
+                  <input name="mpToken" type="password" autoComplete="off" className="input" placeholder={u.org.mpToken ? "Configurado · dejalo vacío para mantenerlo" : "APP_USR-…"} />
+                </Field>
+                {u.org.mpToken ? <label className="mt-2 flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" name="mpRemove" value="1" />Desconectar Mercado Pago</label>
+                  : <p className="mt-2 text-xs muted">Con esto tus deportistas pagan la cuota desde la app y se marca sola como pagada.</p>}
+              </div>
               <Submit>Guardar</Submit>
+            </form>
+          </Card>
+        )}
+        {u.role === "ADMIN" && (
+          <Card title="Marca del club" className="lg:col-span-2">
+            <form action={updateBrand} className="grid gap-5 lg:grid-cols-2">
+              <div className="space-y-3">
+                <Field label="Nombre que ven tus deportistas" hint="Si lo dejás vacío se usa Hrtraining.co"><input name="brandName" defaultValue={u.org.brandName ?? ""} maxLength={60} className="input" placeholder={u.org.name} /></Field>
+                <Field label="Enlace de ingreso del club" hint={u.org.slug ? `${origin}/c/${u.org.slug}` : "Ej: hernan-training (solo letras, números y guiones)"}><input name="slug" defaultValue={u.org.slug ?? ""} maxLength={40} className="input" placeholder="nombre-del-club" /></Field>
+                <Field label="Logo (PNG, JPG o WebP, hasta 2 MB)"><input name="logo" type="file" accept="image/png,image/jpeg,image/webp" className="input file:mr-3 file:rounded-lg file:border-0 file:bg-ink-700 file:px-3 file:py-1 file:text-white" /></Field>
+                {u.org.logoKey && <label className="flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" name="removeLogo" value="1" />Quitar el logo actual</label>}
+              </div>
+              <div className="space-y-3">
+                <span className="label block">Color de acento</span>
+                <BrandColorPicker initial={u.org.brandColor ?? DEFAULT_ACCENT} />
+                <div className="rounded-xl border border-ink-700 p-3">
+                  <span className="label mb-2 block">Así se ve hoy</span>
+                  <Logo brand={u.org.brandName || u.org.logoKey ? { name: u.org.brandName || u.org.name, logo: logoUrl(u.org) } : null} />
+                </div>
+              </div>
+              <div className="lg:col-span-2"><Submit>Guardar marca</Submit></div>
             </form>
           </Card>
         )}

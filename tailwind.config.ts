@@ -6,7 +6,7 @@ export default {
     extend: {
       colors: {
         ink: { 950: "#050505", 900: "#0a0a0a", 850: "#111111", 800: "#171717", 700: "#222222", 600: "#2e2e2e", 500: "#404040" },
-        volt: { DEFAULT: "#ffd60a", 400: "#ffe24d", 600: "#e6b800" },
+        volt: { DEFAULT: "rgb(var(--volt) / <alpha-value>)", 400: "rgb(var(--volt-400) / <alpha-value>)", 600: "rgb(var(--volt-600) / <alpha-value>)" },
         pulse: { DEFAULT: "#f5f5f4", 600: "#a8a29e" },
         ember: { DEFAULT: "#ff6b3d" },
         orchid: { DEFAULT: "#a78bfa" },

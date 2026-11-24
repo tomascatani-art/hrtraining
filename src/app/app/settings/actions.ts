@@ -3,6 +3,9 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser, hashPassword, verifyPassword } from "@/lib/auth";
 import { audit } from "@/lib/access";
+import { putFile, removeFile } from "@/lib/storage";
+import { encryptSecret } from "@/lib/secret";
+import { normalizeHex, contrastWithBlack, MIN_CONTRAST, DEFAULT_ACCENT } from "@/lib/brand";
 
 export async function updateProfile(fd: FormData) {
   const u = await requireUser();
@@ -29,7 +32,44 @@ export async function updateOrg(fd: FormData) {
   const whatsapp = String(fd.get("whatsapp") ?? "").replace(/\D/g, "") || null;
   const feeAmount = String(fd.get("feeAmount") ?? "").trim() ? Number(String(fd.get("feeAmount")).replace(",", ".")) : null;
   const feeDueDay = Math.min(28, Math.max(1, Number(fd.get("feeDueDay") ?? 10) || 10));
-  await db.organization.update({ where: { id: u.orgId }, data: { name, whatsapp, feeAmount: feeAmount != null && feeAmount >= 0 ? feeAmount : null, feeDueDay } });
+  const mpIn = String(fd.get("mpToken") ?? "").trim();
+  if (mpIn && !/^(APP_USR|TEST)-[\w-]{20,}$/.test(mpIn)) throw new Error("El Access Token de Mercado Pago empieza con APP_USR- (o TEST- para pruebas)");
+  const mp = fd.get("mpRemove") === "1" ? { mpToken: null } : mpIn ? { mpToken: encryptSecret(mpIn) } : {};
+  await db.organization.update({ where: { id: u.orgId }, data: { name, whatsapp, feeAmount: feeAmount != null && feeAmount >= 0 ? feeAmount : null, feeDueDay, ...mp } });
   await audit(u, "EDITAR", "Organización", `Nuevo nombre: ${name}`);
   revalidatePath("/app", "layout");
+}
+
+const LOGO_TYPES = ["image/png", "image/jpeg", "image/webp"];
+
+/** Marca propia: nombre visible, enlace de ingreso, color de acento y logo. */
+export async function updateBrand(fd: FormData) {
+  const u = await requireUser(["ADMIN"]);
+  const org = await db.organization.findUniqueOrThrow({ where: { id: u.orgId } });
+  const brandName = String(fd.get("brandName") ?? "").trim().slice(0, 60) || null;
+  const rawSlug = String(fd.get("slug") ?? "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+  const slug = rawSlug.length >= 3 ? rawSlug : null;
+  if (slug && (await db.organization.count({ where: { slug, id: { not: org.id } } }))) throw new Error("Ese enlace ya lo usa otro club. Probá con otro.");
+  const colorIn = String(fd.get("brandColor") ?? "").trim();
+  let brandColor: string | null = null;
+  if (colorIn) {
+    const hex = normalizeHex(colorIn);
+    if (!hex) throw new Error("Color inválido");
+    if (contrastWithBlack(hex) < MIN_CONTRAST) throw new Error("Elegí un color más claro: los botones llevan texto negro y tiene que leerse bien.");
+    brandColor = hex.toLowerCase() === DEFAULT_ACCENT ? null : hex;
+  }
+  const data: Record<string, unknown> = { brandName, slug, brandColor };
+  const file = fd.get("logo");
+  if (file instanceof File && file.size > 0) {
+    if (!LOGO_TYPES.includes(file.type)) throw new Error("El logo tiene que ser PNG, JPG o WebP");
+    if (file.size > 2 * 1024 * 1024) throw new Error("El logo supera los 2 MB");
+    data.logoKey = await putFile(Buffer.from(await file.arrayBuffer()), file.name);
+    data.logoMime = file.type;
+  }
+  if (fd.get("removeLogo") === "1") { data.logoKey = null; data.logoMime = null; }
+  await db.organization.update({ where: { id: org.id }, data });
+  if (org.logoKey && "logoKey" in data) await removeFile(org.logoKey);
+  await audit(u, "EDITAR", "Organización", "Marca del club actualizada");
+  revalidatePath("/app", "layout");
+  if (slug) revalidatePath(`/c/${slug}`);
 }
