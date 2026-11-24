@@ -3,9 +3,10 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UploadCloud } from "lucide-react";
 
-export function Uploader({ athletes, accept, defaultAthlete, allowShare, label = "Subir archivo", onUploaded, compact }: {
+export function Uploader({ athletes, accept, defaultAthlete, allowShare, label = "Subir archivo", onUploaded, compact, folders, defaultFolder }: {
   athletes?: { id: string; name: string }[]; accept?: string; defaultAthlete?: string; allowShare?: boolean; label?: string;
   onUploaded?: (f: { id: string; name: string; kind: string }) => void; compact?: boolean;
+  folders?: { key: string; label: string }[]; defaultFolder?: string;
 }) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
@@ -14,6 +15,8 @@ export function Uploader({ athletes, accept, defaultAthlete, allowShare, label =
   const [progress, setProgress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [drag, setDrag] = useState(false);
+  const [folder, setFolder] = useState(defaultFolder ?? folders?.[0]?.key ?? "");
+  const [note, setNote] = useState("");
 
   const send = (file: File) => {
     setError(null);
@@ -21,6 +24,8 @@ export function Uploader({ athletes, accept, defaultAthlete, allowShare, label =
     fd.append("file", file);
     if (athleteId) fd.append("athleteId", athleteId);
     fd.append("shared", String(shared));
+    if (folders && folder) fd.append("folder", folder);
+    if (folders && note.trim()) fd.append("note", note.trim());
     const xhr = new XMLHttpRequest();
     xhr.open("POST", "/api/files/upload");
     xhr.upload.onprogress = (e) => e.lengthComputable && setProgress(Math.round((e.loaded / e.total) * 100));
@@ -28,6 +33,7 @@ export function Uploader({ athletes, accept, defaultAthlete, allowShare, label =
       setProgress(null);
       const res = JSON.parse(xhr.responseText || "{}");
       if (xhr.status >= 300) return setError(res.error ?? "No se pudo subir el archivo");
+      setNote("");
       onUploaded?.(res);
       router.refresh();
     };
@@ -42,6 +48,14 @@ export function Uploader({ athletes, accept, defaultAthlete, allowShare, label =
           <option value="">Sin deportista asociado</option>
           {athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
         </select>
+      )}
+      {folders && (
+        <>
+          <select value={folder} onChange={(e) => setFolder(e.target.value)} className="input" aria-label="Carpeta">
+            {folders.map((f) => <option key={f.key} value={f.key}>{f.label}</option>)}
+          </select>
+          <input value={note} onChange={(e) => setNote(e.target.value)} className="input" maxLength={300} placeholder="Nota opcional (ej.: medición de marzo, hecha por la nutricionista)" aria-label="Nota" />
+        </>
       )}
       {allowShare && <label className="flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" checked={shared} onChange={(e) => setShared(e.target.checked)} />Compartir con toda la organización</label>}
       <div

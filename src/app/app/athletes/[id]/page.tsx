@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { canSeeAthlete } from "@/lib/access";
 import { SPORTS, sportLabel } from "@/lib/catalog";
+import { FolderPanel } from "@/components/folder-panel";
 import { Avatar, DemoBadge, Tabs, Card, Field } from "@/components/ui";
 import { Submit, CopyField } from "@/components/forms";
 import { LoadPanel, EvalPanel, HistoryPanel, GoalsPanel } from "@/components/athlete-panels";
@@ -13,7 +14,7 @@ import { RMPanel } from "@/components/rm-panel";
 import { TrainingInsights } from "@/components/insights";
 import { updateAthlete, regenerateInvite } from "../actions";
 
-export default async function AthleteDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; invitado?: string }> }) {
+export default async function AthleteDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; invitado?: string; carpeta?: string }> }) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const { id } = await params;
   const sp = await searchParams;
@@ -65,9 +66,11 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
         { key: "evaluaciones", label: "Evaluaciones", href: `${base}?tab=evaluaciones` },
         { key: "historial", label: "Historial", href: `${base}?tab=historial` },
         { key: "objetivos", label: "Objetivos", href: `${base}?tab=objetivos` },
+        { key: "carpeta", label: "Carpeta", href: `${base}?tab=carpeta` },
       ]} />
 
       {tab === "carga" && <LoadPanel athleteId={id} />}
+      {tab === "carpeta" && <FolderPanel athleteId={id} viewerId={u.id} staff base={`${base}?tab=carpeta`} active={sp.carpeta} />}
       {tab === "rm" && <RMPanel athleteId={id} viewer="COACH" />}
       {tab === "evaluaciones" && <EvalPanel athleteId={id} canEdit />}
       {tab === "historial" && <><TrainingInsights athleteId={id} /><HistoryPanel athleteId={id} /></>}

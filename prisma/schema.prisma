@@ -410,6 +410,8 @@ model FileAsset {
   size       Int
   storageKey String       @unique
   kind       String // VIDEO | IMAGEN | DOCUMENTO
+  folder     String? // carpeta del perfil: ANTROPOMETRIA | ESTUDIOS | NUTRICION | EVALUACIONES | FOTOS | OTROS
+  note       String?
   shared     Boolean      @default(false) // visible para todo el equipo de la organización
   createdAt  DateTime     @default(now())
 

@@ -20,6 +20,8 @@ Plataforma de entrenamiento de alto rendimiento para entrenadores, preparadores 
 | **Panel «Hoy»** | Quién entrenó hoy, quién marcó dolor o molestia en los últimos 2 días y los RM nuevos que cargaron los deportistas. Racha de constancia y gráfico de sensaciones para el deportista. |
 | **Cuotas** | Estado de pago mensual, cuota propia por deportista, recordatorio, bonificación y pausa de cuenta (el deportista solo ve su cuota y el chat; al marcar «Pagó» se reactiva). Contacto por WhatsApp. |
 | **Herramientas** | Temporizador por intervalos (Tabata, EMOM, 30/30), calculadora de fuerza con tabla de % y discos por lado, y estimación de energía y macros. |
+| **Carpeta del deportista** | Documentos por perfil en secciones (Antropometría, Estudios médicos, Nutrición, Evaluaciones externas, Fotos de seguimiento, Otros) con nota. Solo los ven el deportista y sus entrenadores; la app no interpreta estudios médicos. |
+| **Uso en celular** | Diseño adaptable a computadora y celular; en el celular la biblioteca de ejercicios se abre a pantalla completa para armar sesiones. Se puede instalar en la pantalla de inicio (manifest web). |
 | **Comunicación** | Chats directos y grupales con adjuntos, avisos masivos y notificaciones. |
 | **Estadísticas e informes** | Comparación de períodos, asistencia, cumplimiento e informe imprimible en PDF por deportista. |
 | **Asistente** | Generador de semanas de entrenamiento basado en reglas y en el historial. La propuesta siempre la revisa el entrenador antes de crearse. |

@@ -1,0 +1,2 @@
+ALTER TABLE "FileAsset" ADD COLUMN "folder" TEXT;
+ALTER TABLE "FileAsset" ADD COLUMN "note" TEXT;

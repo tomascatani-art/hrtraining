@@ -183,3 +183,15 @@ export const BLOCKS: Record<string, { label: string; color: string }> = {
 
 /** Frases rápidas para que el deportista anote cómo le fue en un ejercicio con un toque. */
 export const QUICK_NOTES = ["Me sentí bien", "Me costó", "Salió fácil", "Con energía", "Cansado/a", "Dolor o molestia", "Subí el peso", "Bajé el peso"];
+
+// Carpeta por deportista: secciones para ordenar documentos del perfil.
+export const PROFILE_FOLDERS = [
+  { key: "ANTROPOMETRIA", label: "Antropometría", hint: "Mediciones, pliegues, composición corporal" },
+  { key: "ESTUDIOS", label: "Estudios médicos", hint: "Aptos, análisis, informes de profesionales" },
+  { key: "NUTRICION", label: "Nutrición", hint: "Planes y seguimientos" },
+  { key: "EVALUACIONES", label: "Evaluaciones externas", hint: "Tests hechos fuera de la app" },
+  { key: "FOTOS", label: "Fotos de seguimiento", hint: "Fotos de evolución" },
+  { key: "OTROS", label: "Otros", hint: "Todo lo demás" },
+] as const;
+export type FolderKey = (typeof PROFILE_FOLDERS)[number]["key"];
+export const folderLabel = (k?: string | null) => PROFILE_FOLDERS.find((f) => f.key === k)?.label ?? "Otros";

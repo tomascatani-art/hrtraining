@@ -9,6 +9,9 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 export const metadata: Metadata = {
   title: { default: "Hrtraining.co — Rendimiento deportivo", template: "%s · Hrtraining.co" },
   description: "Planificación, evaluaciones, control de cargas y análisis de rendimiento para entrenadores y deportistas.",
+  applicationName: "Hrtraining.co",
+  appleWebApp: { capable: true, title: "Hrtraining", statusBarStyle: "black-translucent" },
+  icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
 };
 export const viewport: Viewport = { themeColor: "#050505", width: "device-width", initialScale: 1, viewportFit: "cover" };
 

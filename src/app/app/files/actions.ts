@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { audit } from "@/lib/access";
 import { canAccessFile, removeFile } from "@/lib/storage";
+import { PROFILE_FOLDERS } from "@/lib/catalog";
 
 export async function deleteFile(fd: FormData) {
   const u = await requireUser();
@@ -15,6 +16,8 @@ export async function deleteFile(fd: FormData) {
   await audit(u, "ELIMINAR", "Archivo", f.name, f.id);
   revalidatePath("/app/files");
   revalidatePath("/app/videos");
+  revalidatePath("/app/folder");
+  if (f.athleteId) revalidatePath(`/app/athletes/${f.athleteId}`);
 }
 
 export async function toggleShare(fd: FormData) {
@@ -23,4 +26,16 @@ export async function toggleShare(fd: FormData) {
   if (!f || f.orgId !== u.orgId) return;
   await db.fileAsset.update({ where: { id: f.id }, data: { shared: !f.shared } });
   revalidatePath("/app/files");
+}
+
+export async function moveFile(fd: FormData) {
+  const u = await requireUser();
+  const f = await db.fileAsset.findUnique({ where: { id: String(fd.get("id")) } });
+  if (!f || !f.athleteId || !(await canAccessFile(u, f))) throw new Error("Archivo no encontrado");
+  if (u.role === "ATHLETE" && f.ownerId !== u.id) throw new Error("Solo podés mover tus archivos");
+  const folder = String(fd.get("folder"));
+  if (!PROFILE_FOLDERS.some((x) => x.key === folder)) return;
+  await db.fileAsset.update({ where: { id: f.id }, data: { folder, shared: false } });
+  revalidatePath(`/app/athletes/${f.athleteId}`);
+  revalidatePath("/app/folder");
 }

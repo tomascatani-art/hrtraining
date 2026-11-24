@@ -3,6 +3,8 @@
 // Los nombres terminan en "Demo" para que nunca se confundan con personas reales.
 import type { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { mkdir, copyFile, stat } from "fs/promises";
+import path from "path";
 import { LIBRARY } from "./library";
 
 const DAY = 86_400_000;
@@ -269,6 +271,16 @@ export async function createDemo(db: PrismaClient) {
     if (!pending) await db.fee.create({ data: { orgId: org.id, athleteId: a.id, period: cur, amount: a.name.startsWith("Valentina") ? 0 : 25000, status: a.name.startsWith("Valentina") ? "BONIFICADO" : "PAGADO", paidAt: new Date(now0.getFullYear(), now0.getMonth(), Math.min(now0.getDate(), 2 + i)), isDemo: true } });
   }
   await db.athleteProfile.updateMany({ where: { user: { name: "Nicolás Demo", orgId: org.id } }, data: { paused: true } });
+
+  // ---- Carpeta del perfil: un documento de ejemplo (DEMO, valores ficticios) ----
+  {
+    const dir = path.resolve(process.env.UPLOAD_DIR ?? "./uploads");
+    const src = path.resolve(process.cwd(), "prisma/demo-assets/antropometria-demo.pdf");
+    const key = "demo-antropometria-sofia.pdf";
+    await mkdir(dir, { recursive: true });
+    await copyFile(src, path.join(dir, key));
+    await db.fileAsset.create({ data: { orgId: org.id, ownerId: coach.id, athleteId: athletes[0].id, name: "Antropometría DEMO (valores ficticios).pdf", mime: "application/pdf", size: (await stat(src)).size, storageKey: key, kind: "DOCUMENTO", folder: "ANTROPOMETRIA", note: "Medición de ejemplo · DEMO" } });
+  }
 
   // ---- Comunicación ----
   const sofia = athletes[0];

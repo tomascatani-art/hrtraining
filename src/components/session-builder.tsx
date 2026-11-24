@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, ArrowUp, ArrowDown, Search, RotateCcw } from "lucide-react";
+import { Plus, Trash2, ArrowUp, ArrowDown, Search, RotateCcw, X, Check } from "lucide-react";
 import { Submit } from "./forms";
 import { fmtDate } from "./ui";
 import { recentExerciseUse, athleteExerciseContext, type RecentUse, type ExerciseHistory } from "@/app/app/sessions/actions";
@@ -24,6 +24,8 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
   const [f, setF] = useState(() => ({ ...initial, date: toLocal(initial.date) }));
   const [items, setItems] = useState<Item[]>(initial.items.map((i, k) => ({ ...i, key: String(k) + Math.random() })));
   const [q, setQ] = useState("");
+  const [picker, setPicker] = useState(false); // biblioteca a pantalla completa en celular
+  const [lastAdded, setLastAdded] = useState<string | null>(null);
   const [repeat, setRepeat] = useState(0);
   // Ejercicios que este deportista o grupo ya hizo en los 30 días anteriores a la fecha de la sesión
   const [used, setUsed] = useState<Record<string, RecentUse>>({});
@@ -50,8 +52,10 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
     return (s ? exercises.filter((e) => (e.name + e.primaryMuscle).toLowerCase().includes(s)) : exercises).slice(0, 40);
   }, [q, exercises]);
 
-  const add = (e: Ex) =>
+  const add = (e: Ex) => {
+    setLastAdded(e.name);
     setItems((xs) => [...xs, { key: Math.random().toString(36), exerciseId: e.id, sets: parseInt(e.suggestedSets ?? "3") || 3, reps: (e.suggestedReps ?? "8").split(" ")[0].split("-").at(-1) ?? "8", loadKg: "", percent1RM: "", targetRir: "", restSec: "", tempo: "", notes: "", block: xs.at(-1)?.block ?? "" }]);
+  };
   const upd = (key: string, patch: Partial<Item>) => setItems((xs) => xs.map((x) => (x.key === key ? { ...x, ...patch } : x)));
   const move = (i: number, d: number) => setItems((xs) => { const c = [...xs]; const [x] = c.splice(i, 1); c.splice(Math.max(0, Math.min(c.length, i + d)), 0, x); return c; });
   const nz = (v: string) => (v === "" ? null : Number(v));
@@ -59,6 +63,23 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
     ...f, date: f.date ? new Date(f.date).toISOString() : "", targetRpe: f.targetRpe || null, repeatWeeks: repeat,
     items: items.map(({ key: _k, ...i }) => ({ ...i, loadKg: nz(i.loadKg), percent1RM: nz(i.percent1RM), targetRir: nz(i.targetRir), restSec: nz(i.restSec) })),
   });
+
+  const library = (maxH: string) => (
+      <>
+        <div className="relative"><Search size={15} className="absolute left-3 top-3 text-neutral-500" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar ejercicio o músculo…" className="input pl-9" /></div>
+        <ul className={`mt-3 space-y-1 overflow-y-auto ${maxH}`}>
+          {filtered.map((e) => (
+            <li key={e.id}>
+              <button type="button" onClick={() => add(e)} className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition hover:bg-ink-800">
+                <Plus size={15} className="shrink-0 text-volt" />
+                <span className="flex-1"><span className="block text-white">{e.name}</span><span className="text-xs muted">{e.primaryMuscle}</span></span>
+                {used[e.id] && <span className="chip-volt shrink-0 !px-1.5 !py-0.5 text-[10px]" title={`Usado el ${dayLabel(used[e.id].date)} en “${used[e.id].title}”`}>Usado</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </>
+  );
 
   return (
     <form action={action} className="grid gap-6 xl:grid-cols-3">
@@ -96,7 +117,7 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
         <section className="card">
           <div className="flex items-center justify-between p-4 sm:p-5"><h2 className="h2">Ejercicios</h2><span className="label">{items.length} ejercicios</span></div>
           {repeated > 0 && <p className="mx-3 mb-3 flex items-center gap-2 rounded-xl border border-volt/40 bg-volt/10 px-3 py-2 text-sm text-volt sm:mx-5"><RotateCcw size={15} className="shrink-0" />{repeated === 1 ? "1 ejercicio se repite" : `${repeated} ejercicios se repiten`} respecto del último mes para {f.target.startsWith("g:") ? "este grupo" : "este deportista"}.</p>}
-          {items.length === 0 && <p className="px-5 pb-5 text-sm muted">Agregá ejercicios desde la biblioteca (panel derecho).</p>}
+          {items.length === 0 && <p className="px-5 pb-3 text-sm muted">Agregá ejercicios desde la biblioteca.</p>}
           <ol className="space-y-3 px-3 pb-4 sm:px-5">
             {items.map((it, i) => (
               <li key={it.key} className="rounded-xl border border-ink-700 bg-ink-900 p-3 animate-rise" style={it.block && blockById[it.block] ? { borderLeft: `4px solid ${blockById[it.block].color}` } : undefined}>
@@ -135,25 +156,30 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
               </li>
             ))}
           </ol>
+          <div className="px-3 pb-4 sm:px-5 xl:hidden">
+            <button type="button" onClick={() => { setLastAdded(null); setPicker(true); }} className="btn-primary w-full justify-center"><Plus size={16} />Agregar ejercicio</button>
+          </div>
         </section>
         <div className="flex justify-end"><Submit>{f.id ? "Guardar cambios" : "Crear sesión"}</Submit></div>
       </div>
 
-      <aside className="card card-pad h-fit xl:sticky xl:top-20">
+      <aside className="card card-pad hidden h-fit xl:sticky xl:top-20 xl:block">
         <h2 className="h2 mb-3">Biblioteca</h2>
-        <div className="relative"><Search size={15} className="absolute left-3 top-3 text-neutral-500" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar ejercicio o músculo…" className="input pl-9" /></div>
-        <ul className="mt-3 max-h-[60vh] space-y-1 overflow-y-auto">
-          {filtered.map((e) => (
-            <li key={e.id}>
-              <button type="button" onClick={() => add(e)} className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition hover:bg-ink-800">
-                <Plus size={15} className="shrink-0 text-volt" />
-                <span className="flex-1"><span className="block text-white">{e.name}</span><span className="text-xs muted">{e.primaryMuscle}</span></span>
-                {used[e.id] && <span className="chip-volt shrink-0 !px-1.5 !py-0.5 text-[10px]" title={`Usado el ${dayLabel(used[e.id].date)} en “${used[e.id].title}”`}>Usado</span>}
-              </button>
-            </li>
-          ))}
-        </ul>
+        {library("max-h-[60vh]")}
       </aside>
+      {picker && (
+        <div className="fixed inset-0 z-[60] flex flex-col bg-ink-950 xl:hidden" role="dialog" aria-label="Biblioteca de ejercicios">
+          <div className="flex items-center justify-between gap-3 border-b border-ink-700 px-4 py-3">
+            <h2 className="h2">Biblioteca</h2>
+            <button type="button" onClick={() => setPicker(false)} className="btn-ghost btn-sm" aria-label="Cerrar"><X size={16} /></button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-3">{library("")}</div>
+          <div className="border-t border-ink-700 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            {lastAdded && <p className="mb-2 flex items-center gap-1.5 text-sm text-volt"><Check size={14} />Agregado: {lastAdded}</p>}
+            <button type="button" onClick={() => setPicker(false)} className="btn-primary w-full justify-center">Listo · {items.length} {items.length === 1 ? "ejercicio" : "ejercicios"}</button>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

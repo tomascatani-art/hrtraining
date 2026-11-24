@@ -21,6 +21,7 @@ export function navFor(role: string, unread: number): { main: Item[]; mobile: It
       { href: "/app/evaluations", label: "Evaluaciones", icon: Gauge },
       { href: "/app/stats", label: "Mi progreso", icon: LineChart },
       { href: "/app/rm", label: "Mis RM", icon: Dumbbell },
+      { href: "/app/folder", label: "Mi carpeta", icon: FolderOpen },
       { href: "/app/goals", label: "Objetivos", icon: Target },
       { href: "/app/history", label: "Historial", icon: Activity },
       { href: "/app/videos", label: "Videos", icon: Video },
