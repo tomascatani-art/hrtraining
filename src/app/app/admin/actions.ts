@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { audit } from "@/lib/access";
-import { sendInviteMail } from "@/lib/account-mail";
+import { sendInviteMail, createResetLink } from "@/lib/account-mail";
 import { appOrigin } from "@/lib/origin";
 import { createDemo } from "../../../../prisma/demo";
 
@@ -41,4 +41,23 @@ export async function resetDemo() {
   if (!u.org.isDemo) throw new Error("Solo disponible en la organización de demostración");
   await createDemo(db);
   redirect("/login?demo=reset");
+}
+
+/** El administrador genera el enlace para que un usuario del club elija una contraseña nueva (y se lo manda por WhatsApp). */
+export async function resetLinkForUser(fd: FormData) {
+  const u = await requireUser(["ADMIN"]);
+  const target = await db.user.findUnique({ where: { id: String(fd.get("id")) } });
+  if (!target || target.orgId !== u.orgId) throw new Error("Usuario no encontrado");
+  const url = await createResetLink(target.id, await appOrigin());
+  await db.user.update({ where: { id: target.id }, data: { resetRequestedAt: null } });
+  await audit(u, "EDITAR", "Usuario", `Enlace para cambiar contraseña de ${target.name}`, target.id);
+  redirect(`/app/admin?para=${target.id}&clave=${encodeURIComponent(url.split("/reset/")[1])}#claves`);
+}
+
+export async function dismissResetRequest(fd: FormData) {
+  const u = await requireUser(["ADMIN"]);
+  const target = await db.user.findUnique({ where: { id: String(fd.get("id")) } });
+  if (!target || target.orgId !== u.orgId) return;
+  await db.user.update({ where: { id: target.id }, data: { resetRequestedAt: null } });
+  revalidatePath("/app/admin");
 }

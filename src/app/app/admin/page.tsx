@@ -4,13 +4,14 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { PageHeader, Card, Field, Avatar, DemoBadge } from "@/components/ui";
 import { Submit, CopyField, ConfirmSubmit } from "@/components/forms";
-import { inviteCoach, updateUser, resetDemo } from "./actions";
+import { inviteCoach, updateUser, resetDemo, resetLinkForUser, dismissResetRequest } from "./actions";
+import { WhatsAppShare } from "@/components/whatsapp-share";
 
 export const metadata = { title: "Administración" };
 
 const ROLE: Record<string, string> = { ADMIN: "Administrador", COACH: "Entrenador", ATHLETE: "Deportista" };
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ invited?: string; page?: string; mail?: string }> }) {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ invited?: string; page?: string; mail?: string; para?: string; clave?: string }> }) {
   const u = await requireUser(["ADMIN"]);
   const sp = await searchParams;
   const page = Math.max(0, Number(sp.page ?? 0));
@@ -20,6 +21,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     db.auditLog.count({ where: { orgId: u.orgId } }),
     Promise.all([db.session.count({ where: { orgId: u.orgId } }), db.evaluation.count({ where: { athlete: { orgId: u.orgId } } }), db.fileAsset.aggregate({ where: { orgId: u.orgId }, _sum: { size: true } })]),
   ]);
+  const requests = users.filter((x) => x.resetRequestedAt && +x.resetRequestedAt > Date.now() - 14 * 86400000);
+  const resetFor = sp.para && sp.clave ? users.find((x) => x.id === sp.para) : undefined;
   const invited = sp.invited ? users.find((x) => x.id === sp.invited) : undefined;
   const h = await headers();
   const origin = `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
@@ -33,6 +36,30 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         ))}
       </div>
       {invited?.inviteToken && <div className="card card-pad mb-6 border-volt/40"><div className="mb-2 font-semibold text-white">Enlace de invitación para {invited.name}</div>{sp.mail === "1" && <p className="mb-2 text-sm muted">También le mandamos la invitación por mail.</p>}<CopyField value={`${origin}/invite/${invited.inviteToken}`} /></div>}
+      {resetFor && sp.clave && (() => {
+        const link = `${origin}/reset/${sp.clave}`;
+        return (
+          <div id="claves" className="card card-pad mb-6 border-volt/40">
+            <div className="font-semibold text-white">Enlace para que {resetFor.name} elija una contraseña nueva</div>
+            <p className="mb-3 text-sm muted">Vale por 60 minutos y se usa una sola vez. Mandáselo por WhatsApp o copialo.</p>
+            <CopyField value={link} />
+            <div className="mt-3"><WhatsAppShare text={`Hola ${resetFor.name.split(" ")[0]}, entrá a este enlace para elegir tu contraseña nueva de ${u.org.brandName ?? u.org.name}: ${link} (vale por 60 minutos)`} /></div>
+          </div>
+        );
+      })()}
+      {requests.length > 0 && (
+        <Card title={`Pedidos de contraseña nueva (${requests.length})`} className="mb-6" >
+          <div id={resetFor ? undefined : "claves"} className="space-y-2">
+            {requests.map((x) => (
+              <div key={x.id} className="flex flex-col gap-2 rounded-xl border border-ink-700 p-3 sm:flex-row sm:items-center">
+                <div className="flex-1"><div className="text-white">{x.name}</div><div className="text-xs muted">{x.email} · pidió el {x.resetRequestedAt!.toLocaleString("es-AR")}</div></div>
+                <form action={resetLinkForUser}><input type="hidden" name="id" value={x.id} /><Submit className="btn-primary btn-sm" pendingText="Generando…">Generar enlace para WhatsApp</Submit></form>
+                <form action={dismissResetRequest}><input type="hidden" name="id" value={x.id} /><Submit className="btn-ghost btn-sm" pendingText="…">Descartar</Submit></form>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
       <div className="grid gap-6 xl:grid-cols-3">
         <Card title="Usuarios y permisos" className="xl:col-span-2" pad={false}>
           <div className="overflow-x-auto">
@@ -51,7 +78,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                       </form>
                     </td>
                     <td className="text-xs muted">{x.inviteToken ? <span className="chip-amber">Invitación pendiente</span> : x.lastLoginAt ? x.lastLoginAt.toLocaleDateString("es-AR") : "—"}</td>
-                    <td />
+                    <td>{x.id !== u.id && !x.inviteToken && <form action={resetLinkForUser}><input type="hidden" name="id" value={x.id} /><Submit className="btn-ghost btn-sm whitespace-nowrap" pendingText="…">Contraseña</Submit></form>}</td>
                   </tr>
                 ))}
               </tbody>

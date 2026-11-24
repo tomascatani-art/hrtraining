@@ -54,6 +54,7 @@ model User {
   inviteToken  String?      @unique
   resetTokenHash String?    @unique // sha256 del enlace para restablecer contraseña
   resetExpires   DateTime?
+  resetRequestedAt DateTime? // pidió cambiar la contraseña: el club le manda el enlace (por ejemplo por WhatsApp)
   active       Boolean      @default(true)
   isDemo       Boolean      @default(false)
   createdAt    DateTime     @default(now())

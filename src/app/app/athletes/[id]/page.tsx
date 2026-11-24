@@ -12,6 +12,7 @@ import { Avatar, DemoBadge, Tabs, Card, Field } from "@/components/ui";
 import { Submit, CopyField } from "@/components/forms";
 import { LoadPanel, EvalPanel, HistoryPanel, GoalsPanel } from "@/components/athlete-panels";
 import { RMPanel } from "@/components/rm-panel";
+import { WhatsAppShare } from "@/components/whatsapp-share";
 import { TrainingInsights } from "@/components/insights";
 import { updateAthlete, regenerateInvite, resetLinkForAthlete } from "../actions";
 
@@ -65,6 +66,13 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
           <div className="font-semibold text-white">Enlace para cambiar la contraseña</div>
           <p className="mb-3 text-sm muted">Mandáselo a {a.name.split(" ")[0]}. Vale por 60 minutos y se puede usar una sola vez.</p>
           <CopyField value={`${origin}/reset/${sp.clave}`} />
+          <div className="mt-3"><WhatsAppShare text={`Hola ${a.name.split(" ")[0]}, entrá a este enlace para elegir tu contraseña nueva: ${origin}/reset/${sp.clave} (vale por 60 minutos)`} /></div>
+        </div>
+      )}
+      {!sp.clave && a.resetRequestedAt && +a.resetRequestedAt > Date.now() - 14 * 86400000 && (
+        <div className="card card-pad mb-6 border-volt/40 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex-1"><div className="font-semibold text-white">{a.name.split(" ")[0]} pidió una contraseña nueva</div><p className="text-sm muted">Generá el enlace y mandáselo por WhatsApp.</p></div>
+          <form action={resetLinkForAthlete}><input type="hidden" name="id" value={a.id} /><Submit pendingText="Generando…">Generar enlace</Submit></form>
         </div>
       )}
 

@@ -82,6 +82,7 @@ export async function resetLinkForAthlete(fd: FormData) {
   const id = String(fd.get("id"));
   await assertAthlete(u, id);
   const url = await createResetLink(id, await appOrigin());
+  await db.user.update({ where: { id }, data: { resetRequestedAt: null } });
   await audit(u, "EDITAR", "Deportista", "Enlace para cambiar contraseña", id);
   redirect(`/app/athletes/${id}?clave=${encodeURIComponent(url.split("/reset/")[1])}`);
 }

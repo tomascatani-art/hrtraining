@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
 import { sendResetMail, hashToken } from "@/lib/account-mail";
 import { appOrigin } from "@/lib/origin";
+import { notify } from "@/lib/access";
+import { mailConfigured } from "@/lib/mail";
 
 export type FormState = { error?: string } | undefined;
 
@@ -87,8 +89,18 @@ export async function forgotPasswordAction(_: ForgotState, fd: FormData): Promis
   const email = String(fd.get("email") ?? "").trim().toLowerCase();
   if (!z.string().email().safeParse(email).success) return { error: "Email inválido" };
   const user = await db.user.findUnique({ where: { email }, include: { org: true } });
-  const recent = user?.resetExpires && user.resetExpires.getTime() - 59 * 60000 > Date.now(); // máx. 1 pedido por minuto
-  if (user && user.active && !user.isDemo && !recent) await sendResetMail(user, await appOrigin());
+  const recent = user?.resetRequestedAt && Date.now() - user.resetRequestedAt.getTime() < 60000; // máx. 1 pedido por minuto
+  if (user && user.active && !user.isDemo && !recent) {
+    await db.user.update({ where: { id: user.id }, data: { resetRequestedAt: new Date() } });
+    // Aviso dentro de la app al administrador del club y al entrenador del deportista: le mandan el enlace por WhatsApp
+    const admins = await db.user.findMany({ where: { orgId: user.orgId, role: "ADMIN", active: true, id: { not: user.id } }, select: { id: true } });
+    const coach = user.role === "ATHLETE" ? (await db.athleteProfile.findUnique({ where: { userId: user.id }, select: { coachId: true } }))?.coachId : null;
+    const title = `${user.name} pidió una contraseña nueva`;
+    const body = "Generale el enlace y mandáselo por WhatsApp.";
+    await notify(admins.map((a) => a.id).filter((id) => id !== coach), { kind: "MENSAJE", title, body, link: "/app/admin#claves" });
+    if (coach && coach !== user.id) await notify([coach], { kind: "MENSAJE", title, body, link: `/app/athletes/${user.id}` });
+    if (mailConfigured()) await sendResetMail(user, await appOrigin());
+  }
   return { done: true };
 }
 

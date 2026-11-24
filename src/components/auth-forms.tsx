@@ -52,12 +52,12 @@ export function InviteForm({ token }: { token: string }) {
 
 export function ForgotForm() {
   const [state, action] = useActionState(forgotPasswordAction, undefined);
-  if (state?.done) return <p className="rounded-xl border border-volt/40 bg-volt/10 p-4 text-sm text-volt">Si ese email tiene una cuenta, te enviamos un enlace para cambiar la contraseña. Revisá también la carpeta de spam.</p>;
+  if (state?.done) return <p className="rounded-xl border border-volt/40 bg-volt/10 p-4 text-sm text-volt">Listo. Si ese email tiene una cuenta, le avisamos a tu entrenador para que te mande por WhatsApp el enlace para elegir una contraseña nueva. El enlace vale por 60 minutos.</p>;
   return (
     <form action={action} className="space-y-4">
       <div><span className="label mb-1.5 block">Email</span><input className="input" name="email" type="email" autoComplete="email" required /></div>
       <ErrorBox msg={state?.error} />
-      <Submit>Enviarme el enlace</Submit>
+      <Submit>Pedir contraseña nueva</Submit>
     </form>
   );
 }
