@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { avatarSrc } from "@/lib/avatar";
 import { ChevronLeft, ChevronRight, MessageCircle, Bell } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -66,7 +67,7 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
               const paused = !!a.athleteProfile?.paused;
               return (
                 <li key={a.id} className="flex flex-wrap items-center gap-3 px-4 py-3 sm:px-5">
-                  <Avatar name={a.name} size={34} />
+                  <Avatar name={a.name} src={avatarSrc(a)} size={34} />
                   <div className="min-w-[150px] flex-1">
                     <Link href={`/app/athletes/${a.id}`} className="font-semibold text-white hover:text-volt">{a.name}</Link> {a.isDemo && <DemoBadge />}
                     <div className="text-xs muted">{money(amount)}{fee?.paidAt && status === "PAGADO" ? ` · pagó el ${fmtDate(fee.paidAt)}${fee.paidVia === "MERCADOPAGO" ? " por Mercado Pago" : ""}` : ""}{paused ? " · cuenta pausada" : ""}</div>

@@ -14,7 +14,7 @@ export async function saveExercise(fd: FormData) {
   const muscles = list(fd, "muscles");
   const data = {
     name: String(fd.get("name") ?? "").trim(), primaryMuscle: muscles[0] ?? "Cuerpo completo", muscles,
-    kineticChain: String(fd.get("kineticChain") ?? "CERRADA"), pattern: String(fd.get("pattern") ?? "SENTADILLA"),
+    kineticChain: String(fd.get("kineticChain") ?? "CERRADA"), pattern: String(fd.get("pattern") ?? "SENTADILLA"), category: s(fd, "category"),
     capacities: list(fd, "capacities"), sports: list(fd, "sports"), equipment: list(fd, "equipment"),
     difficulty: Number(fd.get("difficulty") ?? 2), objective: s(fd, "objective"), description: s(fd, "description"), cues: s(fd, "cues"),
     commonErrors: s(fd, "commonErrors"), variants: s(fd, "variants"), videoUrl: s(fd, "videoUrl"), imageUrl: s(fd, "imageUrl"),
@@ -52,4 +52,21 @@ export async function deleteExercise(fd: FormData) {
   await db.exercise.delete({ where: { id: ex.id } });
   await audit(u, "ELIMINAR", "Ejercicio", ex.name, ex.id);
   redirect("/app/library");
+}
+
+/** El club le pone (o cambia) el link de video a cualquier ejercicio, también a los de la biblioteca base. */
+export async function setExerciseLink(fd: FormData) {
+  const u = await requireUser(["COACH", "ADMIN"]);
+  const exerciseId = String(fd.get("exerciseId") ?? "");
+  const url = String(fd.get("url") ?? "").trim();
+  const ex = await db.exercise.findUnique({ where: { id: exerciseId } });
+  if (!ex || (ex.orgId && ex.orgId !== u.orgId)) throw new Error("Ejercicio no encontrado");
+  if (!url) await db.exerciseLink.deleteMany({ where: { orgId: u.orgId, exerciseId } });
+  else {
+    if (!/^https:\/\/\S+\.\S{2,}/.test(url)) throw new Error("Pegá un link que empiece con https://");
+    await db.exerciseLink.upsert({ where: { orgId_exerciseId: { orgId: u.orgId, exerciseId } }, create: { orgId: u.orgId, exerciseId, url }, update: { url } });
+  }
+  await audit(u, "EDITAR", "Ejercicio", `Video de ${ex.name}`, ex.id);
+  revalidatePath("/app/library");
+  revalidatePath(`/app/library/${ex.id}`);
 }

@@ -15,21 +15,21 @@ enum Role {
 
 // Organización: un gimnasio, club o equipo. Permite múltiples entrenadores.
 model Organization {
-  id        String   @id @default(cuid())
-  name      String
-  isDemo    Boolean  @default(false)
-  createdAt DateTime @default(now())
-  whatsapp  String? // número de contacto para cuotas (formato internacional, solo dígitos)
-  feeDueDay Int      @default(10)
-  feeAmount Float? // cuota mensual por defecto
+  id          String   @id @default(cuid())
+  name        String
+  isDemo      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  whatsapp    String? // número de contacto para cuotas (formato internacional, solo dígitos)
+  feeDueDay   Int      @default(10)
+  feeAmount   Float? // cuota mensual por defecto
   // Marca propia del club
-  slug       String? @unique // enlace de ingreso: /c/<slug>
-  brandName  String?
-  brandColor String? // hex claro (texto negro encima)
-  logoKey    String? // archivo en el almacenamiento
-  logoMime   String?
-  setupHidden Boolean @default(false) // ocultar la guía de primeros pasos
-  mpToken    String? // Access Token de Mercado Pago, cifrado (lib/secret.ts)
+  slug        String?  @unique // enlace de ingreso: /c/<slug>
+  brandName   String?
+  brandColor  String? // hex claro (texto negro encima)
+  logoKey     String? // archivo en el almacenamiento
+  logoMime    String?
+  setupHidden Boolean  @default(false) // ocultar la guía de primeros pasos
+  mpToken     String? // Access Token de Mercado Pago, cifrado (lib/secret.ts)
 
   users         User[]
   fees          Fee[]
@@ -41,24 +41,28 @@ model Organization {
   files         FileAsset[]
   auditLogs     AuditLog[]
   conversations Conversation[]
+  routines      Routine[]
+  exerciseLinks ExerciseLink[]
 }
 
 model User {
-  id           String       @id @default(cuid())
-  email        String       @unique
-  passwordHash String?
-  name         String
-  role         Role
-  orgId        String
-  org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  inviteToken  String?      @unique
-  resetTokenHash String?    @unique // sha256 del enlace para restablecer contraseña
-  resetExpires   DateTime?
+  id               String       @id @default(cuid())
+  email            String       @unique
+  passwordHash     String?
+  name             String
+  role             Role
+  orgId            String
+  org              Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  inviteToken      String?      @unique
+  resetTokenHash   String?      @unique // sha256 del enlace para restablecer contraseña
+  resetExpires     DateTime?
+  avatarKey        String? // foto de perfil (archivo chico, recortado en el navegador)
+  avatarAt         DateTime?
   resetRequestedAt DateTime? // pidió cambiar la contraseña: el club le manda el enlace (por ejemplo por WhatsApp)
-  active       Boolean      @default(true)
-  isDemo       Boolean      @default(false)
-  createdAt    DateTime     @default(now())
-  lastLoginAt  DateTime?
+  active           Boolean      @default(true)
+  isDemo           Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  lastLoginAt      DateTime?
 
   athleteProfile      AthleteProfile?      @relation("profile")
   coachedAthletes     AthleteProfile[]     @relation("coach")
@@ -88,6 +92,8 @@ model User {
   rms                 ExerciseRM[]         @relation("rmAthlete")
   rmsSet              ExerciseRM[]         @relation("rmSetBy")
   fees                Fee[]
+  routines            Routine[]            @relation("routineAthlete")
+  routinesCoached     Routine[]            @relation("routineCoach")
 
   @@index([orgId, role])
 }
@@ -151,6 +157,7 @@ model Exercise {
   primaryMuscle String
   kineticChain  String // ABIERTA | CERRADA | MIXTA
   pattern       String // SENTADILLA, BISAGRA, EMPUJE_H, ...
+  category      String? // Fuerza, Core, Pliometría… (filtro rápido de la biblioteca)
   capacities    String[]
   sports        String[]
   equipment     String[]
@@ -169,6 +176,7 @@ model Exercise {
 
   sessionItems SessionExercise[]
   rms          ExerciseRM[]
+  links        ExerciseLink[]
 }
 
 // Planificación: árbol de bloques (macrociclo > mesociclo > microciclo)
@@ -524,20 +532,20 @@ model ItemNote {
 
 /// Cuota mensual de un deportista.
 model Fee {
-  id        String       @id @default(cuid())
-  orgId     String
-  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  athleteId String
-  athlete   User         @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  period    String // "2026-11"
-  amount    Float?
-  status    String       @default("PENDIENTE") // PENDIENTE, PAGADO, BONIFICADO
-  paidAt    DateTime?
-  note      String?
+  id          String       @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  athleteId   String
+  athlete     User         @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  period      String // "2026-11"
+  amount      Float?
+  status      String       @default("PENDIENTE") // PENDIENTE, PAGADO, BONIFICADO
+  paidAt      DateTime?
+  note        String?
   paidVia     String? // MANUAL | MERCADOPAGO
-  mpPaymentId String? @unique
-  isDemo    Boolean      @default(false)
-  createdAt DateTime     @default(now())
+  mpPaymentId String?      @unique
+  isDemo      Boolean      @default(false)
+  createdAt   DateTime     @default(now())
 
   @@unique([athleteId, period])
   @@index([orgId, period])
@@ -572,4 +580,39 @@ model Anthropometry {
   createdAt       DateTime @default(now())
 
   @@index([athleteId, date])
+}
+
+/// Rutina del deportista (estilo planilla): días → bloques → ejercicios, con una columna por semana.
+/// Si athleteId es null y template = true, es una plantilla reutilizable del club.
+model Routine {
+  id        String       @id @default(cuid())
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  athleteId String?
+  athlete   User?        @relation("routineAthlete", fields: [athleteId], references: [id], onDelete: Cascade)
+  coachId   String?
+  coach     User?        @relation("routineCoach", fields: [coachId], references: [id], onDelete: SetNull)
+  name      String
+  active    Boolean      @default(true) // false = versión anterior guardada
+  template  Boolean      @default(false)
+  data      Json // { meta, weeks, warmup[], days[{ name, blocks[{ name, rows[{ exerciseId?, name, video?, note, cells[] }] }] }] }
+  isDemo    Boolean      @default(false)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([athleteId, active])
+  @@index([orgId, template])
+}
+
+/// Link de video que el club le pone a un ejercicio (también a los de la biblioteca base).
+model ExerciseLink {
+  id         String       @id @default(cuid())
+  orgId      String
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  exerciseId String
+  exercise   Exercise     @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  url        String
+  updatedAt  DateTime     @updatedAt
+
+  @@unique([orgId, exerciseId])
 }

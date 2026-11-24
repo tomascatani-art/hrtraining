@@ -80,7 +80,7 @@ export const PATTERNS: Record<string, string> = {
 };
 export const EQUIPMENT = [
   "Barra", "Mancuernas", "Kettlebell", "Máquina", "Polea", "Banda elástica", "Peso corporal",
-  "Cajón", "Balón medicinal", "Trineo", "TRX", "Encoder VBT", "Vallas", "Conos",
+  "Cajón", "Balón medicinal", "Trineo", "TRX", "Encoder VBT", "Vallas", "Conos", "Fitball", "Bosu",
 ];
 export const CHAINS: Record<string, string> = { CERRADA: "Cadena cerrada", ABIERTA: "Cadena abierta", MIXTA: "Mixta" };
 export const DIFFICULTY: Record<number, string> = { 1: "Básico", 2: "Intermedio", 3: "Avanzado" };
@@ -195,3 +195,8 @@ export const PROFILE_FOLDERS = [
 ] as const;
 export type FolderKey = (typeof PROFILE_FOLDERS)[number]["key"];
 export const folderLabel = (k?: string | null) => PROFILE_FOLDERS.find((f) => f.key === k)?.label ?? "Otros";
+
+/** Categorías de la biblioteca (filtro rápido arriba de la lista). */
+export const EX_CATEGORIES = ["Fuerza", "Olímpico", "Complejos", "Pliometría", "Velocidad", "Core", "Calistenia", "Kettlebell", "Suspensión (TRX)", "Bandas elásticas", "Trineo", "Combate", "Equilibrio", "Natación en seco", "Movilidad", "Flexibilidad"];
+export const categoryFromPattern = (p: string) =>
+  ({ CARGADA: "Olímpico", SALTO: "Pliometría", CARRERA: "Velocidad", CORE: "Core", ROTACION: "Core", MOVILIDAD: "Movilidad" } as Record<string, string>)[p] ?? "Fuerza";

@@ -5,7 +5,7 @@ import { useState } from "react";
 import clsx from "clsx";
 import {
   LayoutDashboard, Users, UsersRound, CalendarRange, CalendarDays, Dumbbell, Gauge, Activity, LineChart,
-  Video, MessageSquare, FolderOpen, Trophy, Shapes, ShieldCheck, Settings, HeartPulse, Target, Menu, X, Bell, LogOut, Sparkles, Wallet, Wrench, ChevronDown,
+  Video, MessageSquare, FolderOpen, Trophy, Shapes, ShieldCheck, Settings, HeartPulse, Target, Menu, X, Bell, LogOut, Sparkles, Wallet, Wrench, ChevronDown, ClipboardList,
 } from "lucide-react";
 import { Logo, Avatar } from "./ui";
 import { logoutAction } from "@/app/(auth)/actions";
@@ -16,6 +16,7 @@ export function navFor(role: string, unread: number): { main: Item[]; mobile: It
   if (role === "ATHLETE") {
     const main: Item[] = [
       { href: "/app", label: "Inicio", icon: LayoutDashboard },
+      { href: "/app/routine", label: "Mi rutina", icon: ClipboardList },
       { href: "/app/calendar", label: "Calendario", icon: CalendarDays },
       { href: "/app/wellness", label: "Bienestar", icon: HeartPulse },
       { href: "/app/evaluations", label: "Evaluaciones", icon: Gauge },
@@ -31,7 +32,7 @@ export function navFor(role: string, unread: number): { main: Item[]; mobile: It
       { href: "/app/tools", label: "Herramientas", icon: Wrench },
       { href: "/app/settings", label: "Mi perfil", icon: Settings },
     ];
-    return { main, mobile: pick(main, ["/app", "/app/calendar", "/app/wellness", "/app/stats", "/app/messages"]) };
+    return { main, mobile: pick(main, ["/app", "/app/routine", "/app/calendar", "/app/wellness", "/app/messages"]) };
   }
   // Menú agrupado en 5 secciones para no abrumar (Diego, 24-11-2026)
   const main: Item[] = [
@@ -39,6 +40,7 @@ export function navFor(role: string, unread: number): { main: Item[]; mobile: It
     { href: "/app/athletes", label: "Deportistas", icon: Users, group: "Equipo" },
     { href: "/app/groups", label: "Grupos", icon: UsersRound, group: "Equipo" },
     { href: "/app/fees", label: "Cuotas", icon: Wallet, group: "Equipo" },
+    { href: "/app/routines", label: "Rutinas", icon: ClipboardList, group: "Planificación" },
     { href: "/app/planning", label: "Planificación", icon: CalendarRange, group: "Planificación" },
     { href: "/app/calendar", label: "Calendario", icon: CalendarDays, group: "Planificación" },
     { href: "/app/library", label: "Biblioteca", icon: Dumbbell, group: "Planificación" },
@@ -55,7 +57,7 @@ export function navFor(role: string, unread: number): { main: Item[]; mobile: It
   ];
   if (role === "ADMIN") main.push({ href: "/app/admin", label: "Administración", icon: ShieldCheck, group: "Club" });
   main.push({ href: "/app/settings", label: "Ajustes", icon: Settings, group: "Club" });
-  return { main, mobile: pick(main, ["/app", "/app/athletes", "/app/planning", "/app/load", "/app/messages"]) };
+  return { main, mobile: pick(main, ["/app", "/app/athletes", "/app/routines", "/app/library", "/app/messages"]) };
 }
 
 const pick = (items: Item[], hrefs: string[]) => hrefs.map((h) => items.find((i) => i.href === h)!).filter(Boolean);
@@ -65,7 +67,7 @@ const isActive = (path: string, href: string) => (href === "/app" ? path === "/a
 export function Shell({
   user, unreadMessages, unreadNotifications, isDemo, paused = false, brand, children,
 }: {
-  user: { name: string; role: string; org: string };
+  user: { name: string; role: string; org: string; avatar?: string | null };
   unreadMessages: number; unreadNotifications: number; isDemo: boolean; paused?: boolean; children: React.ReactNode;
   brand?: { name: string; logo?: string | null } | null;
 }) {
@@ -133,7 +135,7 @@ export function Shell({
         <div className="flex-1 overflow-y-auto px-3 pb-4"><NavList /></div>
         <div className="border-t border-ink-700 p-3">
           <div className="flex items-center gap-3 rounded-xl px-2 py-2">
-            <Avatar name={user.name} size={34} />
+            <Avatar name={user.name} src={user.avatar} size={34} />
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-semibold text-white">{user.name}</div>
               <div className="text-xs text-neutral-500">{roleLabel}</div>

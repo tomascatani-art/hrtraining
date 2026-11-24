@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { avatarSrc } from "@/lib/avatar";
 import { UserPlus, FileSpreadsheet } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -46,7 +47,7 @@ export default async function AthletesPage({ searchParams }: { searchParams: Pro
                   <tr key={a.id}>
                     <td>
                       <Link href={`/app/athletes/${a.id}`} className="flex items-center gap-3 group">
-                        <Avatar name={a.name} size={32} />
+                        <Avatar name={a.name} src={avatarSrc(a)} size={32} />
                         <div><div className="font-semibold text-white group-hover:text-volt">{a.name} {a.isDemo && <DemoBadge />}</div><div className="text-xs muted">{a.athleteProfile?.position ?? "—"}{a.inviteToken && " · invitación pendiente"}</div></div>
                       </Link>
                     </td>

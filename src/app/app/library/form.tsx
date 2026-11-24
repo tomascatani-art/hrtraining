@@ -1,5 +1,5 @@
 import type { Exercise } from "@prisma/client";
-import { CAPACITIES, CHAINS, DIFFICULTY, EQUIPMENT, MUSCLES, PATTERNS, SPORTS } from "@/lib/catalog";
+import { CAPACITIES, CHAINS, DIFFICULTY, EQUIPMENT, MUSCLES, PATTERNS, SPORTS, EX_CATEGORIES } from "@/lib/catalog";
 import { Card, Field } from "@/components/ui";
 import { Submit } from "@/components/forms";
 import { VideoField } from "@/components/video-field";
@@ -53,6 +53,7 @@ export function ExerciseForm({ e }: { e?: Exercise }) {
         </Card>
         <Card title="Tipo">
           <div className="space-y-3">
+            <Field label="Categoría"><select name="category" defaultValue={e?.category ?? "Fuerza"} className="input">{EX_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}</select></Field>
             <Field label="Patrón de movimiento"><select name="pattern" defaultValue={e?.pattern} className="input">{Object.entries(PATTERNS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>
             <Field label="Cadena cinética"><select name="kineticChain" defaultValue={e?.kineticChain} className="input">{Object.entries(CHAINS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>
             <Field label="Nivel"><select name="difficulty" defaultValue={e?.difficulty ?? 2} className="input">{Object.entries(DIFFICULTY).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Field>

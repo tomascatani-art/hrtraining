@@ -5,16 +5,11 @@ import { db } from "@/lib/db";
 import { CAPACITIES, CHAINS, DIFFICULTY, PATTERNS, sportLabel } from "@/lib/catalog";
 import { PageHeader, Card } from "@/components/ui";
 import { Submit, ConfirmSubmit } from "@/components/forms";
-import { cloneExercise, deleteExercise } from "../actions";
-
-function embed(url: string) {
-  const yt = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{6,})/.exec(url);
-  if (yt) return { type: "iframe", src: `https://www.youtube-nocookie.com/embed/${yt[1]}` };
-  const vimeo = /vimeo\.com\/(\d+)/.exec(url);
-  if (vimeo) return { type: "iframe", src: `https://player.vimeo.com/video/${vimeo[1]}` };
-  if (url.startsWith("/api/files/") || /\.(mp4|webm|mov)$/i.test(url)) return { type: "video", src: url };
-  return { type: "link", src: url };
-}
+import { cloneExercise, deleteExercise, setExerciseLink } from "../actions";
+import { VideoEmbed } from "@/components/video-player";
+import { exerciseVideos } from "@/lib/exercise-video";
+import { youtubeSearch } from "@/lib/video";
+import { Search } from "lucide-react";
 
 export default async function ExercisePage({ params }: { params: Promise<{ id: string }> }) {
   const u = await requireUser();
@@ -22,7 +17,8 @@ export default async function ExercisePage({ params }: { params: Promise<{ id: s
   const e = await db.exercise.findUnique({ where: { id }, include: { createdBy: true } });
   if (!e || (e.orgId && e.orgId !== u.orgId)) notFound();
   const staff = u.role !== "ATHLETE";
-  const v = e.videoUrl ? embed(e.videoUrl) : null;
+  const video = (await exerciseVideos(u.orgId, [e.id])).get(e.id) ?? null;
+  const ownLink = staff ? await db.exerciseLink.findUnique({ where: { orgId_exerciseId: { orgId: u.orgId, exerciseId: e.id } } }) : null;
   const Block = ({ t, c }: { t: string; c: string | null }) => c ? <div><div className="label mb-1 text-volt/80">{t}</div><p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-200">{c}</p></div> : null;
   return (
     <>
@@ -33,12 +29,23 @@ export default async function ExercisePage({ params }: { params: Promise<{ id: s
         </> : undefined} />
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
-          <Card pad={false} className="overflow-hidden">
-            {v?.type === "iframe" ? <iframe src={v.src} className="aspect-video w-full" allowFullScreen title={e.name} />
-              : v?.type === "video" ? <video src={v.src} controls className="aspect-video w-full bg-black" />
-              : e.imageUrl ? <img src={e.imageUrl} alt={e.name} className="w-full" />
-              : <div className="grid aspect-video place-items-center bg-ink-900 text-center"><div><div className="font-display text-5xl font-bold text-ink-600">{e.pattern}</div>{v?.type === "link" && <a href={v.src} target="_blank" rel="noreferrer" className="btn-ghost mt-4">Ver videos de referencia</a>}</div></div>}
+          <Card pad={!video} className="overflow-hidden">
+            {video ? <div className="p-3"><VideoEmbed url={video} title={e.name} /></div>
+              : <div className="grid aspect-video place-items-center rounded-xl bg-ink-900 text-center"><div><div className="font-display text-5xl font-bold text-ink-600">{e.pattern}</div><p className="mt-2 text-sm muted">Todavía no tiene video.</p></div></div>}
           </Card>
+          {staff && (
+            <Card title="Video del ejercicio">
+              <form action={setExerciseLink} className="flex flex-col gap-2 sm:flex-row">
+                <input type="hidden" name="exerciseId" value={e.id} />
+                <input name="url" defaultValue={ownLink?.url ?? (video ?? "")} placeholder="Pegá el link de YouTube (https://youtube.com/watch?v=…)" className="input flex-1" />
+                <Submit pendingText="Guardando…">Guardar link</Submit>
+              </form>
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs muted">
+                <span>Se usa en todas las rutinas y sesiones donde aparezca este ejercicio. Dejalo vacío para quitarlo.</span>
+                <a href={youtubeSearch(e.name)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-volt"><Search size={12} />Buscar en YouTube</a>
+              </div>
+            </Card>
+          )}
           <Card title="Técnica" className="space-y-5">
             <div className="space-y-5">
               <Block t="Descripción técnica" c={e.description} />

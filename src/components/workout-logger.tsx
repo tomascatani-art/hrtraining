@@ -1,7 +1,8 @@
 "use client";
+import { VideoButton } from "@/components/video-player";
 import { useState } from "react";
 import Link from "next/link";
-import { Check, PlayCircle, Timer } from "lucide-react";
+import { Check, Timer } from "lucide-react";
 import { fmtKg, plateBreakdown } from "@/lib/plates";
 import { Submit } from "./forms";
 
@@ -82,7 +83,7 @@ export function WorkoutLogger({ action, sessionId, athleteId, items, defaultDura
                 )
               ) : null}
             </div>
-            {it.videoUrl && <a href={it.videoUrl} target="_blank" rel="noreferrer" className="btn-ghost btn-sm"><PlayCircle size={14} />Ver técnica</a>}
+            {it.videoUrl && <VideoButton url={it.videoUrl} name={it.name} />}
           </div>
           <div className="space-y-1.5">
             <div className={`grid gap-2 px-1 text-[10px] uppercase tracking-wider text-neutral-500 ${vbt ? "grid-cols-[28px_1fr_1fr_1fr_1fr_40px]" : "grid-cols-[28px_1fr_1fr_1fr_40px]"}`}>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { avatarSrc } from "@/lib/avatar";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { visibleAthleteIds, visibleGroups } from "@/lib/access";
@@ -94,7 +95,7 @@ export default async function LoadPage({ searchParams }: { searchParams: Promise
             <tbody>
               {mon.map((m) => (
                 <tr key={m.user.id}>
-                  <td><Link href={`/app/athletes/${m.user.id}?tab=carga`} className="flex items-center gap-2 hover:text-volt"><Avatar name={m.user.name} size={26} /><span className="text-white">{m.user.name}</span></Link></td>
+                  <td><Link href={`/app/athletes/${m.user.id}?tab=carga`} className="flex items-center gap-2 hover:text-volt"><Avatar name={m.user.name} src={avatarSrc(m.user)} size={26} /><span className="text-white">{m.user.name}</span></Link></td>
                   <td className="num">{fmtNum(m.indicators.acute)}</td>
                   <td className="num">{fmtNum(m.indicators.chronic)}</td>
                   <td className={`num ${(m.indicators.acwr ?? 0) >= 1.5 ? "text-red-300" : (m.indicators.acwr ?? 0) >= 1.3 ? "text-amber-300" : ""}`}>{m.indicators.acwr?.toFixed(2) ?? "—"}</td>

@@ -7,6 +7,8 @@ import { readFile } from "fs/promises";
 import { putBuffer } from "../src/lib/blob";
 import path from "path";
 import { LIBRARY } from "./library";
+import EXTRA from "./library-extra.json";
+import { categoryFromPattern } from "../src/lib/catalog";
 
 const DAY = 86_400_000;
 function rng(seed: number) {
@@ -23,12 +25,29 @@ const day0 = (offset: number) => {
 };
 const at = (offset: number, h: number) => new Date(day0(offset).getTime() + h * 3600_000);
 
+/** Carga la biblioteca base: la técnica completa (LIBRARY) y los nombres de las planillas (library-extra.json).
+ *  Solo agrega lo que falta (por nombre); nunca pisa ni borra. Los videos quedan vacíos hasta que el club pegue su link. */
 export async function ensureLibrary(db: PrismaClient) {
-  const count = await db.exercise.count({ where: { orgId: null } });
-  if (count > 0) return;
-  await db.exercise.createMany({
-    data: LIBRARY.map((e) => ({ ...e, orgId: null, videoUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(e.name + " técnica")}` })),
-  });
+  const have = await db.exercise.findMany({ where: { orgId: null }, select: { id: true, name: true, category: true, pattern: true, videoUrl: true } });
+  const key = (n: string) => n.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const names = new Set(have.map((e) => key(e.name)));
+  // Ponerle categoría a los que no tienen y sacar las búsquedas de YouTube viejas (no son un video).
+  for (const e of have) {
+    const patch: { category?: string; videoUrl?: null } = {};
+    if (!e.category) patch.category = categoryFromPattern(e.pattern);
+    if (e.videoUrl && /youtube\.com\/results/.test(e.videoUrl)) patch.videoUrl = null;
+    if (Object.keys(patch).length) await db.exercise.update({ where: { id: e.id }, data: patch });
+  }
+  const base = LIBRARY.filter((e) => !names.has(key(e.name))).map((e) => ({ ...e, orgId: null, category: categoryFromPattern(e.pattern) }));
+  base.forEach((e) => names.add(key(e.name)));
+  const extra = (EXTRA as [string, string, string, string, string[], string[]][])
+    .filter(([n]) => !names.has(key(n)))
+    .map(([name, category, pattern, primaryMuscle, capacities, equipment]) => ({
+      orgId: null, name, category, pattern, primaryMuscle, muscles: [primaryMuscle], capacities, equipment,
+      kineticChain: /CORE|MOVILIDAD/.test(pattern) ? "MIXTA" : "CERRADA", sports: [] as string[], difficulty: 2,
+    }));
+  if (base.length || extra.length) await db.exercise.createMany({ data: [...base, ...extra] });
+  if (base.length || extra.length) console.log(`Biblioteca: +${base.length + extra.length} ejercicios`);
 }
 
 /** Bloque de la sesión según el ejercicio (para los datos de demostración). */
@@ -322,4 +341,45 @@ export async function createDemo(db: PrismaClient) {
   });
   await db.auditLog.create({ data: { orgId: org.id, userId: coach.id, action: "CREAR", entity: "Demo", summary: "Se generó la organización de demostración" } });
   return org;
+}
+
+/** Rutina y plantilla de ejemplo para el club DEMO (marcadas como demo). Solo si todavía no hay ninguna. */
+export async function ensureDemoRoutines(db: PrismaClient) {
+  const org = await db.organization.findFirst({ where: { isDemo: true } });
+  if (!org || (await db.routine.count({ where: { orgId: org.id } }))) return;
+  const athlete = await db.user.findFirst({ where: { orgId: org.id, email: "deportista.demo@hrtraining.co" } });
+  const coach = await db.user.findFirst({ where: { orgId: org.id, email: "entrenador.demo@hrtraining.co" } });
+  const exs = await db.exercise.findMany({ where: { orgId: null }, select: { id: true, name: true } });
+  const find = (n: string) => exs.find((e) => e.name.toLowerCase() === n.toLowerCase())?.id ?? null;
+  let k = 0;
+  const id = () => `demo${(k++).toString(36)}`;
+  const row = (name: string, cells: string[], note = "") => ({ id: id(), exerciseId: find(name), name, note, video: null, cells });
+  const data = {
+    weeks: 4,
+    meta: { objective: "Fuerza y potencia de tren inferior (ejemplo)", start: new Date(Date.now() - 8 * 86400000).toISOString().slice(0, 10), notes: "Datos de ejemplo del club demo.", rest: "2-3 min" },
+    warmup: [
+      { id: id(), exerciseId: find("Movilidad de cadera"), name: "Movilidad de cadera", detail: "2x8 c/lado", video: null },
+      { id: id(), exerciseId: find("Skipping alto"), name: "Skipping alto", detail: "3x20 m", video: null },
+    ],
+    days: [
+      { id: id(), name: "DÍA 1 · Inferior", blocks: [
+        { id: id(), name: "ACTIVACIÓN", rows: [row("Salto al cajón", ["3x5", "3x5", "4x4", "3x3"], "Caer suave, pausa arriba")] },
+        { id: id(), name: "BLOQUE PRINCIPAL", rows: [
+          row("Sentadilla trasera con barra", ["4x6 · 70%", "4x5 · 75%", "5x4 · 80%", "3x5 · 65%"], "RIR 2"),
+          row("Peso muerto rumano", ["3x8", "3x8", "4x6", "2x8"]),
+          row("Zancada búlgara", ["3x8 c/lado", "3x8 c/lado", "3x10 c/lado", "2x8 c/lado"]),
+        ] },
+        { id: id(), name: "CORE", rows: [row("Plancha lateral", ["3x30 s", "3x35 s", "3x40 s", "2x30 s"])] },
+      ] },
+      { id: id(), name: "DÍA 2 · Superior", blocks: [
+        { id: id(), name: "BLOQUE PRINCIPAL", rows: [
+          row("Press de banca", ["4x6", "4x5", "5x4", "3x5"], "Pausa de 1 s en el pecho"),
+          row("Dominadas", ["4x5", "4x6", "4x6", "3x5"]),
+          row("Remo con barra", ["3x8", "3x8", "4x8", "2x8"]),
+        ] },
+      ] },
+    ],
+  };
+  if (athlete) await db.routine.create({ data: { orgId: org.id, athleteId: athlete.id, coachId: coach?.id, name: "Rutina pretemporada (ejemplo)", data, isDemo: true } });
+  await db.routine.create({ data: { orgId: org.id, coachId: coach?.id, template: true, name: "Fuerza 2 días (ejemplo)", data: { ...data, meta: { ...data.meta, start: "" } }, isDemo: true } });
 }

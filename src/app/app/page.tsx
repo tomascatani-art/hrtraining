@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { avatarSrc } from "@/lib/avatar";
 import { Users, CalendarCheck, Percent, AlertTriangle, ClipboardList, Trophy, ArrowRight, Flame, HeartPulse } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -142,7 +143,7 @@ async function CoachHome({ welcome: _welcome }: { welcome: boolean }) {
           <ul className="divide-y divide-ink-800">
             {recentLogs.map((l) => (
               <li key={l.id} className="flex items-center gap-3 py-2.5">
-                <Avatar name={l.athlete.name} size={30} />
+                <Avatar name={l.athlete.name} src={avatarSrc(l.athlete)} size={30} />
                 <div className="min-w-0 flex-1 text-sm">
                   <Link href={`/app/athletes/${l.athleteId}`} className="font-semibold text-white hover:text-volt">{l.athlete.name}</Link>{" "}
                   <span className="muted">{l.status === "COMPLETADO" ? "completó" : l.status === "PARCIAL" ? "completó parcialmente" : "no asistió a"}</span>{" "}

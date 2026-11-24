@@ -92,7 +92,9 @@ export function DemoBadge({ show = true }: { show?: boolean }) {
 }
 
 const AV = ["#ffd60a", "#f5f5f4", "#fb923c", "#a3a3a3", "#facc15", "#e7e5e4"];
-export function Avatar({ name, size = 36 }: { name: string; size?: number }) {
+export function Avatar({ name, size = 36, src }: { name: string; size?: number; src?: string | null }) {
+  // eslint-disable-next-line @next/next/no-img-element
+  if (src) return <img src={src} alt={name} width={size} height={size} className="shrink-0 rounded-full object-cover" style={{ width: size, height: size }} />;
   const initials = name.split(" ").filter(Boolean).slice(0, 2).map((s) => s[0]!.toUpperCase()).join("");
   const c = AV[[...name].reduce((a, ch) => a + ch.charCodeAt(0), 0) % AV.length];
   return (

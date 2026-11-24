@@ -1,3 +1,4 @@
+import { avatarSrc } from "@/lib/avatar";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { headers } from "next/headers";
@@ -25,7 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="contents" style={accentVars(o.brandColor) as React.CSSProperties | undefined}>
     <Shell
       brand={brand}
-      user={{ name: u.name, role: u.role, org: u.org.name }}
+      user={{ name: u.name, role: u.role, org: u.org.name, avatar: avatarSrc(u) }}
       unreadMessages={unreadCounts.reduce((a, b) => a + b, 0)}
       unreadNotifications={unreadNotifications}
       isDemo={u.org.isDemo}

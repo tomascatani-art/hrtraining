@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { avatarSrc } from "@/lib/avatar";
 import { Users, Paperclip, Megaphone } from "lucide-react";
 import clsx from "clsx";
 import { requireUser } from "@/lib/auth";
@@ -79,7 +80,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
           </div>
         ) : pendingTo ? (
           <div className="grid flex-1 place-items-center p-6 text-center">
-            <div><Avatar name={pendingTo.name} size={56} /><p className="mt-3 text-white">Iniciar conversación con <b>{pendingTo.name}</b></p>
+            <div><Avatar name={pendingTo.name} src={avatarSrc(pendingTo)} size={56} /><p className="mt-3 text-white">Iniciar conversación con <b>{pendingTo.name}</b></p>
               <form action={openDirect} className="mt-4"><input type="hidden" name="to" value={pendingTo.id} /><Submit>Abrir chat</Submit></form></div>
           </div>
         ) : active ? (

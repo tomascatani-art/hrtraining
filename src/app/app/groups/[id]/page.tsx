@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { avatarSrc } from "@/lib/avatar";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -40,7 +41,7 @@ export default async function GroupDetail({ params }: { params: Promise<{ id: st
                 <tbody>
                   {mon.map((m) => (
                     <tr key={m.user.id}>
-                      <td>{visible.includes(m.user.id) ? <Link href={`/app/athletes/${m.user.id}`} className="flex items-center gap-2 hover:text-volt"><Avatar name={m.user.name} size={28} /><span className="font-medium text-white">{m.user.name}</span></Link> : m.user.name}</td>
+                      <td>{visible.includes(m.user.id) ? <Link href={`/app/athletes/${m.user.id}`} className="flex items-center gap-2 hover:text-volt"><Avatar name={m.user.name} src={avatarSrc(m.user)} size={28} /><span className="font-medium text-white">{m.user.name}</span></Link> : m.user.name}</td>
                       <td className="num">{m.lastWellness ? `${wellnessScore(m.lastWellness)}/25` : "—"}</td>
                       <td className="num">{m.lastWellness ? `${m.lastWellness.readiness}/10` : "—"}</td>
                       <td className="num">{fmtNum(m.indicators.acute)} UA</td>

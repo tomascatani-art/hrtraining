@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { avatarSrc } from "@/lib/avatar";
 import { Download } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -117,7 +118,7 @@ export default async function EvaluationsPage({ searchParams }: { searchParams: 
               <tbody>
                 {athletes.map((a) => (
                   <tr key={a.id}>
-                    <td className="sticky left-0 bg-ink-850"><Link href={`/app/athletes/${a.id}?tab=evaluaciones`} className="flex items-center gap-2 whitespace-nowrap hover:text-volt"><Avatar name={a.name} size={26} /><span className="text-white">{a.name}</span>{a.isDemo && <DemoBadge />}</Link></td>
+                    <td className="sticky left-0 bg-ink-850"><Link href={`/app/athletes/${a.id}?tab=evaluaciones`} className="flex items-center gap-2 whitespace-nowrap hover:text-volt"><Avatar name={a.name} src={avatarSrc(a)} size={26} /><span className="text-white">{a.name}</span>{a.isDemo && <DemoBadge />}</Link></td>
                     {usedTests.map((t) => {
                       const l = evals.filter((e) => e.athleteId === a.id && e.testKey === t.key);
                       const last = l.at(-1), prev = l.at(-2);

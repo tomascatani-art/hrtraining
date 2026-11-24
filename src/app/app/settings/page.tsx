@@ -4,6 +4,8 @@ import { PageHeader, Card, Field } from "@/components/ui";
 import { Submit } from "@/components/forms";
 import { headers } from "next/headers";
 import { updateProfile, changePassword, updateOrg, updateBrand } from "./actions";
+import { AvatarUpload } from "@/components/avatar-upload";
+import { avatarSrc } from "@/lib/avatar";
 import { BrandColorPicker } from "@/components/brand-color";
 import { Logo } from "@/components/ui";
 import { DEFAULT_ACCENT, logoUrl } from "@/lib/brand";
@@ -20,6 +22,7 @@ export default async function SettingsPage() {
       <PageHeader title={u.role === "ATHLETE" ? "Mi perfil" : "Ajustes"} />
       <div className="grid max-w-5xl gap-6 lg:grid-cols-2">
         <Card title="Perfil">
+          <div className="mb-4"><AvatarUpload userId={u.id} name={u.name} src={avatarSrc(u)} /></div>
           <form action={updateProfile} className="space-y-3">
             <Field label="Nombre"><input name="name" defaultValue={u.name} className="input" /></Field>
             <Field label="Email"><input value={u.email} disabled className="input opacity-60" /></Field>

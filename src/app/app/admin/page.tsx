@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { avatarSrc } from "@/lib/avatar";
 import { Download } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -68,7 +69,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               <tbody>
                 {users.map((x) => (
                   <tr key={x.id}>
-                    <td><div className="flex items-center gap-2"><Avatar name={x.name} size={28} /><div><div className="text-white">{x.name} {x.isDemo && <DemoBadge />}</div><div className="text-xs muted">{x.email}{x.role !== "ATHLETE" && x._count.coachedAthletes ? ` · ${x._count.coachedAthletes} deportistas` : ""}</div></div></div></td>
+                    <td><div className="flex items-center gap-2"><Avatar name={x.name} src={avatarSrc(x)} size={28} /><div><div className="text-white">{x.name} {x.isDemo && <DemoBadge />}</div><div className="text-xs muted">{x.email}{x.role !== "ATHLETE" && x._count.coachedAthletes ? ` · ${x._count.coachedAthletes} deportistas` : ""}</div></div></div></td>
                     <td colSpan={2}>
                       <form action={updateUser} className="flex items-center gap-2">
                         <input type="hidden" name="id" value={x.id} />

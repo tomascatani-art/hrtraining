@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { avatarSrc } from "@/lib/avatar";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { FileText, MessageSquare } from "lucide-react";
@@ -13,8 +14,13 @@ import { Submit, CopyField } from "@/components/forms";
 import { LoadPanel, EvalPanel, HistoryPanel, GoalsPanel } from "@/components/athlete-panels";
 import { RMPanel } from "@/components/rm-panel";
 import { WhatsAppShare } from "@/components/whatsapp-share";
+import { AvatarUpload } from "@/components/avatar-upload";
 import { TrainingInsights } from "@/components/insights";
 import { updateAthlete, regenerateInvite, resetLinkForAthlete } from "../actions";
+import { RoutineView } from "@/components/routine-view";
+import { withVideos } from "@/lib/routine-server";
+import { currentWeek } from "@/lib/routine";
+import { createRoutine } from "../../routines/actions";
 
 export default async function AthleteDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; invitado?: string; carpeta?: string; mail?: string; clave?: string }> }) {
   const u = await requireUser(["COACH", "ADMIN"]);
@@ -33,8 +39,8 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
 
   return (
     <>
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center animate-rise">
-        <Avatar name={a.name} size={64} />
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start animate-rise">
+        <AvatarUpload userId={a.id} name={a.name} src={avatarSrc(a)} size={72} />
         <div className="flex-1">
           <div className="flex flex-wrap items-center gap-2"><h1 className="h1">{a.name}</h1>{a.isDemo && <DemoBadge />}{!a.active && <span className="chip-red">Inactivo</span>}</div>
           <div className="mt-1 flex flex-wrap gap-2 text-sm">
@@ -78,6 +84,7 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
 
       <Tabs active={tab} items={[
         { key: "resumen", label: "Perfil", href: `${base}?tab=resumen` },
+        { key: "rutina", label: "Rutina", href: `${base}?tab=rutina` },
         { key: "carga", label: "Carga y bienestar", href: `${base}?tab=carga` },
         { key: "rm", label: "RM", href: `${base}?tab=rm` },
         { key: "evaluaciones", label: "Evaluaciones", href: `${base}?tab=evaluaciones` },
@@ -87,6 +94,7 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
         { key: "carpeta", label: "Carpeta", href: `${base}?tab=carpeta` },
       ]} />
 
+      {tab === "rutina" && <RoutineTab athleteId={id} orgId={u.orgId} />}
       {tab === "carga" && <LoadPanel athleteId={id} />}
       {tab === "antropometria" && <AnthropometryPanel athleteId={id} canEdit />}
       {tab === "carpeta" && <FolderPanel athleteId={id} viewerId={u.id} staff base={`${base}?tab=carpeta`} active={sp.carpeta} />}
@@ -133,6 +141,31 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
           </div>
         </div>
       )}
+    </>
+  );
+}
+
+async function RoutineTab({ athleteId, orgId }: { athleteId: string; orgId: string }) {
+  const r = await db.routine.findFirst({ where: { athleteId, active: true }, orderBy: { updatedAt: "desc" } });
+  const templates = await db.routine.findMany({ where: { orgId, template: true }, orderBy: { name: "asc" }, select: { id: true, name: true } });
+  if (!r) return (
+    <Card title="Rutina">
+      <p className="mb-3 text-sm muted">Todavía no tiene rutina. Creala en blanco o desde una plantilla: días, bloques, ejercicios de la biblioteca y una columna por semana.</p>
+      <form action={createRoutine} className="flex flex-wrap gap-2">
+        <input type="hidden" name="athleteId" value={athleteId} />
+        <select name="templateId" defaultValue="" className="input w-auto"><option value="">En blanco</option>{templates.map((t) => <option key={t.id} value={t.id}>Desde: {t.name}</option>)}</select>
+        <Submit pendingText="Creando…">Crear rutina</Submit>
+      </form>
+    </Card>
+  );
+  const data = await withVideos(orgId, r.data);
+  return (
+    <>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div><div className="h2">{r.name}</div><div className="text-xs muted">Así la ve el deportista en “Mi rutina”.</div></div>
+        <Link href={`/app/routines/${r.id}`} className="btn-primary">Editar rutina</Link>
+      </div>
+      <RoutineView data={data} week={currentWeek(data)} />
     </>
   );
 }

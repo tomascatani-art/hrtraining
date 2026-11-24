@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { avatarSrc } from "@/lib/avatar";
 import { notFound } from "next/navigation";
 import { Pencil, Copy } from "lucide-react";
 import { requireUser } from "@/lib/auth";
@@ -10,6 +11,7 @@ import { kgFromPercent, classifyNote, NOTE_KINDS } from "@/lib/plates";
 import { PageHeader, Card, Avatar, DemoBadge, fmtDateLong, fmtTime, Empty } from "@/components/ui";
 import { Submit, ConfirmSubmit } from "@/components/forms";
 import { WorkoutLogger } from "@/components/workout-logger";
+import { exerciseVideos } from "@/lib/exercise-video";
 import { saveLog, quickAttendance, commentLog, duplicateSession, copySession, deleteSession } from "../actions";
 
 
@@ -36,12 +38,13 @@ export default async function SessionPage({ params, searchParams }: { params: Pr
   let items: Parameters<typeof WorkoutLogger>[0]["items"] = [];
   if (logFor) {
     const rms = await latestRMs(logFor, s.items.map((i) => i.exerciseId));
+    const vids = await exerciseVideos(s.orgId, s.items.map((i) => i.exerciseId));
     items = s.items.map((it) => {
       const rm = rms.get(it.exerciseId)?.kg ?? null;
       const calc = it.percent1RM && rm ? kgFromPercent(rm, it.percent1RM * 100) : null;
       return {
         id: it.id, exerciseId: it.exerciseId, name: it.exercise.name, sets: it.sets, reps: it.reps, suggestedKg: it.loadKg ?? calc?.rounded ?? null, targetRir: it.targetRir, restSec: it.restSec, tempo: it.tempo,
-        notes: it.notes, videoUrl: it.exercise.videoUrl, percent: it.percent1RM, rm, rounded: !it.loadKg && !!calc?.adjusted ? calc.exact : null,
+        notes: it.notes, videoUrl: vids.get(it.exerciseId) ?? null, percent: it.percent1RM, rm, rounded: !it.loadKg && !!calc?.adjusted ? calc.exact : null,
         block: it.block && BLOCKS[it.block] ? { label: BLOCKS[it.block].label, color: BLOCKS[it.block].color } : null,
       };
     });
@@ -107,7 +110,7 @@ export default async function SessionPage({ params, searchParams }: { params: Pr
                 return (
                   <li key={a.id} className="px-4 py-3 sm:px-5">
                     <div className="flex flex-wrap items-center gap-3">
-                      <Avatar name={a.name} size={32} />
+                      <Avatar name={a.name} src={avatarSrc(a)} size={32} />
                       <Link href={`/app/athletes/${a.id}?tab=historial`} className="min-w-[140px] flex-1 font-semibold text-white hover:text-volt">{a.name}</Link>
                       {l ? (
                         l.status === "COMPLETADO" || l.status === "PARCIAL"
