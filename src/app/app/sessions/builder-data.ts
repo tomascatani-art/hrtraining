@@ -2,7 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { visibleAthleteIds, visibleGroups } from "@/lib/access";
 import type { SessionUser } from "@/lib/auth";
-import { CAPACITIES, SESSION_TYPES } from "@/lib/catalog";
+import { BLOCKS, CAPACITIES, SESSION_TYPES } from "@/lib/catalog";
 
 export async function builderOptions(u: SessionUser) {
   const ids = await visibleAthleteIds(u);
@@ -18,6 +18,7 @@ export async function builderOptions(u: SessionUser) {
     plans: plans.map((p) => ({ value: p.id, label: p.name })),
     capacities: Object.entries(CAPACITIES).map(([value, c]) => ({ value, label: c.label })),
     types: Object.entries(SESSION_TYPES).map(([value, label]) => ({ value, label })),
+    blocks: Object.entries(BLOCKS).map(([value, b]) => ({ value, label: b.label, color: b.color })),
   };
 }
 

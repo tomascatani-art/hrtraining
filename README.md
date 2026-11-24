@@ -15,6 +15,11 @@ Plataforma de entrenamiento de alto rendimiento para entrenadores, preparadores 
 | **Evaluaciones** | 36 tests: CMJ, SJ, Abalakov, DJ, RSI, 1RM/3RM, VBT, potencia, FMS completo, Cooper, Navette, sprints, agilidad y tests por deporte. Se cargan como planilla por grupo, con video adjunto, ranking, evolución, comparación entre deportistas y exportación a Excel (CSV). |
 | **Cargas y fatiga** | Carga por sRPE, relación aguda/crónica, monotonía y strain de Foster, bienestar diario y desvío respecto de la línea base personal. Las alertas son orientativas y **no son diagnósticos médicos**. |
 | **Video análisis** | Reproducción cuadro a cuadro y en cámara lenta, dibujo de líneas, ángulos, trazos y texto, comparación lado a lado sincronizada y comentarios con marca de tiempo. |
+| **RM por ejercicio** | RM de cada deportista con historial. Las sesiones con % calculan los kilos solas y los redondean a discos. Aviso a la otra parte cuando cambia un RM. Estimación desde lo entrenado. |
+| **Bloques y notas** | Bloques dentro de la sesión (activación, fuerza, contraste, core…). El deportista anota cómo le fue en cada ejercicio con frases rápidas, y el entrenador ve los kilos usados y esas notas mientras arma la próxima sesión. Aviso de ejercicio repetido en los últimos 30 días. |
+| **Panel «Hoy»** | Quién entrenó hoy, quién marcó dolor o molestia en los últimos 2 días y los RM nuevos que cargaron los deportistas. Racha de constancia y gráfico de sensaciones para el deportista. |
+| **Cuotas** | Estado de pago mensual, cuota propia por deportista, recordatorio, bonificación y pausa de cuenta (el deportista solo ve su cuota y el chat; al marcar «Pagó» se reactiva). Contacto por WhatsApp. |
+| **Herramientas** | Temporizador por intervalos (Tabata, EMOM, 30/30), calculadora de fuerza con tabla de % y discos por lado, y estimación de energía y macros. |
 | **Comunicación** | Chats directos y grupales con adjuntos, avisos masivos y notificaciones. |
 | **Estadísticas e informes** | Comparación de períodos, asistencia, cumplimiento e informe imprimible en PDF por deportista. |
 | **Asistente** | Generador de semanas de entrenamiento basado en reglas y en el historial. La propuesta siempre la revisa el entrenador antes de crearse. |

@@ -7,6 +7,9 @@ export function middleware(req: NextRequest) {
     url.searchParams.set("next", req.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
-  return NextResponse.next();
+  // La ruta viaja en un encabezado para que el layout pueda limitar las cuentas pausadas
+  const headers = new Headers(req.headers);
+  headers.set("x-pathname", req.nextUrl.pathname);
+  return NextResponse.next({ request: { headers } });
 }
 export const config = { matcher: ["/app/:path*"] };

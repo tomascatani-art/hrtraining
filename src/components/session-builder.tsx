@@ -3,19 +3,21 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, ArrowUp, ArrowDown, Search, RotateCcw } from "lucide-react";
 import { Submit } from "./forms";
 import { fmtDate } from "./ui";
-import { recentExerciseUse, type RecentUse } from "@/app/app/sessions/actions";
+import { recentExerciseUse, athleteExerciseContext, type RecentUse, type ExerciseHistory } from "@/app/app/sessions/actions";
+import { kgFromPercent, fmtKg } from "@/lib/plates";
 
 type Ex = { id: string; name: string; primaryMuscle: string; pattern: string; suggestedSets: string | null; suggestedReps: string | null };
-type Item = { key: string; exerciseId: string; sets: number; reps: string; loadKg: string; percent1RM: string; targetRir: string; restSec: string; tempo: string; notes: string };
+type Item = { key: string; exerciseId: string; sets: number; reps: string; loadKg: string; percent1RM: string; targetRir: string; restSec: string; tempo: string; notes: string; block: string };
 type Option = { value: string; label: string };
 
-export function SessionBuilder({ action, exercises, targets, plans, capacities, types, initial }: {
+export function SessionBuilder({ action, exercises, targets, plans, capacities, types, blocks, initial }: {
   action: (fd: FormData) => Promise<void>;
   exercises: Ex[];
   targets: { groups: Option[]; athletes: Option[] };
   plans: Option[];
   capacities: Option[];
   types: Option[];
+  blocks: (Option & { color: string })[];
   initial: { id?: string; title: string; date: string; type: string; durationMin: number; targetRpe: number | null; capacities: string[]; target: string; planId: string; notes: string; items: Omit<Item, "key">[] };
 }) {
   // La fecha llega en ISO (UTC) y se edita en la hora local del navegador
@@ -34,6 +36,14 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
     return () => { live = false; clearTimeout(t); };
   }, [f.target, f.date, f.id]);
   const repeated = items.filter((i) => used[i.exerciseId]).length;
+  // RM y lo anotado por el deportista (solo sesiones individuales)
+  const [ctx, setCtx] = useState<{ rms: Record<string, number>; history: Record<string, ExerciseHistory[]> }>({ rms: {}, history: {} });
+  useEffect(() => {
+    let live = true;
+    athleteExerciseContext(f.target).then((r) => live && setCtx(r)).catch(() => live && setCtx({ rms: {}, history: {} }));
+    return () => { live = false; };
+  }, [f.target]);
+  const blockById = useMemo(() => Object.fromEntries(blocks.map((b) => [b.value, b])), [blocks]);
   const byId = useMemo(() => Object.fromEntries(exercises.map((e) => [e.id, e])), [exercises]);
   const filtered = useMemo(() => {
     const s = q.toLowerCase().trim();
@@ -41,7 +51,7 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
   }, [q, exercises]);
 
   const add = (e: Ex) =>
-    setItems((xs) => [...xs, { key: Math.random().toString(36), exerciseId: e.id, sets: parseInt(e.suggestedSets ?? "3") || 3, reps: (e.suggestedReps ?? "8").split(" ")[0].split("-").at(-1) ?? "8", loadKg: "", percent1RM: "", targetRir: "", restSec: "", tempo: "", notes: "" }]);
+    setItems((xs) => [...xs, { key: Math.random().toString(36), exerciseId: e.id, sets: parseInt(e.suggestedSets ?? "3") || 3, reps: (e.suggestedReps ?? "8").split(" ")[0].split("-").at(-1) ?? "8", loadKg: "", percent1RM: "", targetRir: "", restSec: "", tempo: "", notes: "", block: xs.at(-1)?.block ?? "" }]);
   const upd = (key: string, patch: Partial<Item>) => setItems((xs) => xs.map((x) => (x.key === key ? { ...x, ...patch } : x)));
   const move = (i: number, d: number) => setItems((xs) => { const c = [...xs]; const [x] = c.splice(i, 1); c.splice(Math.max(0, Math.min(c.length, i + d)), 0, x); return c; });
   const nz = (v: string) => (v === "" ? null : Number(v));
@@ -89,10 +99,14 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
           {items.length === 0 && <p className="px-5 pb-5 text-sm muted">Agregá ejercicios desde la biblioteca (panel derecho).</p>}
           <ol className="space-y-3 px-3 pb-4 sm:px-5">
             {items.map((it, i) => (
-              <li key={it.key} className="rounded-xl border border-ink-700 bg-ink-900 p-3 animate-rise">
+              <li key={it.key} className="rounded-xl border border-ink-700 bg-ink-900 p-3 animate-rise" style={it.block && blockById[it.block] ? { borderLeft: `4px solid ${blockById[it.block].color}` } : undefined}>
                 <div className="mb-2 flex items-center gap-2">
                   <span className="num grid h-6 w-6 place-items-center rounded-md bg-volt text-xs font-bold text-black">{i + 1}</span>
                   <span className="flex-1 truncate font-semibold text-white">{byId[it.exerciseId]?.name ?? "Ejercicio"}</span>
+                  <select aria-label="Bloque" value={it.block} onChange={(e) => upd(it.key, { block: e.target.value })} className="input w-auto max-w-[44%] py-1 text-xs">
+                    <option value="">Sin bloque</option>
+                    {blocks.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+                  </select>
                   <button type="button" onClick={() => move(i, -1)} className="rounded p-1 text-neutral-500 hover:text-white" aria-label="Subir"><ArrowUp size={15} /></button>
                   <button type="button" onClick={() => move(i, 1)} className="rounded p-1 text-neutral-500 hover:text-white" aria-label="Bajar"><ArrowDown size={15} /></button>
                   <button type="button" onClick={() => setItems((xs) => xs.filter((x) => x.key !== it.key))} className="rounded p-1 text-neutral-500 hover:text-red-400" aria-label="Quitar"><Trash2 size={15} /></button>
@@ -106,6 +120,16 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
                   <Mini label="Pausa (s)"><input type="number" className="input py-1.5" value={it.restSec} onChange={(e) => upd(it.key, { restSec: e.target.value })} /></Mini>
                   <Mini label="Tempo"><input className="input py-1.5" value={it.tempo} placeholder="3-1-X" onChange={(e) => upd(it.key, { tempo: e.target.value })} /></Mini>
                 </div>
+                {it.percent1RM && ctx.rms[it.exerciseId] ? (() => {
+                  const k = kgFromPercent(ctx.rms[it.exerciseId], Number(it.percent1RM));
+                  return <p className="mt-2 text-xs text-neutral-300">≈ <b className="num text-white">{fmtKg(k.rounded)} kg</b> con su RM de {fmtKg(ctx.rms[it.exerciseId])} kg{k.adjusted ? ` (${fmtKg(k.exact)} redondeado a discos)` : ""}</p>;
+                })() : it.percent1RM && f.target.startsWith("a:") ? <p className="mt-2 text-xs text-neutral-500">Sin RM cargado para este ejercicio: el deportista lo puede cargar al entrenar.</p> : null}
+                {ctx.history[it.exerciseId]?.length ? (
+                  <ul className="mt-2 space-y-0.5 rounded-lg bg-ink-850 px-3 py-2 text-xs">
+                    <li className="label mb-1">Lo que anotó</li>
+                    {ctx.history[it.exerciseId].map((h, j) => <li key={j} className="text-neutral-300"><span className="muted">{dayLabel(h.date)}:</span> {h.kg ? <b className="num text-white">{fmtKg(h.kg)} kg{h.reps ? ` × ${h.reps}` : ""}</b> : null}{h.note ? <> {h.kg ? "· " : ""}“{h.note}”</> : null}</li>)}
+                  </ul>
+                ) : null}
                 {used[it.exerciseId] && <RepeatNote u={used[it.exerciseId]} />}
                 <input className="input mt-2 py-1.5" value={it.notes} placeholder="Nota para el deportista (opcional)" onChange={(e) => upd(it.key, { notes: e.target.value })} />
               </li>

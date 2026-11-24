@@ -9,6 +9,12 @@ import { TEST_MAP, SESSION_TYPES } from "@/lib/catalog";
 import { Card, Stat, PageHeader, Empty, Avatar, DemoBadge, fmtDate, fmtDateLong, fmtTime, Delta, fmtNum } from "@/components/ui";
 import { LoadBars, TrendChart } from "@/components/charts";
 import { AlertList } from "@/components/alerts";
+import { TodayPanel } from "@/components/today-panel";
+import { streakFor } from "@/lib/training";
+import { feeStatusFor, monthKey, monthLabel } from "@/lib/fees";
+import { fmtKg } from "@/lib/plates";
+import { markRMSeen } from "./rm/actions";
+import { Submit } from "@/components/forms";
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ bienvenida?: string }> }) {
   const u = await requireUser();
@@ -83,6 +89,8 @@ async function CoachHome({ welcome }: { welcome: boolean }) {
         <Stat label="Evaluaciones pendientes" value={pendingEval.length} hint="sin test en 60 días" icon={<ClipboardList size={16} />} href="/app/evaluations" />
         <Stat label="Competencias" value={comps.length} hint="próximas" icon={<Trophy size={16} />} href="/app/competitions" />
       </div>
+
+      <TodayPanel ids={ids} />
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3 xl:items-start">
         <Card title="Carga semanal promedio" action={<span className="label">sRPE · UA por deportista</span>} className="xl:col-span-2">
@@ -176,6 +184,13 @@ async function AthleteHome({ userId, name }: { userId: string; name: string }) {
     db.wellness.findUnique({ where: { athleteId_date: { athleteId: userId, date: dateOnly(now) } } }),
     monitoringFor([userId]),
   ]);
+  const [streak, rmNews, fee] = await Promise.all([
+    streakFor(userId),
+    db.exerciseRM.findMany({ where: { athleteId: userId, seen: false, source: { not: "DEPORTISTA" } }, include: { exercise: { select: { name: true } } }, orderBy: { date: "desc" } }),
+    feeStatusFor(userId),
+  ]);
+  const feeDue = fee.status === "PENDIENTE" && fee.amount != null && fee.org && now.getDate() >= fee.org.feeDueDay - 3;
+  const prevRM = rmNews.length ? await db.exerciseRM.findMany({ where: { athleteId: userId, exerciseId: { in: rmNews.map((r) => r.exerciseId) } }, orderBy: { date: "desc" } }) : [];
   const done = weekSessions.filter((s) => s.logs.some((l) => l.status === "COMPLETADO" || l.status === "PARCIAL")).length;
   const compliance = weekSessions.length ? Math.round((done / weekSessions.length) * 100) : 0;
 
@@ -189,7 +204,23 @@ async function AthleteHome({ userId, name }: { userId: string; name: string }) {
 
   return (
     <>
-      <PageHeader eyebrow={fmtDateLong(now)} title={`¡Vamos, ${name.split(" ")[0]}!`} subtitle="Tu entrenamiento de hoy, objetivos y progreso." />
+      <PageHeader eyebrow={fmtDateLong(now)} title={`¡Vamos, ${name.split(" ")[0]}!`} subtitle="Tu entrenamiento de hoy, objetivos y progreso."
+        actions={streak > 0 ? <div className="flex items-center gap-2 rounded-xl border border-volt/40 bg-volt/10 px-4 py-2"><Flame size={18} className="text-volt" /><span className="num text-2xl font-bold text-white">{streak}</span><span className="text-xs leading-tight text-neutral-300">{streak === 1 ? "sesión" : "sesiones"}<br />seguidas</span></div> : undefined} />
+      {feeDue && (
+        <Link href="/app/paused" className="card card-pad mb-6 flex items-center gap-3 border-red-500/40 card-hover">
+          <div className="flex-1 text-sm"><b className="text-white">Cuota de {monthLabel(monthKey()).toLowerCase()} pendiente</b><div className="muted">Vence el día {fee.org!.feeDueDay}. Tocá para ver cómo regularizarla.</div></div>
+          <span className="num font-semibold text-white">$ {fee.amount!.toLocaleString("es-AR", { maximumFractionDigits: 0 })}</span>
+        </Link>
+      )}
+      {rmNews.length > 0 && (
+        <div className="card card-pad mb-6 flex flex-wrap items-center gap-3 border-volt/50">
+          <div className="flex-1 text-sm">
+            <b className="text-volt">Tu entrenador actualizó tus RM</b>
+            <ul className="mt-1 space-y-0.5">{rmNews.map((r) => { const p = prevRM.find((x) => x.exerciseId === r.exerciseId && x.date < r.date); return <li key={r.id} className="text-neutral-200">{r.exercise.name}: <span className="num">{p ? `${fmtKg(p.kg)} → ` : ""}<b className="text-white">{fmtKg(r.kg)} kg</b></span></li>; })}</ul>
+          </div>
+          <form action={markRMSeen}>{rmNews.map((r) => <input key={r.id} type="hidden" name="id" value={r.id} />)}<Submit className="btn-ghost btn-sm">Entendido</Submit></form>
+        </div>
+      )}
       {!wellToday && (
         <Link href="/app/wellness" className="card card-pad mb-6 flex items-center gap-4 border-volt/50 card-hover">
           <div className="grid h-11 w-11 place-items-center rounded-xl bg-volt text-black"><HeartPulse size={22} /></div>

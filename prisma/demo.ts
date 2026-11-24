@@ -28,6 +28,15 @@ export async function ensureLibrary(db: PrismaClient) {
   });
 }
 
+/** Bloque de la sesión según el ejercicio (para los datos de demostración). */
+function blockFor(name: string, pct: number | null) {
+  if (/sprint|cambio de direcci|escalera/i.test(name)) return "VELOCIDAD";
+  if (/salto|drop|cargada|vallas/i.test(name)) return "POTENCIA";
+  if (/plancha|pallof|dead bug/i.test(name)) return "CORE";
+  if (pct || /sentadilla|peso muerto|press|hip thrust|dominadas|remo con barra/i.test(name)) return "FUERZA";
+  return "ACCESORIO";
+}
+
 export async function deleteDemo(db: PrismaClient) {
   await db.organization.deleteMany({ where: { isDemo: true } });
 }
@@ -37,7 +46,7 @@ export async function createDemo(db: PrismaClient) {
   await deleteDemo(db);
   const r = rng(42);
   const hash = await bcrypt.hash("demo1234", 10);
-  const org = await db.organization.create({ data: { name: "Club Demo Hrtraining", isDemo: true } });
+  const org = await db.organization.create({ data: { name: "Club Demo Hrtraining", isDemo: true, feeAmount: 25000, feeDueDay: 10 } });
 
   const coach = await db.user.create({ data: { orgId: org.id, email: "entrenador.demo@hrtraining.co", name: "Martina Demo", role: "ADMIN", passwordHash: hash, isDemo: true } });
   const coach2 = await db.user.create({ data: { orgId: org.id, email: "preparador.demo@hrtraining.co", name: "Joaquín Demo", role: "COACH", passwordHash: hash, isDemo: true } });
@@ -133,11 +142,11 @@ export async function createDemo(db: PrismaClient) {
           orgId: org.id, coachId: sport === "NATACION" ? coach2.id : coach.id, title: tpl.title, date: at(off, sport === "FUTBOL" ? 9 : 17), type: tpl.type,
           capacities: tpl.caps, durationMin: tpl.type === "PISTA" ? 75 : 65, targetRpe: 7, isDemo: true, planId: sport === "ATLETISMO" ? plan.id : null,
           groupId: groupId ?? null, athleteId: groupId ? null : members[0].id,
-          items: { create: tpl.items.map(([n, sets, reps, pct, rir], j) => ({ exerciseId: byName(n).id, order: j, sets, reps, percent1RM: pct, targetRir: rir, restSec: pct ? 180 : 90 })) },
+          items: { create: tpl.items.map(([n, sets, reps, pct, rir], j) => ({ exerciseId: byName(n).id, order: j, sets, reps, percent1RM: pct, targetRir: rir, restSec: pct ? 180 : 90, block: blockFor(n, pct) })) },
         },
         include: { items: true },
       });
-      if (off > 0) continue; // futuras: sin registro
+      if (sess.date > new Date()) continue; // futuras (incluso más tarde hoy): sin registro
       for (const [ai, a] of members.entries()) {
         const absent = r() < 0.08;
         if (absent) {
@@ -151,8 +160,9 @@ export async function createDemo(db: PrismaClient) {
         const progress = 1 + (41 + off) / 41 * 0.06;
         await db.workoutLog.create({
           data: {
-            sessionId: sess.id, athleteId: a.id, status: "COMPLETADO", durationMin: dur, rpe, load: rpe * dur, completedAt: new Date(sess.date.getTime() + 2 * 3600_000),
+            sessionId: sess.id, athleteId: a.id, status: "COMPLETADO", durationMin: dur, rpe, load: rpe * dur, completedAt: new Date(Math.min(sess.date.getTime() + 2 * 3600_000, Date.now() - 5 * 60_000)),
             feeling: ["Buenas sensaciones", "Piernas pesadas", "Muy bien, rápido", "Algo cansado", null][Math.floor(r() * 5)],
+            itemNotes: r() < 0.45 ? { create: [{ itemId: sess.items[0].id, note: off >= -2 && a.name.startsWith("Mateo") ? "Molestia leve en isquio derecho al final" : ["Me sentí bien", "Me costó la última serie", "Salió fácil, puedo subir", "Cansado/a", "Con energía"][Math.floor(r() * 5)] }] } : undefined,
             sets: {
               create: sess.items.flatMap((it) =>
                 Array.from({ length: it.sets }, (_, s) => {
@@ -232,6 +242,33 @@ export async function createDemo(db: PrismaClient) {
       ],
     });
   }
+
+  // ---- RM por ejercicio ----
+  const sq = byName("Sentadilla trasera"), dl = byName("Peso muerto rumano"), bp = byName("Press de banca"), pc = byName("Cargada de potencia");
+  for (const a of athletes) {
+    const rows = [
+      { exerciseId: sq.id, kg: a.base.sq, date: day0(-45), source: "ENTRENADOR", seen: true },
+      { exerciseId: sq.id, kg: a.base.sq + 5, date: day0(-12), source: "ENTRENADOR", seen: true },
+      { exerciseId: dl.id, kg: Math.round((a.base.sq * 0.95) / 2.5) * 2.5, date: day0(-30), source: "ENTRENADOR", seen: true },
+      { exerciseId: bp.id, kg: Math.round((a.base.sq * 0.62) / 2.5) * 2.5, date: day0(-30), source: "ENTRENADOR", seen: true },
+      ...(a.sport === "ATLETISMO" ? [{ exerciseId: pc.id, kg: Math.round((a.base.sq * 0.68) / 2.5) * 2.5, date: day0(-20), source: "ENTRENADOR", seen: true }] : []),
+    ];
+    await db.exerciseRM.createMany({ data: rows.map((x) => ({ ...x, athleteId: a.id, setById: coach.id, isDemo: true })) });
+  }
+  // Novedades para mostrar los avisos: Sofía cargó su peso muerto y el entrenador le actualizó la cargada
+  await db.exerciseRM.create({ data: { athleteId: athletes[0].id, exerciseId: dl.id, kg: 97.5, date: day0(-1), source: "DEPORTISTA", seen: false, setById: athletes[0].id, isDemo: true } });
+  await db.exerciseRM.create({ data: { athleteId: athletes[0].id, exerciseId: pc.id, kg: 70, date: day0(0), source: "ENTRENADOR", seen: false, setById: coach.id, isDemo: true } });
+
+  // ---- Cuotas ----
+  const now0 = new Date();
+  const mk = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const cur = mk(now0), prev = mk(new Date(now0.getFullYear(), now0.getMonth() - 1, 15));
+  for (const [i, a] of athletes.entries()) {
+    await db.fee.create({ data: { orgId: org.id, athleteId: a.id, period: prev, amount: 25000, status: "PAGADO", paidAt: new Date(now0.getFullYear(), now0.getMonth() - 1, 5 + i), isDemo: true } });
+    const pending = a.name.startsWith("Nicolás") || a.name.startsWith("Lucas");
+    if (!pending) await db.fee.create({ data: { orgId: org.id, athleteId: a.id, period: cur, amount: a.name.startsWith("Valentina") ? 0 : 25000, status: a.name.startsWith("Valentina") ? "BONIFICADO" : "PAGADO", paidAt: new Date(now0.getFullYear(), now0.getMonth(), Math.min(now0.getDate(), 2 + i)), isDemo: true } });
+  }
+  await db.athleteProfile.updateMany({ where: { user: { name: "Nicolás Demo", orgId: org.id } }, data: { paused: true } });
 
   // ---- Comunicación ----
   const sofia = athletes[0];

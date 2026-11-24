@@ -5,7 +5,7 @@ import { useState } from "react";
 import clsx from "clsx";
 import {
   LayoutDashboard, Users, UsersRound, CalendarRange, CalendarDays, Dumbbell, Gauge, Activity, LineChart,
-  Video, MessageSquare, FolderOpen, Trophy, Shapes, ShieldCheck, Settings, HeartPulse, Target, Menu, X, Bell, LogOut, Sparkles,
+  Video, MessageSquare, FolderOpen, Trophy, Shapes, ShieldCheck, Settings, HeartPulse, Target, Menu, X, Bell, LogOut, Sparkles, Wallet, Wrench,
 } from "lucide-react";
 import { Logo, Avatar } from "./ui";
 import { logoutAction } from "@/app/(auth)/actions";
@@ -20,15 +20,17 @@ export function navFor(role: string, unread: number): { main: Item[]; mobile: It
       { href: "/app/wellness", label: "Bienestar", icon: HeartPulse },
       { href: "/app/evaluations", label: "Evaluaciones", icon: Gauge },
       { href: "/app/stats", label: "Mi progreso", icon: LineChart },
+      { href: "/app/rm", label: "Mis RM", icon: Dumbbell },
       { href: "/app/goals", label: "Objetivos", icon: Target },
       { href: "/app/history", label: "Historial", icon: Activity },
       { href: "/app/videos", label: "Videos", icon: Video },
       { href: "/app/messages", label: "Mensajes", icon: MessageSquare, badge: unread },
       { href: "/app/files", label: "Archivos", icon: FolderOpen },
       { href: "/app/library", label: "Ejercicios", icon: Dumbbell },
+      { href: "/app/tools", label: "Herramientas", icon: Wrench },
       { href: "/app/settings", label: "Mi perfil", icon: Settings },
     ];
-    return { main, mobile: [main[0], main[1], main[2], main[4], main[8]] };
+    return { main, mobile: pick(main, ["/app", "/app/calendar", "/app/wellness", "/app/stats", "/app/messages"]) };
   }
   const main: Item[] = [
     { href: "/app", label: "Dashboard", icon: LayoutDashboard },
@@ -46,23 +48,30 @@ export function navFor(role: string, unread: number): { main: Item[]; mobile: It
     { href: "/app/competitions", label: "Competencias", icon: Trophy },
     { href: "/app/sports", label: "Deportes", icon: Shapes },
     { href: "/app/assistant", label: "Asistente", icon: Sparkles },
+    { href: "/app/fees", label: "Cuotas", icon: Wallet },
+    { href: "/app/tools", label: "Herramientas", icon: Wrench },
   ];
   if (role === "ADMIN") main.push({ href: "/app/admin", label: "Administración", icon: ShieldCheck });
   main.push({ href: "/app/settings", label: "Ajustes", icon: Settings });
-  return { main, mobile: [main[0], main[1], main[3], main[7], main[10]] };
+  return { main, mobile: pick(main, ["/app", "/app/athletes", "/app/planning", "/app/load", "/app/messages"]) };
 }
+
+const pick = (items: Item[], hrefs: string[]) => hrefs.map((h) => items.find((i) => i.href === h)!).filter(Boolean);
 
 const isActive = (path: string, href: string) => (href === "/app" ? path === "/app" : path.startsWith(href));
 
 export function Shell({
-  user, unreadMessages, unreadNotifications, isDemo, children,
+  user, unreadMessages, unreadNotifications, isDemo, paused = false, children,
 }: {
   user: { name: string; role: string; org: string };
-  unreadMessages: number; unreadNotifications: number; isDemo: boolean; children: React.ReactNode;
+  unreadMessages: number; unreadNotifications: number; isDemo: boolean; paused?: boolean; children: React.ReactNode;
 }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
-  const { main, mobile } = navFor(user.role, unreadMessages);
+  const nav = navFor(user.role, unreadMessages);
+  // Cuenta pausada: solo cuota y chat
+  const pausedNav: Item[] = [{ href: "/app/paused", label: "Mi cuota", icon: Wallet }, ...nav.main.filter((i) => i.href === "/app/messages")];
+  const { main, mobile } = paused ? { main: pausedNav, mobile: pausedNav } : nav;
   const roleLabel = user.role === "ADMIN" ? "Administrador" : user.role === "COACH" ? "Entrenador" : "Deportista";
 
   const NavList = ({ onNav }: { onNav?: () => void }) => (

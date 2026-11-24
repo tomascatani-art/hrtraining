@@ -4,13 +4,14 @@ import { Pencil, Copy } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sessionWhere, visibleAthleteIds } from "@/lib/access";
-import { SESSION_TYPES, CAPACITIES } from "@/lib/catalog";
+import { SESSION_TYPES, CAPACITIES, BLOCKS, QUICK_NOTES } from "@/lib/catalog";
+import { latestRMs } from "@/lib/training";
+import { kgFromPercent, classifyNote, NOTE_KINDS } from "@/lib/plates";
 import { PageHeader, Card, Avatar, DemoBadge, fmtDateLong, fmtTime, Empty } from "@/components/ui";
 import { Submit, ConfirmSubmit } from "@/components/forms";
 import { WorkoutLogger } from "@/components/workout-logger";
 import { saveLog, quickAttendance, commentLog, duplicateSession, deleteSession } from "../actions";
 
-const RM_FOR: [RegExp, string][] = [[/^Sentadilla (trasera|frontal)/, "RM1_SQ"], [/^Press de banca/, "RM1_BP"], [/^Peso muerto convencional/, "RM1_DL"]];
 
 export default async function SessionPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; as?: string }> }) {
   const u = await requireUser();
@@ -21,7 +22,7 @@ export default async function SessionPage({ params, searchParams }: { params: Pr
     include: {
       items: { orderBy: { order: "asc" }, include: { exercise: true } },
       group: { include: { members: { include: { athlete: true } } } }, athlete: true, coach: true, plan: true,
-      logs: { include: { athlete: true, sets: true } },
+      logs: { include: { athlete: true, sets: true, itemNotes: true } },
     },
   });
   if (!s) notFound();
@@ -34,12 +35,15 @@ export default async function SessionPage({ params, searchParams }: { params: Pr
 
   let items: Parameters<typeof WorkoutLogger>[0]["items"] = [];
   if (logFor) {
-    const rms = await db.evaluation.findMany({ where: { athleteId: logFor, testKey: { in: ["RM1_SQ", "RM1_BP", "RM1_DL"] } }, orderBy: { date: "desc" } });
+    const rms = await latestRMs(logFor, s.items.map((i) => i.exerciseId));
     items = s.items.map((it) => {
-      const key = RM_FOR.find(([re]) => re.test(it.exercise.name))?.[1];
-      const rm = key ? rms.find((r) => r.testKey === key)?.value : undefined;
-      const suggestedKg = it.loadKg ?? (it.percent1RM && rm ? Math.round((rm * it.percent1RM) / 2.5) * 2.5 : null);
-      return { id: it.id, name: it.exercise.name, sets: it.sets, reps: it.reps, suggestedKg, targetRir: it.targetRir, restSec: it.restSec, tempo: it.tempo, notes: it.notes, videoUrl: it.exercise.videoUrl, percent: it.percent1RM };
+      const rm = rms.get(it.exerciseId)?.kg ?? null;
+      const calc = it.percent1RM && rm ? kgFromPercent(rm, it.percent1RM * 100) : null;
+      return {
+        id: it.id, exerciseId: it.exerciseId, name: it.exercise.name, sets: it.sets, reps: it.reps, suggestedKg: it.loadKg ?? calc?.rounded ?? null, targetRir: it.targetRir, restSec: it.restSec, tempo: it.tempo,
+        notes: it.notes, videoUrl: it.exercise.videoUrl, percent: it.percent1RM, rm, rounded: !it.loadKg && !!calc?.adjusted ? calc.exact : null,
+        block: it.block && BLOCKS[it.block] ? { label: BLOCKS[it.block].label, color: BLOCKS[it.block].color } : null,
+      };
     });
   }
   const forName = logFor ? assigned.find((a) => a.id === logFor)?.name ?? u.name : "";
@@ -61,8 +65,8 @@ export default async function SessionPage({ params, searchParams }: { params: Pr
         <>
           {staff && <div className="mb-3 flex items-center gap-2 text-sm"><span className="muted">Registrando en nombre de</span><b className="text-white">{forName}</b><Link href={`/app/sessions/${s.id}`} className="ml-auto text-xs text-volt">Volver al resumen</Link></div>}
           {existing?.coachComment && <div className="mb-4 rounded-xl border border-volt/30 bg-volt/5 p-3 text-sm"><span className="label text-volt">Comentario del entrenador</span><p className="mt-1 text-neutral-100">{existing.coachComment}</p></div>}
-          <WorkoutLogger action={saveLog} sessionId={s.id} athleteId={logFor} items={items} defaultDuration={s.durationMin}
-            existing={existing ? { status: existing.status, rpe: existing.rpe, durationMin: existing.durationMin, feeling: existing.feeling, sets: existing.sets } : null} />
+          <WorkoutLogger action={saveLog} sessionId={s.id} athleteId={logFor} items={items} defaultDuration={s.durationMin} quickNotes={QUICK_NOTES} isAthlete={!staff}
+            existing={existing ? { status: existing.status, rpe: existing.rpe, durationMin: existing.durationMin, feeling: existing.feeling, sets: existing.sets, notes: existing.itemNotes.map((n) => ({ itemId: n.itemId, note: n.note })) } : null} />
         </>
       ) : (
         <div className="grid gap-6 xl:grid-cols-3">
@@ -70,7 +74,8 @@ export default async function SessionPage({ params, searchParams }: { params: Pr
             {s.items.length ? (
               <ol className="space-y-2">
                 {s.items.map((it, i) => (
-                  <li key={it.id} className="rounded-lg bg-ink-900 px-3 py-2">
+                  <li key={it.id} className="rounded-lg bg-ink-900 px-3 py-2" style={it.block && BLOCKS[it.block] ? { borderLeft: `3px solid ${BLOCKS[it.block].color}` } : undefined}>
+                    {it.block && BLOCKS[it.block] && it.block !== s.items[i - 1]?.block && <div className="label mb-1" style={{ color: BLOCKS[it.block].color }}>{BLOCKS[it.block].label}</div>}
                     <div className="flex items-center gap-2"><span className="num text-xs text-volt">{i + 1}</span><Link href={`/app/library/${it.exerciseId}`} className="flex-1 text-sm font-medium text-white hover:text-volt">{it.exercise.name}</Link></div>
                     <div className="num mt-0.5 text-xs muted">{it.sets}×{it.reps}{it.percent1RM ? ` · ${Math.round(it.percent1RM * 100)}%` : ""}{it.loadKg ? ` · ${it.loadKg} kg` : ""}{it.targetRir != null ? ` · RIR ${it.targetRir}` : ""}{it.restSec ? ` · ${it.restSec}s` : ""}</div>
                   </li>
@@ -103,6 +108,14 @@ export default async function SessionPage({ params, searchParams }: { params: Pr
                       </div>
                     </div>
                     {l?.feeling && <p className="ml-11 mt-1 text-sm text-neutral-300">“{l.feeling}”</p>}
+                    {l?.itemNotes.length ? (
+                      <ul className="ml-11 mt-1 space-y-0.5 text-xs">
+                        {l.itemNotes.map((n) => {
+                          const k = classifyNote(n.note);
+                          return <li key={n.id} className="text-neutral-300"><span className="muted">{s.items.find((x) => x.id === n.itemId)?.exercise.name}:</span> “{n.note}”{k && <span className="ml-1.5 rounded px-1.5 py-0.5 text-[10px] font-semibold text-black" style={{ background: NOTE_KINDS[k].color }}>{NOTE_KINDS[k].label}</span>}</li>;
+                        })}
+                      </ul>
+                    ) : null}
                     {l && (
                       <form action={commentLog} className="ml-11 mt-2 flex gap-2">
                         <input type="hidden" name="logId" value={l.id} />

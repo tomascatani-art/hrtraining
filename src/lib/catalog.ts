@@ -162,3 +162,24 @@ export const SPORT_TEMPLATES: Record<string, { focus: string[]; tests: string[];
   CICLISMO: { focus: ["RESISTENCIA_AEROBICA", "FUERZA_RESISTENCIA", "POTENCIA"], tests: ["FTP", "CMJ", "RM1_SQ"], weekly: ["RESISTENCIA", "FUERZA", "RESISTENCIA", "RESISTENCIA", "RECUPERACION"], note: "Fuerza de piernas en temporada baja." },
   COMBATE: { focus: ["POTENCIA", "FUERZA_RESISTENCIA", "RESISTENCIA_ANAEROBICA", "FUERZA_MAXIMA"], tests: ["SJFT", "CMJ", "RM1_BP", "RM1_DL"], weekly: ["TECNICO", "FUERZA", "TECNICO", "RESISTENCIA", "TECNICO"], note: "Control de peso y potencia en agarre y tronco." },
 };
+
+/** Bloques dentro de una sesión. El color identifica el bloque en el armado y en la vista del deportista. */
+export const BLOCKS: Record<string, { label: string; color: string }> = {
+  ACTIVACION: { label: "Activación", color: "#3a8fd6" },
+  MOVILIDAD: { label: "Movilidad", color: "#4fb39a" },
+  TECNICA: { label: "Técnica", color: "#4fc3d9" },
+  VELOCIDAD: { label: "Velocidad", color: "#5cc26b" },
+  POTENCIA: { label: "Potencia / explosivo", color: "#f2a93b" },
+  FUERZA: { label: "Fuerza", color: "#ffd60a" },
+  CONTRASTE: { label: "Contraste", color: "#a98bf0" },
+  HIPERTROFIA: { label: "Hipertrofia", color: "#e8608c" },
+  ACCESORIO: { label: "Accesorio", color: "#8fb3c9" },
+  CORE: { label: "Core", color: "#d9b84a" },
+  ESTABILIDAD: { label: "Estabilidad / propiocepción", color: "#7d8cff" },
+  METABOLICO: { label: "Metabólico / resistencia", color: "#d9566f" },
+  PREVENCION: { label: "Prevención", color: "#c98aa6" },
+  VUELTA_CALMA: { label: "Vuelta a la calma", color: "#94a3b8" },
+};
+
+/** Frases rápidas para que el deportista anote cómo le fue en un ejercicio con un toque. */
+export const QUICK_NOTES = ["Me sentí bien", "Me costó", "Salió fácil", "Con energía", "Cansado/a", "Dolor o molestia", "Subí el peso", "Bajé el peso"];

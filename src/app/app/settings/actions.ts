@@ -26,7 +26,10 @@ export async function updateOrg(fd: FormData) {
   const u = await requireUser(["ADMIN"]);
   const name = String(fd.get("org") ?? "").trim();
   if (name.length < 2) throw new Error("Nombre inválido");
-  await db.organization.update({ where: { id: u.orgId }, data: { name } });
+  const whatsapp = String(fd.get("whatsapp") ?? "").replace(/\D/g, "") || null;
+  const feeAmount = String(fd.get("feeAmount") ?? "").trim() ? Number(String(fd.get("feeAmount")).replace(",", ".")) : null;
+  const feeDueDay = Math.min(28, Math.max(1, Number(fd.get("feeDueDay") ?? 10) || 10));
+  await db.organization.update({ where: { id: u.orgId }, data: { name, whatsapp, feeAmount: feeAmount != null && feeAmount >= 0 ? feeAmount : null, feeDueDay } });
   await audit(u, "EDITAR", "Organización", `Nuevo nombre: ${name}`);
   revalidatePath("/app", "layout");
 }

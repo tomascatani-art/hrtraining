@@ -9,6 +9,8 @@ import { SPORTS, sportLabel } from "@/lib/catalog";
 import { Avatar, DemoBadge, Tabs, Card, Field } from "@/components/ui";
 import { Submit, CopyField } from "@/components/forms";
 import { LoadPanel, EvalPanel, HistoryPanel, GoalsPanel } from "@/components/athlete-panels";
+import { RMPanel } from "@/components/rm-panel";
+import { TrainingInsights } from "@/components/insights";
 import { updateAthlete, regenerateInvite } from "../actions";
 
 export default async function AthleteDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; invitado?: string }> }) {
@@ -59,14 +61,16 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
       <Tabs active={tab} items={[
         { key: "resumen", label: "Perfil", href: `${base}?tab=resumen` },
         { key: "carga", label: "Carga y bienestar", href: `${base}?tab=carga` },
+        { key: "rm", label: "RM", href: `${base}?tab=rm` },
         { key: "evaluaciones", label: "Evaluaciones", href: `${base}?tab=evaluaciones` },
         { key: "historial", label: "Historial", href: `${base}?tab=historial` },
         { key: "objetivos", label: "Objetivos", href: `${base}?tab=objetivos` },
       ]} />
 
       {tab === "carga" && <LoadPanel athleteId={id} />}
+      {tab === "rm" && <RMPanel athleteId={id} viewer="COACH" />}
       {tab === "evaluaciones" && <EvalPanel athleteId={id} canEdit />}
-      {tab === "historial" && <HistoryPanel athleteId={id} />}
+      {tab === "historial" && <><TrainingInsights athleteId={id} /><HistoryPanel athleteId={id} /></>}
       {tab === "objetivos" && <GoalsPanel athleteId={id} canEdit />}
       {tab === "resumen" && (
         <div className="grid gap-6 xl:grid-cols-3">

@@ -1,17 +1,19 @@
 "use client";
 import { useState } from "react";
-import { Check, PlayCircle } from "lucide-react";
+import Link from "next/link";
+import { Check, PlayCircle, Timer } from "lucide-react";
+import { fmtKg, plateBreakdown } from "@/lib/plates";
 import { Submit } from "./forms";
 
 type SetRow = { reps: string; loadKg: string; rir: string; velocity: string; done: boolean };
-type Item = { id: string; name: string; sets: number; reps: string; suggestedKg: number | null; targetRir: number | null; restSec: number | null; tempo: string | null; notes: string | null; videoUrl: string | null; percent: number | null };
+type Item = { id: string; exerciseId: string; name: string; sets: number; reps: string; suggestedKg: number | null; targetRir: number | null; restSec: number | null; tempo: string | null; notes: string | null; videoUrl: string | null; percent: number | null; rm: number | null; rounded: number | null; block: { label: string; color: string } | null };
 
 const CR10: Record<number, string> = { 0: "Reposo", 1: "Muy, muy fácil", 2: "Fácil", 3: "Moderado", 4: "Algo duro", 5: "Duro", 6: "Duro+", 7: "Muy duro", 8: "Muy duro+", 9: "Casi máximo", 10: "Máximo" };
 
-export function WorkoutLogger({ action, sessionId, athleteId, items, defaultDuration, existing }: {
+export function WorkoutLogger({ action, sessionId, athleteId, items, defaultDuration, existing, quickNotes, isAthlete }: {
   action: (fd: FormData) => Promise<void>;
-  sessionId: string; athleteId?: string; items: Item[]; defaultDuration: number;
-  existing?: { status: string; rpe: number | null; durationMin: number | null; feeling: string | null; sets: { itemId: string; setNumber: number; reps: number | null; loadKg: number | null; rir: number | null; velocity: number | null }[] } | null;
+  sessionId: string; athleteId?: string; items: Item[]; defaultDuration: number; quickNotes: string[]; isAthlete: boolean;
+  existing?: { status: string; rpe: number | null; durationMin: number | null; feeling: string | null; sets: { itemId: string; setNumber: number; reps: number | null; loadKg: number | null; rir: number | null; velocity: number | null }[]; notes?: { itemId: string; note: string }[] } | null;
 }) {
   const [rows, setRows] = useState<Record<string, SetRow[]>>(() =>
     Object.fromEntries(items.map((it) => [it.id, Array.from({ length: it.sets }, (_, i) => {
@@ -30,6 +32,8 @@ export function WorkoutLogger({ action, sessionId, athleteId, items, defaultDura
   const [status, setStatus] = useState(existing?.status ?? "COMPLETADO");
   const [feeling, setFeeling] = useState(existing?.feeling ?? "");
   const [vbt, setVbt] = useState(!!existing?.sets.some((s) => s.velocity));
+  const [notes, setNotes] = useState<Record<string, string>>(() => Object.fromEntries((existing?.notes ?? []).map((n) => [n.itemId, n.note])));
+  const addQuick = (id: string, q: string) => setNotes((m) => ({ ...m, [id]: m[id] ? (m[id].includes(q) ? m[id] : `${m[id]}. ${q}`) : q }));
 
   const upd = (id: string, i: number, patch: Partial<SetRow>) => setRows((r) => ({ ...r, [id]: r[id].map((s, j) => (j === i ? { ...s, ...patch } : s)) }));
   const addSet = (id: string) => setRows((r) => ({ ...r, [id]: [...r[id], { ...(r[id].at(-1) ?? { reps: "", loadKg: "", rir: "", velocity: "" }), done: false }] }));
@@ -39,6 +43,7 @@ export function WorkoutLogger({ action, sessionId, athleteId, items, defaultDura
   const done = status === "COMPLETADO" || status === "PARCIAL";
   const payload = JSON.stringify({
     sessionId, athleteId, status, durationMin: done ? dur : null, rpe: done ? rpe : null, feeling,
+    notes: Object.entries(notes).map(([itemId, note]) => ({ itemId, note })),
     sets: allSets.map((s) => ({ itemId: s.itemId, setNumber: s.setNumber, reps: n(s.reps), loadKg: n(s.loadKg), rir: n(s.rir), rpe: s.rir !== "" ? 10 - Number(s.rir) : null, velocity: n(s.velocity), timeSec: null })),
   });
 
@@ -53,7 +58,9 @@ export function WorkoutLogger({ action, sessionId, athleteId, items, defaultDura
       </div>
 
       {done && items.map((it, idx) => (
-        <div key={it.id} className="card card-pad">
+        <div key={it.id}>
+        {it.block && it.block.label !== items[idx - 1]?.block?.label && <div className="mb-2 mt-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider" style={{ color: it.block.color }}><span className="h-2 w-2 rounded-full" style={{ background: it.block.color }} />{it.block.label}</div>}
+        <div className="card card-pad" style={it.block ? { borderLeft: `4px solid ${it.block.color}` } : undefined}>
           <div className="mb-3 flex flex-wrap items-start gap-3">
             <span className="num grid h-7 w-7 place-items-center rounded-lg bg-volt text-sm font-bold text-black">{idx + 1}</span>
             <div className="min-w-0 flex-1">
@@ -62,6 +69,18 @@ export function WorkoutLogger({ action, sessionId, athleteId, items, defaultDura
                 Plan: {it.sets}×{it.reps}{it.percent ? ` · ${Math.round(it.percent * 100)}% 1RM` : ""}{it.suggestedKg ? ` (≈${it.suggestedKg} kg)` : ""}{it.targetRir != null ? ` · RIR ${it.targetRir}` : ""}{it.restSec ? ` · pausa ${it.restSec}s` : ""}{it.tempo ? ` · tempo ${it.tempo}` : ""}
               </div>
               {it.notes && <div className="mt-1 text-xs text-volt/90">{it.notes}</div>}
+              {it.percent ? (
+                it.rm ? (
+                  <div className="mt-1.5 text-xs text-neutral-300">
+                    Peso calculado con {isAthlete ? "tu" : "su"} RM de <b className="num text-white">{fmtKg(it.rm)} kg</b>
+                    {it.suggestedKg ? <> · discos por lado: <span className="num">{plateBreakdown(it.suggestedKg).join(" + ") || "solo barra"}</span></> : null}
+                    {it.rounded != null && <span className="ml-1 text-neutral-500">(el {Math.round(it.percent * 100)}% da {fmtKg(it.rounded)} kg, se redondeó a discos)</span>}
+                    {isAthlete && <Link href="/app/rm" className="ml-2 text-volt hover:underline">Cambiar</Link>}
+                  </div>
+                ) : (
+                  <div className="mt-1.5 text-xs text-neutral-400">Sin RM cargado para este ejercicio. {isAthlete ? <Link href="/app/rm" className="text-volt hover:underline">Cargar mi RM</Link> : "Cargalo en la pestaña RM del deportista."}</div>
+                )
+              ) : null}
             </div>
             {it.videoUrl && <a href={it.videoUrl} target="_blank" rel="noreferrer" className="btn-ghost btn-sm"><PlayCircle size={14} />Ver técnica</a>}
           </div>
@@ -80,7 +99,15 @@ export function WorkoutLogger({ action, sessionId, athleteId, items, defaultDura
               </div>
             ))}
             <button type="button" onClick={() => addSet(it.id)} className="mt-1 text-xs text-volt hover:underline">+ Agregar serie</button>
+            {it.restSec ? <span className="ml-3 inline-flex items-center gap-1 text-xs text-neutral-500"><Timer size={12} />Pausa {it.restSec}s</span> : null}
           </div>
+          <div className="mt-3">
+            <div className="mb-1.5 flex flex-wrap gap-1.5">
+              {quickNotes.map((q) => <button type="button" key={q} onClick={() => addQuick(it.id, q)} className="chip-mute px-2 py-0.5 text-[11px] hover:text-white">{q}</button>)}
+            </div>
+            <input className="input py-1.5 text-sm" value={notes[it.id] ?? ""} onChange={(e) => setNotes((m) => ({ ...m, [it.id]: e.target.value }))} placeholder="¿Cómo te fue en este ejercicio? (opcional)" maxLength={500} />
+          </div>
+        </div>
         </div>
       ))}
 

@@ -22,7 +22,7 @@ export default async function EditSession({ params }: { params: Promise<{ id: st
         initial={{
           id: s.id, title: s.title, date: s.date.toISOString(), type: s.type, durationMin: s.durationMin, targetRpe: s.targetRpe, capacities: s.capacities,
           target: s.groupId ? `g:${s.groupId}` : `a:${s.athleteId}`, planId: s.planId ?? "", notes: s.notes ?? "",
-          items: editable.map((i) => ({ exerciseId: i.exerciseId, sets: i.sets, reps: i.reps, loadKg: i.loadKg?.toString() ?? "", percent1RM: i.percent1RM ? String(Math.round(i.percent1RM * 100)) : "", targetRir: i.targetRir?.toString() ?? "", restSec: i.restSec?.toString() ?? "", tempo: i.tempo ?? "", notes: i.notes ?? "" })),
+          items: editable.map((i) => ({ exerciseId: i.exerciseId, sets: i.sets, reps: i.reps, loadKg: i.loadKg?.toString() ?? "", percent1RM: i.percent1RM ? String(Math.round(i.percent1RM * 100)) : "", targetRir: i.targetRir?.toString() ?? "", restSec: i.restSec?.toString() ?? "", tempo: i.tempo ?? "", notes: i.notes ?? "", block: i.block ?? "" })),
         }} />
     </>
   );

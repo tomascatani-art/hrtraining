@@ -5,6 +5,9 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser, type SessionUser } from "@/lib/auth";
 import { assertAthlete, audit, notify, sessionWhere, visibleGroups } from "@/lib/access";
+import { BLOCKS } from "@/lib/catalog";
+import { classifyNote } from "@/lib/plates";
+import { latestRMs } from "@/lib/training";
 
 const itemSchema = z.object({
   exerciseId: z.string().min(1),
@@ -16,6 +19,7 @@ const itemSchema = z.object({
   restSec: z.coerce.number().int().nullable().optional(),
   tempo: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
+  block: z.string().nullable().optional().transform((v) => (v && BLOCKS[v] ? v : null)),
 });
 const sessionSchema = z.object({
   id: z.string().optional(),
@@ -60,13 +64,13 @@ export async function saveSession(fd: FormData) {
     title: data.title, type: data.type, durationMin: data.durationMin, targetRpe: data.targetRpe ?? null, capacities: data.capacities,
     athleteId: kind === "a" ? targetId : null, groupId: kind === "g" ? targetId : null, planId: data.planId || null, notes: data.notes || null,
   };
-  const items = data.items.map((it, order) => ({ ...it, order, loadKg: it.loadKg ?? null, percent1RM: it.percent1RM != null ? it.percent1RM / 100 : null, targetRir: it.targetRir ?? null, restSec: it.restSec ?? null, tempo: it.tempo || null, notes: it.notes || null }));
+  const items = data.items.map((it, order) => ({ ...it, order, loadKg: it.loadKg ?? null, percent1RM: it.percent1RM != null ? it.percent1RM / 100 : null, targetRir: it.targetRir ?? null, restSec: it.restSec ?? null, tempo: it.tempo || null, notes: it.notes || null, block: it.block ?? null }));
   const date = new Date(data.date);
   let id: string;
   if (data.id) {
     const s = await ownSession(u, data.id);
     await db.$transaction([
-      db.sessionExercise.deleteMany({ where: { sessionId: s.id, setLogs: { none: {} } } }),
+      db.sessionExercise.deleteMany({ where: { sessionId: s.id, setLogs: { none: {} }, notesLog: { none: {} } } }),
       db.session.update({ where: { id: s.id }, data: { ...base, date } }),
     ]);
     const kept = await db.sessionExercise.count({ where: { sessionId: s.id } });
@@ -121,6 +125,7 @@ const logSchema = z.object({
     itemId: z.string(), setNumber: z.number().int(), reps: z.coerce.number().int().nullable(), loadKg: z.coerce.number().nullable(),
     rir: z.coerce.number().int().nullable(), rpe: z.coerce.number().nullable(), velocity: z.coerce.number().nullable(), timeSec: z.coerce.number().nullable(),
   })).default([]),
+  notes: z.array(z.object({ itemId: z.string(), note: z.string().max(500) })).default([]),
 });
 
 /** Registro de la sesión por el deportista (o por el entrenador en su nombre). */
@@ -144,8 +149,14 @@ export async function saveLog(fd: FormData) {
   });
   await db.setLog.deleteMany({ where: { logId: log.id } });
   if (done && sets.length) await db.setLog.createMany({ data: sets.map((x) => ({ ...x, logId: log.id })) });
+  // Notas por ejercicio
+  const notes = data.notes.filter((n) => itemIds.has(n.itemId) && n.note.trim());
+  await db.itemNote.deleteMany({ where: { logId: log.id } });
+  if (notes.length) await db.itemNote.createMany({ data: notes.map((n) => ({ logId: log.id, itemId: n.itemId, note: n.note.trim() })) });
   if (u.role === "ATHLETE") {
     await notify([s.coachId], { kind: "SESION", title: `${u.name} registró "${s.title}"`, body: done ? `RPE ${data.rpe} · ${load ?? "—"} UA` : data.status, link: `/app/sessions/${s.id}` });
+    const pain = [data.feeling, ...notes.map((n) => n.note)].some((t) => classifyNote(t) === "MOLESTIA");
+    if (pain) await notify([s.coachId], { kind: "ALERTA", title: `${u.name} marcó dolor o molestia`, body: s.title, link: `/app/sessions/${s.id}` });
   }
   revalidatePath(`/app/sessions/${s.id}`);
   revalidatePath("/app");
@@ -218,4 +229,33 @@ export async function recentExerciseUse(target: string, dateIso: string, exclude
     }
   }
   return out;
+}
+
+export type ExerciseHistory = { date: string; kg: number | null; reps: number | null; note: string | null };
+
+/**
+ * Datos del deportista para armar la sesión: su RM por ejercicio y lo que fue anotando
+ * (kilos usados y notas) en las últimas semanas. Solo aplica a sesiones individuales.
+ */
+export async function athleteExerciseContext(target: string): Promise<{ rms: Record<string, number>; history: Record<string, ExerciseHistory[]> }> {
+  const u = await requireUser(["COACH", "ADMIN"]);
+  const [kind, athleteId] = (target || "").split(":");
+  if (kind !== "a" || !athleteId) return { rms: {}, history: {} };
+  await assertAthlete(u, athleteId);
+  const rms = Object.fromEntries([...(await latestRMs(athleteId)).entries()].map(([k, v]) => [k, v.kg]));
+  const logs = await db.workoutLog.findMany({
+    where: { athleteId, completedAt: { gte: new Date(Date.now() - 60 * 86400000) } },
+    orderBy: { completedAt: "desc" }, take: 40,
+    select: { completedAt: true, sets: { select: { reps: true, loadKg: true, item: { select: { exerciseId: true } } } }, itemNotes: { select: { note: true, item: { select: { exerciseId: true } } } } },
+  });
+  const history: Record<string, ExerciseHistory[]> = {};
+  for (const l of logs) {
+    const ex = new Set([...l.sets.map((x) => x.item.exerciseId), ...l.itemNotes.map((x) => x.item.exerciseId)]);
+    for (const id of ex) {
+      const sets = l.sets.filter((x) => x.item.exerciseId === id && x.loadKg);
+      const top = sets.sort((a, b) => (b.loadKg ?? 0) - (a.loadKg ?? 0))[0];
+      (history[id] ??= []).length < 4 && history[id].push({ date: l.completedAt.toISOString(), kg: top?.loadKg ?? null, reps: top?.reps ?? null, note: l.itemNotes.find((x) => x.item.exerciseId === id)?.note ?? null });
+    }
+  }
+  return { rms, history };
 }

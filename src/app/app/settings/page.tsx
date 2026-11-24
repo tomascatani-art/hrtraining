@@ -40,6 +40,11 @@ export default async function SettingsPage() {
           <Card title="Organización">
             <form action={updateOrg} className="space-y-3">
               <Field label="Nombre del gimnasio, club o equipo"><input name="org" defaultValue={u.org.name} className="input" /></Field>
+              <Field label="WhatsApp para cuotas (con código de país, ej. 5491122334455)"><input name="whatsapp" inputMode="tel" defaultValue={u.org.whatsapp ?? ""} className="input" placeholder="54911…" /></Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Cuota mensual"><input name="feeAmount" inputMode="decimal" defaultValue={u.org.feeAmount ?? ""} className="input" placeholder="Ej: 25000" /></Field>
+                <Field label="Vence el día"><input name="feeDueDay" type="number" min={1} max={28} defaultValue={u.org.feeDueDay} className="input" /></Field>
+              </div>
               <Submit>Guardar</Submit>
             </form>
           </Card>
