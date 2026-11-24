@@ -165,3 +165,43 @@ export async function sharePlan(fd: FormData) {
   await notify(ids, { kind: "SESION", title: `Tu planificación "${p.name}" fue actualizada`, link: "/app/calendar" });
   revalidatePath(`/app/planning/${p.id}`);
 }
+
+/** Copia una planificación completa (estructura y, si se pide, sus sesiones con ejercicios) a otro deportista, corrida a una nueva fecha de inicio. */
+export async function copyPlan(fd: FormData) {
+  const u = await requireUser(["COACH", "ADMIN"]);
+  const p = await ownPlan(u, String(fd.get("id")));
+  const athleteId = String(fd.get("athleteId") ?? "");
+  await assertAthlete(u, athleteId);
+  const start = fd.get("startDate") ? parseDay(String(fd.get("startDate"))) : p.startDate;
+  const shift = +start - +p.startDate;
+  const move = (d: Date) => new Date(+d + shift);
+  const target = await db.user.findUnique({ where: { id: athleteId }, select: { name: true } });
+  const name = String(fd.get("name") ?? "").trim() || `${p.name} (${target?.name ?? "copia"})`;
+  const copy = await db.plan.create({
+    data: { orgId: u.orgId, coachId: u.id, athleteId, name, sport: p.sport, goal: p.goal, startDate: move(p.startDate), endDate: move(p.endDate) },
+  });
+  const blocks = await db.planBlock.findMany({ where: { planId: p.id } });
+  const rank: Record<string, number> = { MACRO: 0, MESO: 1, MICRO: 2 };
+  const ids = new Map<string, string>();
+  for (const b of [...blocks].sort((a, c) => (rank[a.level] ?? 3) - (rank[c.level] ?? 3))) {
+    const { id: oldId, planId: _p, parentId, startDate, endDate, ...rest } = b;
+    const nb = await db.planBlock.create({ data: { ...rest, planId: copy.id, parentId: parentId ? ids.get(parentId) ?? null : null, startDate: move(startDate), endDate: move(endDate) } });
+    ids.set(oldId, nb.id);
+  }
+  let sessions = 0;
+  if (fd.get("withSessions") === "on") {
+    const list = await db.session.findMany({ where: { planId: p.id }, include: { items: true } });
+    for (const s of list) {
+      await db.session.create({
+        data: {
+          orgId: u.orgId, coachId: u.id, athleteId, groupId: null, planId: copy.id, title: s.title, date: move(s.date), type: s.type, capacities: s.capacities,
+          durationMin: s.durationMin, targetRpe: s.targetRpe, notes: s.notes,
+          items: { create: s.items.map(({ id: _i, sessionId: _s, ...rest }) => rest) },
+        },
+      });
+      sessions++;
+    }
+  }
+  await audit(u, "CREAR", "Planificación", `Copia de ${p.name} para ${target?.name ?? ""}${sessions ? ` (${sessions} sesiones)` : ""}`, copy.id);
+  redirect(`/app/planning/${copy.id}?copiada=${sessions}`);
+}

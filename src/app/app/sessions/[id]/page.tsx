@@ -10,10 +10,10 @@ import { kgFromPercent, classifyNote, NOTE_KINDS } from "@/lib/plates";
 import { PageHeader, Card, Avatar, DemoBadge, fmtDateLong, fmtTime, Empty } from "@/components/ui";
 import { Submit, ConfirmSubmit } from "@/components/forms";
 import { WorkoutLogger } from "@/components/workout-logger";
-import { saveLog, quickAttendance, commentLog, duplicateSession, deleteSession } from "../actions";
+import { saveLog, quickAttendance, commentLog, duplicateSession, copySession, deleteSession } from "../actions";
 
 
-export default async function SessionPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; as?: string }> }) {
+export default async function SessionPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; as?: string; copiada?: string }> }) {
   const u = await requireUser();
   const { id } = await params;
   const sp = await searchParams;
@@ -46,6 +46,8 @@ export default async function SessionPage({ params, searchParams }: { params: Pr
       };
     });
   }
+  const copyTargets = staff ? await db.user.findMany({ where: { id: { in: visible } }, select: { id: true, name: true }, orderBy: { name: "asc" } }) : [];
+  const srcDay = new Date(s.date.getTime() - 3 * 3600_000).toISOString().slice(0, 10);
   const forName = logFor ? assigned.find((a) => a.id === logFor)?.name ?? u.name : "";
 
   return (
@@ -57,6 +59,20 @@ export default async function SessionPage({ params, searchParams }: { params: Pr
           <form action={duplicateSession}><input type="hidden" name="id" value={s.id} /><input type="hidden" name="days" value="7" /><Submit className="btn-ghost" pendingText="Copiando…"><Copy size={15} />Duplicar +7 días</Submit></form>
         </> : undefined} />
 
+      {sp.copiada && <div className="mb-4 rounded-xl border border-volt/40 bg-volt/10 px-4 py-3 text-sm text-white">Sesión copiada con todos sus ejercicios. Podés editarla sin tocar la original.</div>}
+      {staff && (
+        <details className="card mb-6 group">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3 text-sm font-semibold text-white"><Copy size={15} className="text-volt" />Copiar este día a otro deportista o a otra fecha</summary>
+          <form action={copySession} className="grid gap-3 border-t border-ink-800 px-5 py-4 sm:grid-cols-4">
+            <input type="hidden" name="id" value={s.id} />
+            <label className="sm:col-span-2"><span className="label mb-1 block">Para</span>
+              <select name="athleteId" className="input" defaultValue=""><option value="">{s.group ? `El mismo grupo (${s.group.name})` : `El mismo deportista (${s.athlete?.name ?? ""})`}</option>{copyTargets.filter((a) => a.id !== s.athleteId).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
+            <label><span className="label mb-1 block">Día</span><input name="date" type="date" defaultValue={srcDay} className="input" /></label>
+            <label><span className="label mb-1 block">Título</span><input name="title" defaultValue={s.title} className="input" /></label>
+            <div className="sm:col-span-4 flex justify-end"><Submit pendingText="Copiando…">Copiar sesión</Submit></div>
+          </form>
+        </details>
+      )}
       {sp.ok && <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">Registro guardado. ¡Buen trabajo!</div>}
       {s.capacities.length > 0 && <div className="mb-4 flex flex-wrap gap-1.5">{s.capacities.map((c) => <span key={c} className="chip-volt">{CAPACITIES[c]?.label}</span>)}</div>}
       {s.notes && <Card className="mb-6"><div className="label mb-1">Indicaciones</div><p className="whitespace-pre-wrap text-sm text-neutral-200">{s.notes}</p></Card>}

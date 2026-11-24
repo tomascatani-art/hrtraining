@@ -6,12 +6,13 @@ import { PHASES, MICRO_TYPES, CAPACITIES, sportLabel, SESSION_TYPES } from "@/li
 import { PageHeader, Card, Field, DemoBadge, Empty, fmtDate } from "@/components/ui";
 import { Submit, ConfirmSubmit } from "@/components/forms";
 import { PlanDynamics, TrendChart } from "@/components/charts";
-import { saveBlock, deleteBlock, updatePlan, deletePlan, sharePlan } from "../actions";
+import { saveBlock, deleteBlock, updatePlan, deletePlan, sharePlan, copyPlan } from "../actions";
+import { visibleAthleteIds } from "@/lib/access";
 
 const DAY = 86_400_000;
 const iso = (d: Date) => new Date(d).toISOString().slice(0, 10);
 
-export default async function PlanDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ block?: string; add?: string; parent?: string }> }) {
+export default async function PlanDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ block?: string; add?: string; parent?: string; copiada?: string }> }) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const { id } = await params;
   const sp = await searchParams;
@@ -36,6 +37,8 @@ export default async function PlanDetail({ params, searchParams }: { params: Pro
     return { x: fmtDate(m.startDate), plan: m.plannedLoad ?? null, real: Math.round(sum / Math.max(1, athleteIds.length)) };
   });
   const dyn = micros.map((m) => ({ x: fmtDate(m.startDate), volumen: m.plannedVolume, intensidad: m.plannedIntensity, fase: PHASES[m.phase]?.label, color: PHASES[m.phase]?.color ?? "#555" }));
+  const copyTargets = await db.user.findMany({ where: { id: { in: await visibleAthleteIds(u) } }, select: { id: true, name: true }, orderBy: { name: "asc" } });
+  const linkedSessions = await db.session.count({ where: { planId: p.id } });
   const editing = sp.block ? p.blocks.find((b) => b.id === sp.block) : null;
   const adding = sp.add;
   const parentForAdd = sp.parent ? p.blocks.find((b) => b.id === sp.parent) : null;
@@ -50,6 +53,7 @@ export default async function PlanDetail({ params, searchParams }: { params: Pro
           <Link href={`/app/calendar?new=1&plan=${p.id}${p.groupId ? `&group=${p.groupId}` : p.athleteId ? `&athlete=${p.athleteId}` : ""}`} className="btn-ghost">+ Sesión</Link>
         </>} />
 
+      {sp.copiada !== undefined && <div className="mb-4 rounded-xl border border-volt/40 bg-volt/10 px-4 py-3 text-sm text-white">Planificación copiada{Number(sp.copiada) ? ` con ${sp.copiada} sesiones` : ""}. Es independiente de la original: lo que cambies acá no la afecta.</div>}
       {/* Línea de tiempo */}
       <Card title="Estructura de la temporada" action={<div className="hidden flex-wrap gap-3 md:flex">{Object.entries(PHASES).map(([k, v]) => <span key={k} className="flex items-center gap-1.5 text-[11px] text-neutral-400"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: v.color }} />{v.label}</span>)}</div>}>
         <div className="overflow-x-auto">
@@ -175,13 +179,26 @@ export default async function PlanDetail({ params, searchParams }: { params: Pro
           <Card title="Datos generales">
             <form action={updatePlan} className="space-y-3">
               <input type="hidden" name="id" value={p.id} />
-              <input name="name" defaultValue={p.name} className="input" />
+              <label className="block"><span className="label mb-1 block">Título</span><input name="name" defaultValue={p.name} className="input" /></label>
               <div className="grid grid-cols-2 gap-2"><input name="startDate" type="date" defaultValue={iso(p.startDate)} className="input" /><input name="endDate" type="date" defaultValue={iso(p.endDate)} className="input" /></div>
               <textarea name="goal" defaultValue={p.goal ?? ""} className="input" placeholder="Objetivo" />
               <Submit className="btn-ghost w-full">Guardar</Submit>
             </form>
             <form action={sharePlan} className="mt-2"><input type="hidden" name="id" value={p.id} /><Submit className="btn-ghost w-full" pendingText="Enviando…">Notificar a los deportistas</Submit></form>
-            <form action={deletePlan} className="mt-2 text-right"><input type="hidden" name="id" value={p.id} /><ConfirmSubmit message="¿Eliminar la planificación completa?">Eliminar planificación</ConfirmSubmit></form>
+          </Card>
+          <Card title="Copiar a otro deportista">
+            <form action={copyPlan} className="space-y-3">
+              <input type="hidden" name="id" value={p.id} />
+              <select name="athleteId" className="input" required defaultValue=""><option value="" disabled>Elegí el deportista…</option>{copyTargets.filter((a) => a.id !== p.athleteId).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+              <label className="block"><span className="label mb-1 block">Empieza el</span><input name="startDate" type="date" defaultValue={iso(p.startDate)} className="input" /></label>
+              <label className="block"><span className="label mb-1 block">Título de la copia</span><input name="name" placeholder={`${p.name} (nombre del deportista)`} className="input" /></label>
+              <label className="flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" name="withSessions" defaultChecked /> Incluir las {linkedSessions} sesiones con sus ejercicios</label>
+              <Submit className="btn-primary w-full" pendingText="Copiando…">Copiar planificación</Submit>
+            </form>
+            <p className="mt-2 text-[11px] text-neutral-500">Se copian macro, meso y microciclos corridos a la nueva fecha. La copia queda separada de la original.</p>
+          </Card>
+          <Card title="Eliminar">
+            <form action={deletePlan} className="text-right"><input type="hidden" name="id" value={p.id} /><ConfirmSubmit message="¿Eliminar la planificación completa?">Eliminar planificación</ConfirmSubmit></form>
           </Card>
         </div>
       </div>

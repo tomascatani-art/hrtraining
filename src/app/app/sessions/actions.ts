@@ -106,6 +106,31 @@ export async function duplicateSession(fd: FormData) {
   redirect(`/app/sessions/${copy.id}`);
 }
 
+/** Copia un día (sesión con todos sus ejercicios) a otro deportista y/o a otra fecha. Mantiene la hora. */
+export async function copySession(fd: FormData) {
+  const u = await requireUser(["COACH", "ADMIN"]);
+  const s = await ownSession(u, String(fd.get("id")));
+  const athleteId = String(fd.get("athleteId") ?? "") || null;
+  if (athleteId) await assertAthlete(u, athleteId);
+  const day = String(fd.get("date") ?? "");
+  // Corre la sesión a ese día manteniendo la hora (días calculados en hora de Argentina, UTC-3)
+  const srcDay = new Date(s.date.getTime() - 3 * 3600_000).toISOString().slice(0, 10);
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(day) ? new Date(s.date.getTime() + (Date.parse(`${day}T00:00:00Z`) - Date.parse(`${srcDay}T00:00:00Z`))) : s.date;
+  const title = String(fd.get("title") ?? "").trim() || s.title;
+  const items = await db.sessionExercise.findMany({ where: { sessionId: s.id } });
+  const copy = await db.session.create({
+    data: {
+      orgId: s.orgId, coachId: u.id, title, date, type: s.type, capacities: s.capacities, durationMin: s.durationMin, targetRpe: s.targetRpe, notes: s.notes,
+      athleteId: athleteId ?? s.athleteId, groupId: athleteId ? null : s.groupId, planId: athleteId && athleteId !== s.athleteId ? null : s.planId,
+      items: { create: items.map(({ id: _i, sessionId: _s, ...rest }) => rest) },
+    },
+  });
+  await audit(u, "CREAR", "Sesión", `Copia de ${s.title}`, copy.id);
+  await notify(await recipients(copy.athleteId, copy.groupId), { kind: "SESION", title: `Nueva sesión: ${copy.title}`, body: copy.date.toLocaleString("es-AR"), link: `/app/sessions/${copy.id}` });
+  revalidatePath("/app/calendar");
+  redirect(`/app/sessions/${copy.id}?copiada=1`);
+}
+
 export async function deleteSession(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const s = await ownSession(u, String(fd.get("id")));
