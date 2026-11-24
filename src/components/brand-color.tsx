@@ -15,16 +15,13 @@ export function BrandColorPicker({ initial }: { initial: string }) {
           <button key={p.hex} type="button" onClick={() => setHex(p.hex)} title={p.label} aria-label={p.label} aria-pressed={hex.toLowerCase() === p.hex}
             className={`h-9 w-9 rounded-full border-2 transition ${hex.toLowerCase() === p.hex ? "border-white" : "border-transparent"}`} style={{ background: p.hex }} />
         ))}
-        <label className="flex h-9 items-center gap-2 rounded-full border border-ink-600 px-3 text-xs text-neutral-300">
-          Otro <input type="color" value={valid ?? "#ffd60a"} onChange={(e) => setHex(e.target.value)} className="h-5 w-6 cursor-pointer border-0 bg-transparent p-0" />
-        </label>
       </div>
       <div className="flex items-center gap-3 rounded-xl border border-ink-700 bg-ink-900 p-3" style={ok ? (accentVars(valid) as React.CSSProperties) : undefined}>
         <span className="btn-primary btn-sm pointer-events-none">Vista previa</span>
         <span className="chip-volt">Etiqueta</span>
         <span className="text-sm text-volt">Texto destacado</span>
       </div>
-      {!ok && <p className="text-xs text-red-300">Ese color es muy oscuro para los botones (llevan texto negro). Elegí uno más claro.</p>}
+      <p className="text-xs muted">La base de la app es siempre negra; el acento puede ser amarillo o blanco.</p>
     </div>
   );
 }

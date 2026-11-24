@@ -5,7 +5,7 @@ import { requireUser, hashPassword, verifyPassword } from "@/lib/auth";
 import { audit } from "@/lib/access";
 import { putFile, removeFile } from "@/lib/storage";
 import { encryptSecret } from "@/lib/secret";
-import { normalizeHex, contrastWithBlack, MIN_CONTRAST, DEFAULT_ACCENT } from "@/lib/brand";
+import { normalizeHex, contrastWithBlack, MIN_CONTRAST, DEFAULT_ACCENT, isAllowedAccent } from "@/lib/brand";
 
 export async function updateProfile(fd: FormData) {
   const u = await requireUser();
@@ -55,7 +55,7 @@ export async function updateBrand(fd: FormData) {
   if (colorIn) {
     const hex = normalizeHex(colorIn);
     if (!hex) throw new Error("Color inválido");
-    if (contrastWithBlack(hex) < MIN_CONTRAST) throw new Error("Elegí un color más claro: los botones llevan texto negro y tiene que leerse bien.");
+    if (!isAllowedAccent(hex) || contrastWithBlack(hex) < MIN_CONTRAST) throw new Error("El acento puede ser amarillo o blanco.");
     brandColor = hex.toLowerCase() === DEFAULT_ACCENT ? null : hex;
   }
   const data: Record<string, unknown> = { brandName, slug, brandColor };
