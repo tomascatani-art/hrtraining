@@ -90,7 +90,8 @@ Los videos se suben directo del navegador a Supabase con un enlace temporal, as�
 2. **Vercel** → Add New → Project → importar el repo `hrtraining`. Antes de *Deploy*, cargar las variables:
    `DATABASE_URL`, `AUTH_SECRET` (32+ caracteres al azar), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_TZ` y `NEXT_PUBLIC_TZ` (`America/Argentina/Buenos_Aires`).
 3. *Deploy*. El build (`vercel.json` → `npm run deploy:build`) crea las tablas, carga la biblioteca de ejercicios y la organización DEMO si no existe, y compila.
-4. Con la dirección final, agregar `APP_URL` (ej. `https://hrtraining.vercel.app` o el dominio propio) y volver a desplegar. Opcional: `RESEND_API_KEY` y `MAIL_FROM` para mandar mails.
+4. Las variables nuevas o cambiadas se aplican recién en el próximo despliegue (Deployments → ⋯ → Redeploy, o un push a `main`).
+5. Con la dirección final, agregar `APP_URL` (ej. `https://hrtraining.vercel.app` o el dominio propio) y volver a desplegar. Opcional: `RESEND_API_KEY` y `MAIL_FROM` para mandar mails.
 
 ### Alternativa: servidor con disco persistente (Railway, Render, VPS)
 
