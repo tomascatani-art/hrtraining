@@ -24,7 +24,7 @@ export default async function ClubLogin({ params }: { params: Promise<{ slug: st
           <h1 className="h1 mt-4">{name}</h1>
           <p className="mt-1 text-sm muted">Ingresá para ver tus entrenamientos</p>
         </div>
-        <div className="card card-pad"><LoginForm /></div>
+        <div className="card card-pad"><LoginForm /><p className="mt-3 text-right text-sm"><a href="/forgot" className="text-neutral-400 hover:text-volt">¿Olvidaste tu contraseña?</a></p></div>
         <div className="mx-auto mt-6 h-1.5 w-24 rounded hazard" />
         <p className="mt-4 text-center text-xs text-neutral-600">Con tecnología Hrtraining.co</p>
       </div>

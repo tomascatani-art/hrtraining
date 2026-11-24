@@ -5,12 +5,12 @@ import { useState } from "react";
 import clsx from "clsx";
 import {
   LayoutDashboard, Users, UsersRound, CalendarRange, CalendarDays, Dumbbell, Gauge, Activity, LineChart,
-  Video, MessageSquare, FolderOpen, Trophy, Shapes, ShieldCheck, Settings, HeartPulse, Target, Menu, X, Bell, LogOut, Sparkles, Wallet, Wrench,
+  Video, MessageSquare, FolderOpen, Trophy, Shapes, ShieldCheck, Settings, HeartPulse, Target, Menu, X, Bell, LogOut, Sparkles, Wallet, Wrench, ChevronDown,
 } from "lucide-react";
 import { Logo, Avatar } from "./ui";
 import { logoutAction } from "@/app/(auth)/actions";
 
-type Item = { href: string; label: string; icon: React.ComponentType<{ size?: number }>; badge?: number };
+type Item = { href: string; label: string; icon: React.ComponentType<{ size?: number }>; badge?: number; group?: string };
 
 export function navFor(role: string, unread: number): { main: Item[]; mobile: Item[] } {
   if (role === "ATHLETE") {
@@ -33,27 +33,28 @@ export function navFor(role: string, unread: number): { main: Item[]; mobile: It
     ];
     return { main, mobile: pick(main, ["/app", "/app/calendar", "/app/wellness", "/app/stats", "/app/messages"]) };
   }
+  // Menú agrupado en 5 secciones para no abrumar (Diego, 24-11-2026)
   const main: Item[] = [
-    { href: "/app", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/app/athletes", label: "Deportistas", icon: Users },
-    { href: "/app/groups", label: "Grupos", icon: UsersRound },
-    { href: "/app/planning", label: "Planificación", icon: CalendarRange },
-    { href: "/app/calendar", label: "Calendario", icon: CalendarDays },
-    { href: "/app/library", label: "Biblioteca", icon: Dumbbell },
-    { href: "/app/evaluations", label: "Evaluaciones", icon: Gauge },
-    { href: "/app/load", label: "Cargas y fatiga", icon: HeartPulse },
-    { href: "/app/stats", label: "Estadísticas", icon: LineChart },
-    { href: "/app/videos", label: "Video análisis", icon: Video },
-    { href: "/app/messages", label: "Mensajes", icon: MessageSquare, badge: unread },
-    { href: "/app/files", label: "Archivos", icon: FolderOpen },
-    { href: "/app/competitions", label: "Competencias", icon: Trophy },
-    { href: "/app/sports", label: "Deportes", icon: Shapes },
-    { href: "/app/assistant", label: "Asistente", icon: Sparkles },
-    { href: "/app/fees", label: "Cuotas", icon: Wallet },
-    { href: "/app/tools", label: "Herramientas", icon: Wrench },
+    { href: "/app", label: "Inicio", icon: LayoutDashboard },
+    { href: "/app/athletes", label: "Deportistas", icon: Users, group: "Equipo" },
+    { href: "/app/groups", label: "Grupos", icon: UsersRound, group: "Equipo" },
+    { href: "/app/fees", label: "Cuotas", icon: Wallet, group: "Equipo" },
+    { href: "/app/planning", label: "Planificación", icon: CalendarRange, group: "Planificación" },
+    { href: "/app/calendar", label: "Calendario", icon: CalendarDays, group: "Planificación" },
+    { href: "/app/library", label: "Biblioteca", icon: Dumbbell, group: "Planificación" },
+    { href: "/app/competitions", label: "Competencias", icon: Trophy, group: "Planificación" },
+    { href: "/app/evaluations", label: "Evaluaciones", icon: Gauge, group: "Rendimiento" },
+    { href: "/app/load", label: "Cargas y fatiga", icon: HeartPulse, group: "Rendimiento" },
+    { href: "/app/stats", label: "Estadísticas", icon: LineChart, group: "Rendimiento" },
+    { href: "/app/videos", label: "Video análisis", icon: Video, group: "Rendimiento" },
+    { href: "/app/messages", label: "Mensajes", icon: MessageSquare, badge: unread, group: "Comunicación" },
+    { href: "/app/files", label: "Archivos", icon: FolderOpen, group: "Comunicación" },
+    { href: "/app/sports", label: "Deportes", icon: Shapes, group: "Club" },
+    { href: "/app/assistant", label: "Asistente", icon: Sparkles, group: "Club" },
+    { href: "/app/tools", label: "Herramientas", icon: Wrench, group: "Club" },
   ];
-  if (role === "ADMIN") main.push({ href: "/app/admin", label: "Administración", icon: ShieldCheck });
-  main.push({ href: "/app/settings", label: "Ajustes", icon: Settings });
+  if (role === "ADMIN") main.push({ href: "/app/admin", label: "Administración", icon: ShieldCheck, group: "Club" });
+  main.push({ href: "/app/settings", label: "Ajustes", icon: Settings, group: "Club" });
   return { main, mobile: pick(main, ["/app", "/app/athletes", "/app/planning", "/app/load", "/app/messages"]) };
 }
 
@@ -76,23 +77,49 @@ export function Shell({
   const { main, mobile } = paused ? { main: pausedNav, mobile: pausedNav } : nav;
   const roleLabel = user.role === "ADMIN" ? "Administrador" : user.role === "COACH" ? "Entrenador" : "Deportista";
 
-  const NavList = ({ onNav }: { onNav?: () => void }) => (
-    <nav className="space-y-0.5">
-      {main.map((it) => {
-        const active = isActive(path, it.href);
-        const I = it.icon;
-        return (
-          <Link key={it.href} href={it.href} onClick={onNav}
-            className={clsx("group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition",
-              active ? "bg-volt text-black" : "text-neutral-400 hover:bg-ink-800 hover:text-white")}>
-            <I size={17} />
-            <span className="flex-1">{it.label}</span>
-            {!!it.badge && <span className={clsx("num rounded-full px-1.5 text-[10px] font-bold", active ? "bg-black text-volt" : "bg-volt text-black")}>{it.badge}</span>}
-          </Link>
-        );
-      })}
-    </nav>
-  );
+  const activeGroup = main.find((i) => i.group && isActive(path, i.href))?.group;
+  const [openGroups, setOpenGroups] = useState<string[]>([]);
+  const toggle = (g: string) => setOpenGroups((xs) => (xs.includes(g) ? xs.filter((x) => x !== g) : [...xs, g]));
+
+  const NavLink = ({ it, onNav, nested }: { it: Item; onNav?: () => void; nested?: boolean }) => {
+    const active = isActive(path, it.href);
+    const I = it.icon;
+    return (
+      <Link href={it.href} onClick={onNav}
+        className={clsx("group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition", nested && "pl-5",
+          active ? "bg-volt text-black" : "text-neutral-400 hover:bg-ink-800 hover:text-white")}>
+        <I size={17} />
+        <span className="flex-1">{it.label}</span>
+        {!!it.badge && <span className={clsx("num rounded-full px-1.5 text-[10px] font-bold", active ? "bg-black text-volt" : "bg-volt text-black")}>{it.badge}</span>}
+      </Link>
+    );
+  };
+
+  const NavList = ({ onNav }: { onNav?: () => void }) => {
+    const groups: string[] = [];
+    for (const it of main) if (it.group && !groups.includes(it.group)) groups.push(it.group);
+    return (
+      <nav className="space-y-0.5">
+        {main.filter((i) => !i.group).map((it) => <NavLink key={it.href} it={it} onNav={onNav} />)}
+        {groups.map((g) => {
+          const items = main.filter((i) => i.group === g);
+          const isOpen = g === activeGroup || openGroups.includes(g);
+          const badge = items.some((i) => i.badge);
+          return (
+            <div key={g} className="pt-1">
+              <button type="button" onClick={() => toggle(g)} aria-expanded={isOpen}
+                className={clsx("flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] transition hover:text-white", g === activeGroup ? "text-volt" : "text-neutral-500")}>
+                <span className="flex-1 text-left">{g}</span>
+                {badge && !isOpen && <span className="h-2 w-2 rounded-full bg-volt" />}
+                <ChevronDown size={14} className={clsx("transition", isOpen && "rotate-180")} />
+              </button>
+              {isOpen && <div className="space-y-0.5">{items.map((it) => <NavLink key={it.href} it={it} onNav={onNav} nested />)}</div>}
+            </div>
+          );
+        })}
+      </nav>
+    );
+  };
 
   return (
     <div className="min-h-dvh lg:pl-64">

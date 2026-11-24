@@ -3,6 +3,8 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
+import { sendResetMail, hashToken } from "@/lib/account-mail";
+import { appOrigin } from "@/lib/origin";
 
 export type FormState = { error?: string } | undefined;
 
@@ -76,4 +78,28 @@ export async function demoLoginAction(fd: FormData) {
 export async function logoutAction() {
   await destroySession();
   redirect("/login");
+}
+
+export type ForgotState = { error?: string; done?: boolean } | undefined;
+
+/** Pide el enlace para cambiar la contraseña. Responde igual exista o no el email. */
+export async function forgotPasswordAction(_: ForgotState, fd: FormData): Promise<ForgotState> {
+  const email = String(fd.get("email") ?? "").trim().toLowerCase();
+  if (!z.string().email().safeParse(email).success) return { error: "Email inválido" };
+  const user = await db.user.findUnique({ where: { email }, include: { org: true } });
+  const recent = user?.resetExpires && user.resetExpires.getTime() - 59 * 60000 > Date.now(); // máx. 1 pedido por minuto
+  if (user && user.active && !user.isDemo && !recent) await sendResetMail(user, await appOrigin());
+  return { done: true };
+}
+
+const resetSchema = z.object({ token: z.string().min(20), password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres") });
+
+export async function resetPasswordAction(_: FormState, fd: FormData): Promise<FormState> {
+  const parsed = resetSchema.safeParse({ token: fd.get("token"), password: fd.get("password") });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const user = await db.user.findUnique({ where: { resetTokenHash: hashToken(parsed.data.token) } });
+  if (!user || !user.resetExpires || user.resetExpires < new Date()) return { error: "El enlace venció o ya se usó. Pedí uno nuevo." };
+  await db.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(parsed.data.password), resetTokenHash: null, resetExpires: null, inviteToken: null } });
+  await db.auditLog.create({ data: { orgId: user.orgId, userId: user.id, action: "EDITAR", entity: "Usuario", summary: "Cambio de contraseña con enlace" } });
+  redirect("/login?clave=1");
 }

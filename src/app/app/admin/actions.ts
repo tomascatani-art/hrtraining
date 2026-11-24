@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { audit } from "@/lib/access";
+import { sendInviteMail } from "@/lib/account-mail";
+import { appOrigin } from "@/lib/origin";
 import { createDemo } from "../../../../prisma/demo";
 
 export async function inviteCoach(fd: FormData) {
@@ -16,7 +18,8 @@ export async function inviteCoach(fd: FormData) {
   const role = fd.get("role") === "ADMIN" ? "ADMIN" : "COACH";
   const c = await db.user.create({ data: { orgId: u.orgId, email, name, role, inviteToken: randomBytes(24).toString("base64url") } });
   await audit(u, "CREAR", "Usuario", `Invitación a ${name} (${role === "ADMIN" ? "administrador" : "entrenador"})`, c.id);
-  redirect(`/app/admin?invited=${c.id}`);
+  const mail = await sendInviteMail({ ...c, org: u.org }, await appOrigin());
+  redirect(`/app/admin?invited=${c.id}${mail.sent ? "&mail=1" : ""}`);
 }
 
 export async function updateUser(fd: FormData) {

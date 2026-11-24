@@ -13,9 +13,9 @@ import { Submit, CopyField } from "@/components/forms";
 import { LoadPanel, EvalPanel, HistoryPanel, GoalsPanel } from "@/components/athlete-panels";
 import { RMPanel } from "@/components/rm-panel";
 import { TrainingInsights } from "@/components/insights";
-import { updateAthlete, regenerateInvite } from "../actions";
+import { updateAthlete, regenerateInvite, resetLinkForAthlete } from "../actions";
 
-export default async function AthleteDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; invitado?: string; carpeta?: string }> }) {
+export default async function AthleteDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; invitado?: string; carpeta?: string; mail?: string; clave?: string }> }) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const { id } = await params;
   const sp = await searchParams;
@@ -55,8 +55,16 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
       {(sp.invitado === "1" || a.inviteToken) && a.inviteToken && (
         <div className="card card-pad mb-6 border-volt/40">
           <div className="font-semibold text-white">Invitación pendiente</div>
-          <p className="mb-3 text-sm muted">Compartí este enlace con {a.name.split(" ")[0]} para que elija su contraseña y active su cuenta.</p>
+          <p className="mb-3 text-sm muted">{sp.mail === "1" ? `Le mandamos la invitación por mail a ${a.email}. ` : ""}También podés compartirle este enlace (por ejemplo por WhatsApp) para que elija su contraseña y active su cuenta.</p>
           <CopyField value={`${origin}/invite/${a.inviteToken}`} />
+          <form action={regenerateInvite} className="mt-3"><input type="hidden" name="id" value={a.id} /><input type="hidden" name="sendMail" value="1" /><Submit className="btn-ghost btn-sm" pendingText="Enviando…">Reenviar invitación por mail</Submit></form>
+        </div>
+      )}
+      {sp.clave && (
+        <div className="card card-pad mb-6 border-volt/40">
+          <div className="font-semibold text-white">Enlace para cambiar la contraseña</div>
+          <p className="mb-3 text-sm muted">Mandáselo a {a.name.split(" ")[0]}. Vale por 60 minutos y se puede usar una sola vez.</p>
+          <CopyField value={`${origin}/reset/${sp.clave}`} />
         </div>
       )}
 
@@ -102,7 +110,9 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
             <Card title="Acceso">
               <div className="text-sm"><div className="label">Email</div><div className="text-white">{a.email}</div></div>
               <div className="mt-3 text-sm"><div className="label">Último ingreso</div><div className="text-white">{a.lastLoginAt ? a.lastLoginAt.toLocaleString("es-AR") : "Nunca"}</div></div>
-              <form action={regenerateInvite} className="mt-4"><input type="hidden" name="id" value={a.id} /><Submit className="btn-ghost w-full">Generar nuevo enlace de acceso</Submit></form>
+              {a.inviteToken
+                ? <form action={regenerateInvite} className="mt-4"><input type="hidden" name="id" value={a.id} /><Submit className="btn-ghost w-full">Generar nuevo enlace de invitación</Submit></form>
+                : <form action={resetLinkForAthlete} className="mt-4"><input type="hidden" name="id" value={a.id} /><Submit className="btn-ghost w-full">Enlace para cambiar su contraseña</Submit></form>}
             </Card>
             <Card title="Atajos">
               <div className="grid gap-2">

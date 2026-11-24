@@ -2,9 +2,9 @@
 import { useFormStatus } from "react-dom";
 import clsx from "clsx";
 
-export function Submit({ children, className = "btn-primary", pendingText = "Guardando…" }: { children: React.ReactNode; className?: string; pendingText?: string }) {
+export function Submit({ children, className = "btn-primary", pendingText = "Guardando…", disabled }: { children: React.ReactNode; className?: string; pendingText?: string; disabled?: boolean }) {
   const { pending } = useFormStatus();
-  return <button className={clsx(className)} disabled={pending}>{pending ? pendingText : children}</button>;
+  return <button className={clsx(className, disabled && "opacity-50")} disabled={pending || disabled}>{pending ? pendingText : children}</button>;
 }
 
 export function ConfirmSubmit({ children, message, className = "btn-danger btn-sm" }: { children: React.ReactNode; message: string; className?: string }) {

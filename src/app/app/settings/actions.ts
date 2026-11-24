@@ -73,3 +73,9 @@ export async function updateBrand(fd: FormData) {
   revalidatePath("/app", "layout");
   if (slug) revalidatePath(`/c/${slug}`);
 }
+
+export async function hideSetupGuide() {
+  const u = await requireUser(["COACH", "ADMIN"]);
+  await db.organization.update({ where: { id: u.orgId }, data: { setupHidden: true } });
+  revalidatePath("/app");
+}

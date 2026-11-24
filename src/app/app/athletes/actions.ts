@@ -7,6 +7,8 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { assertAthlete, audit } from "@/lib/access";
+import { sendInviteMail, createResetLink } from "@/lib/account-mail";
+import { appOrigin } from "@/lib/origin";
 
 const num = (v: FormDataEntryValue | null) => (v === null || v === "" ? null : Number(v));
 const str = (v: FormDataEntryValue | null) => (v === null || String(v).trim() === "" ? null : String(v).trim());
@@ -36,8 +38,9 @@ export async function createAthlete(fd: FormData) {
     },
   });
   await audit(u, "CREAR", "Deportista", `Alta de ${name}`, athlete.id);
+  const mail = fd.get("sendMail") === "on" ? await sendInviteMail({ ...athlete, org: u.org }, await appOrigin()) : { sent: false };
   revalidatePath("/app/athletes");
-  redirect(`/app/athletes/${athlete.id}?invitado=1`);
+  redirect(`/app/athletes/${athlete.id}?invitado=1${mail.sent ? "&mail=1" : ""}`);
 }
 
 export async function updateAthlete(fd: FormData) {
@@ -67,9 +70,20 @@ export async function regenerateInvite(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const id = String(fd.get("id"));
   await assertAthlete(u, id);
-  await db.user.update({ where: { id }, data: { inviteToken: randomBytes(24).toString("base64url") } });
+  const a = await db.user.update({ where: { id }, data: { inviteToken: randomBytes(24).toString("base64url") } });
+  const mail = fd.get("sendMail") === "1" ? await sendInviteMail({ ...a, org: u.org }, await appOrigin()) : { sent: false };
   revalidatePath(`/app/athletes/${id}`);
-  redirect(`/app/athletes/${id}?invitado=1`);
+  redirect(`/app/athletes/${id}?invitado=1${mail.sent ? "&mail=1" : ""}`);
+}
+
+/** El entrenador genera un enlace para que el deportista elija una contraseña nueva (por si no le llega el mail). */
+export async function resetLinkForAthlete(fd: FormData) {
+  const u = await requireUser(["COACH", "ADMIN"]);
+  const id = String(fd.get("id"));
+  await assertAthlete(u, id);
+  const url = await createResetLink(id, await appOrigin());
+  await audit(u, "EDITAR", "Deportista", "Enlace para cambiar contraseña", id);
+  redirect(`/app/athletes/${id}?clave=${encodeURIComponent(url.split("/reset/")[1])}`);
 }
 
 export async function saveGoal(fd: FormData) {

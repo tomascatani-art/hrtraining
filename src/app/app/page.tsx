@@ -10,6 +10,7 @@ import { Card, Stat, PageHeader, Empty, Avatar, DemoBadge, fmtDate, fmtDateLong,
 import { LoadBars, TrendChart } from "@/components/charts";
 import { AlertList } from "@/components/alerts";
 import { TodayPanel } from "@/components/today-panel";
+import { SetupGuide } from "@/components/setup-guide";
 import { streakFor } from "@/lib/training";
 import { feeStatusFor, monthKey, monthLabel } from "@/lib/fees";
 import { fmtKg } from "@/lib/plates";
@@ -22,7 +23,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   return u.role === "ATHLETE" ? <AthleteHome userId={u.id} name={u.name} /> : <CoachHome welcome={sp.bienvenida === "1"} />;
 }
 
-async function CoachHome({ welcome }: { welcome: boolean }) {
+async function CoachHome({ welcome: _welcome }: { welcome: boolean }) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const ids = await visibleAthleteIds(u);
   const sw = await sessionWhere(u);
@@ -70,17 +71,7 @@ async function CoachHome({ welcome }: { welcome: boolean }) {
         subtitle="Estado del equipo, alertas de seguimiento y lo que viene esta semana."
         actions={<><Link href="/app/calendar?new=1" className="btn-primary">Nueva sesión</Link><Link href="/app/evaluations/new" className="btn-ghost">Cargar evaluación</Link></>}
       />
-      {welcome && ids.length === 0 && (
-        <div className="card card-pad mb-6 border-volt/40">
-          <div className="h2">Bienvenido a Hrtraining.co</div>
-          <p className="mt-1 text-sm muted">Tu espacio está listo. Empezá por estos pasos:</p>
-          <div className="mt-4 grid gap-2 sm:grid-cols-3">
-            <Link href="/app/athletes/new" className="btn-ghost justify-start">1 · Sumar deportistas</Link>
-            <Link href="/app/groups" className="btn-ghost justify-start">2 · Crear un grupo</Link>
-            <Link href="/app/planning/new" className="btn-ghost justify-start">3 · Armar una planificación</Link>
-          </div>
-        </div>
-      )}
+      <SetupGuide u={u} />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <Stat label="Deportistas activos" value={ids.length} hint={`${groups} grupos`} icon={<Users size={16} />} href="/app/athletes" />
         <Stat label="Sesiones semana" value={weekSessions.length} hint="programadas" icon={<CalendarCheck size={16} />} href="/app/calendar" />

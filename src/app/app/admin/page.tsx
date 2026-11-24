@@ -10,7 +10,7 @@ export const metadata = { title: "Administración" };
 
 const ROLE: Record<string, string> = { ADMIN: "Administrador", COACH: "Entrenador", ATHLETE: "Deportista" };
 
-export default async function AdminPage({ searchParams }: { searchParams: Promise<{ invited?: string; page?: string }> }) {
+export default async function AdminPage({ searchParams }: { searchParams: Promise<{ invited?: string; page?: string; mail?: string }> }) {
   const u = await requireUser(["ADMIN"]);
   const sp = await searchParams;
   const page = Math.max(0, Number(sp.page ?? 0));
@@ -32,7 +32,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <div key={l as string} className="card card-pad"><div className="label">{l}</div><div className="num mt-1 text-2xl font-semibold text-white">{v}</div></div>
         ))}
       </div>
-      {invited?.inviteToken && <div className="card card-pad mb-6 border-volt/40"><div className="mb-2 font-semibold text-white">Enlace de invitación para {invited.name}</div><CopyField value={`${origin}/invite/${invited.inviteToken}`} /></div>}
+      {invited?.inviteToken && <div className="card card-pad mb-6 border-volt/40"><div className="mb-2 font-semibold text-white">Enlace de invitación para {invited.name}</div>{sp.mail === "1" && <p className="mb-2 text-sm muted">También le mandamos la invitación por mail.</p>}<CopyField value={`${origin}/invite/${invited.inviteToken}`} /></div>}
       <div className="grid gap-6 xl:grid-cols-3">
         <Card title="Usuarios y permisos" className="xl:col-span-2" pad={false}>
           <div className="overflow-x-auto">
