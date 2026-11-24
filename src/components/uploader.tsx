@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UploadCloud } from "lucide-react";
+import { uploadFile } from "@/lib/upload-client";
 
 export function Uploader({ athletes, accept, defaultAthlete, allowShare, label = "Subir archivo", onUploaded, compact, folders, defaultFolder }: {
   athletes?: { id: string; name: string }[]; accept?: string; defaultAthlete?: string; allowShare?: boolean; label?: string;
@@ -18,27 +19,19 @@ export function Uploader({ athletes, accept, defaultAthlete, allowShare, label =
   const [folder, setFolder] = useState(defaultFolder ?? folders?.[0]?.key ?? "");
   const [note, setNote] = useState("");
 
-  const send = (file: File) => {
+  const send = async (file: File) => {
     setError(null);
-    const fd = new FormData();
-    fd.append("file", file);
-    if (athleteId) fd.append("athleteId", athleteId);
-    fd.append("shared", String(shared));
-    if (folders && folder) fd.append("folder", folder);
-    if (folders && note.trim()) fd.append("note", note.trim());
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", "/api/files/upload");
-    xhr.upload.onprogress = (e) => e.lengthComputable && setProgress(Math.round((e.loaded / e.total) * 100));
-    xhr.onload = () => {
-      setProgress(null);
-      const res = JSON.parse(xhr.responseText || "{}");
-      if (xhr.status >= 300) return setError(res.error ?? "No se pudo subir el archivo");
+    setProgress(0);
+    try {
+      const res = await uploadFile(file, { athleteId: athleteId || undefined, shared, folder: folders && folder ? folder : undefined, note: folders && note.trim() ? note.trim() : undefined }, setProgress);
       setNote("");
       onUploaded?.(res);
       router.refresh();
-    };
-    xhr.onerror = () => { setProgress(null); setError("Error de red al subir"); };
-    xhr.send(fd);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo subir el archivo");
+    } finally {
+      setProgress(null);
+    }
   };
 
   return (

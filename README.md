@@ -79,16 +79,23 @@ Para producción: `npm run build` y luego `npm start`.
 
 ## Despliegue
 
-**Recomendado: un servidor con disco persistente** (Railway, Render, Fly.io o un VPS) más PostgreSQL administrado (Neon, Supabase o el del mismo proveedor).
+### Opción recomendada: Vercel + Supabase
 
-1. Crear la base y copiar su `DATABASE_URL`.
-2. Cargar las variables de entorno.
-3. Comando de build: `npm run deploy:build` (aplica migraciones y compila).
-4. Comando de inicio: `npm start`.
-5. Montar un volumen persistente en la ruta de `UPLOAD_DIR` para videos y archivos.
-6. Una sola vez: `npm run db:seed`.
+Supabase guarda la base de datos y los archivos (bucket privado `hrtraining`, se crea solo). Vercel corre la app.
+Los videos se suben directo del navegador a Supabase con un enlace temporal, así que no pasan por el límite de tamaño de Vercel.
 
-**Vercel:** la aplicación funciona, pero su disco es temporal, así que los videos y archivos subidos se pierden. Antes de usar Vercel hay que conectar el almacenamiento a S3, Cloudflare R2 o Supabase Storage. Todo el acceso a archivos está aislado en `src/lib/storage.ts`, así que el cambio se hace en ese único archivo.
+1. **Supabase** → New project (región São Paulo). Anotar la contraseña de la base.
+   - *Connect* → **Session pooler** → copiar la URI y agregarle `?connection_limit=1` al final: esa es `DATABASE_URL`.
+   - *Project Settings → API*: copiar la **Project URL** (`SUPABASE_URL`) y la clave **service_role** (`SUPABASE_SERVICE_ROLE_KEY`, pestaña "Legacy API keys"; es secreta, va solo en Vercel).
+2. **Vercel** → Add New → Project → importar el repo `hrtraining`. Antes de *Deploy*, cargar las variables:
+   `DATABASE_URL`, `AUTH_SECRET` (32+ caracteres al azar), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_TZ` y `NEXT_PUBLIC_TZ` (`America/Argentina/Buenos_Aires`).
+3. *Deploy*. El build (`vercel.json` → `npm run deploy:build`) crea las tablas, carga la biblioteca de ejercicios y la organización DEMO si no existe, y compila.
+4. Con la dirección final, agregar `APP_URL` (ej. `https://hrtraining.vercel.app` o el dominio propio) y volver a desplegar. Opcional: `RESEND_API_KEY` y `MAIL_FROM` para mandar mails.
+
+### Alternativa: servidor con disco persistente (Railway, Render, VPS)
+
+Sin las variables de Supabase, los archivos se guardan en `UPLOAD_DIR`: montar ahí un volumen persistente.
+Build: `npm run deploy:build`. Inicio: `npm start`.
 
 ## Seguridad y privacidad
 

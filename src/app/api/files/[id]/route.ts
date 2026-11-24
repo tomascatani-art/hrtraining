@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { Readable } from "stream";
 import { currentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { canAccessFile, fileStat, fileStream } from "@/lib/storage";
+import { canAccessFile, fileSize, fileStream, remoteStorage, signedReadUrl } from "@/lib/storage";
 
 // Descarga con soporte de Range (necesario para adelantar/retroceder videos)
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -11,10 +11,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params;
   const f = await db.fileAsset.findUnique({ where: { id } });
   if (!f || !(await canAccessFile(u, f))) return new NextResponse("No encontrado", { status: 404 });
-  const st = await fileStat(f.storageKey).catch(() => null);
-  if (!st) return new NextResponse("Archivo no disponible", { status: 410 });
-  const size = st.size;
   const download = new URL(req.url).searchParams.get("download") === "1";
+  if (remoteStorage()) {
+    // Supabase: enlace temporal firmado (el navegador maneja el adelantar/retroceder del video directo con Supabase)
+    const url = await signedReadUrl(f.storageKey, { expiresIn: 3600, downloadName: download ? f.name : undefined });
+    if (!url) return new NextResponse("Archivo no disponible", { status: 410 });
+    return NextResponse.redirect(url, { status: 302, headers: { "Cache-Control": "private, max-age=300" } });
+  }
+  const size = await fileSize(f.storageKey);
+  if (size == null) return new NextResponse("Archivo no disponible", { status: 410 });
   const baseHeaders: Record<string, string> = {
     "Content-Type": f.mime, "Accept-Ranges": "bytes", "Cache-Control": "private, max-age=3600",
     "Content-Disposition": `${download ? "attachment" : "inline"}; filename*=UTF-8''${encodeURIComponent(f.name)}`,

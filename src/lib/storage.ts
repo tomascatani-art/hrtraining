@@ -1,15 +1,14 @@
 import "server-only";
-import { mkdir, writeFile, stat, unlink } from "fs/promises";
-import { createReadStream } from "fs";
 import path from "path";
 import { randomBytes } from "crypto";
 import { db } from "./db";
 import type { SessionUser } from "./auth";
 import { canSeeAthlete } from "./access";
+import { putBuffer, removeKey, sizeOf, localStream, remoteStorage, signedReadUrl, signedUploadUrl } from "./blob";
 
-// Almacenamiento en disco local. Interfaz pensada para reemplazar por S3/R2/Supabase Storage.
-const ROOT = path.resolve(process.env.UPLOAD_DIR ?? "./uploads");
+// Archivos: en Supabase Storage si está configurado (recomendado en Vercel) o en disco local (UPLOAD_DIR).
 export const MAX_UPLOAD = 300 * 1024 * 1024;
+export { remoteStorage, signedReadUrl, signedUploadUrl };
 
 export function kindOf(mime: string) {
   if (mime.startsWith("video/")) return "VIDEO";
@@ -17,22 +16,25 @@ export function kindOf(mime: string) {
   return "DOCUMENTO";
 }
 
-export async function putFile(buf: Buffer, originalName: string) {
-  await mkdir(ROOT, { recursive: true });
+export function newKey(originalName: string) {
   const ext = path.extname(originalName).toLowerCase().replace(/[^.a-z0-9]/g, "").slice(0, 8);
-  const key = `${Date.now().toString(36)}-${randomBytes(8).toString("hex")}${ext}`;
-  await writeFile(path.join(ROOT, key), buf);
+  return `${Date.now().toString(36)}-${randomBytes(8).toString("hex")}${ext}`;
+}
+
+export async function putFile(buf: Buffer, originalName: string, mime?: string) {
+  const key = newKey(originalName);
+  await putBuffer(key, buf, mime);
   return key;
 }
 
-export async function fileStat(key: string) {
-  return stat(path.join(ROOT, path.basename(key)));
+export async function fileSize(key: string) {
+  return sizeOf(key);
 }
 export function fileStream(key: string, opts?: { start: number; end: number }) {
-  return createReadStream(path.join(ROOT, path.basename(key)), opts);
+  return localStream(key, opts);
 }
 export async function removeFile(key: string) {
-  await unlink(path.join(ROOT, path.basename(key))).catch(() => undefined);
+  await removeKey(key);
 }
 
 export async function canAccessFile(u: SessionUser, f: { id: string; orgId: string; ownerId: string; athleteId: string | null; shared: boolean }) {

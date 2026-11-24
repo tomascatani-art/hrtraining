@@ -1,4 +1,5 @@
 "use client";
+import { uploadFile } from "@/lib/upload-client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Paperclip, Send, X } from "lucide-react";
@@ -22,10 +23,9 @@ export function Composer({ action, conversationId }: { action: (fd: FormData) =>
   const [busy, setBusy] = useState(false);
   const upload = async (f: File) => {
     setBusy(true);
-    const fd = new FormData(); fd.append("file", f);
-    const r = await fetch("/api/files/upload", { method: "POST", body: fd });
-    const j = await r.json(); setBusy(false);
-    if (r.ok) setFile({ id: j.id, name: j.name }); else alert(j.error ?? "No se pudo subir");
+    try { const j = await uploadFile(f); setFile({ id: j.id, name: j.name }); }
+    catch (e) { alert(e instanceof Error ? e.message : "No se pudo subir"); }
+    finally { setBusy(false); }
   };
   return (
     <form ref={form} action={async (fd) => { await action(fd); form.current?.reset(); setFile(null); }} className="border-t border-ink-700 p-3">

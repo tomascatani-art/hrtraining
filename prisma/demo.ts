@@ -3,7 +3,8 @@
 // Los nombres terminan en "Demo" para que nunca se confundan con personas reales.
 import type { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import { mkdir, copyFile, stat } from "fs/promises";
+import { readFile } from "fs/promises";
+import { putBuffer } from "../src/lib/blob";
 import path from "path";
 import { LIBRARY } from "./library";
 
@@ -294,12 +295,10 @@ export async function createDemo(db: PrismaClient) {
 
   // ---- Carpeta del perfil: un documento de ejemplo (DEMO, valores ficticios) ----
   {
-    const dir = path.resolve(process.env.UPLOAD_DIR ?? "./uploads");
-    const src = path.resolve(process.cwd(), "prisma/demo-assets/antropometria-demo.pdf");
+    const buf = await readFile(path.resolve(process.cwd(), "prisma/demo-assets/antropometria-demo.pdf"));
     const key = "demo-antropometria-sofia.pdf";
-    await mkdir(dir, { recursive: true });
-    await copyFile(src, path.join(dir, key));
-    await db.fileAsset.create({ data: { orgId: org.id, ownerId: coach.id, athleteId: athletes[0].id, name: "Antropometría DEMO (valores ficticios).pdf", mime: "application/pdf", size: (await stat(src)).size, storageKey: key, kind: "DOCUMENTO", folder: "ANTROPOMETRIA", note: "Medición de ejemplo · DEMO" } });
+    await putBuffer(key, buf, "application/pdf");
+    await db.fileAsset.create({ data: { orgId: org.id, ownerId: coach.id, athleteId: athletes[0].id, name: "Antropometría DEMO (valores ficticios).pdf", mime: "application/pdf", size: buf.length, storageKey: key, kind: "DOCUMENTO", folder: "ANTROPOMETRIA", note: "Medición de ejemplo · DEMO" } });
   }
 
   // ---- Comunicación ----

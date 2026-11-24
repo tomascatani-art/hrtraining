@@ -8,9 +8,15 @@ export const mailConfigured = () => !!process.env.RESEND_API_KEY && !!process.en
 
 export async function sendMail(m: { to: string; subject: string; html: string; text: string }) {
   if (!mailConfigured()) {
-    const dir = path.resolve(process.env.OUTBOX_DIR ?? "./outbox");
-    await mkdir(dir, { recursive: true });
-    await appendFile(path.join(dir, "mails.log"), JSON.stringify({ at: new Date().toISOString(), ...m, html: undefined }) + "\n");
+    const line = JSON.stringify({ at: new Date().toISOString(), ...m, html: undefined });
+    try {
+      const dir = path.resolve(process.env.OUTBOX_DIR ?? "./outbox");
+      await mkdir(dir, { recursive: true });
+      await appendFile(path.join(dir, "mails.log"), line + "\n");
+    } catch {
+      // En Vercel el disco es de solo lectura: queda en los registros del servidor
+      console.log("[mail sin enviar]", line);
+    }
     return { sent: false as const };
   }
   const r = await fetch("https://api.resend.com/emails", {
