@@ -77,7 +77,7 @@ export function Shell({
   const { main, mobile } = paused ? { main: pausedNav, mobile: pausedNav } : nav;
   const roleLabel = user.role === "ADMIN" ? "Administrador" : user.role === "COACH" ? "Entrenador" : "Deportista";
 
-  const activeGroup = main.find((i) => i.group && isActive(path, i.href))?.group;
+  const activeGroup = main.find((i) => i.group && isActive(path, i.href))?.group ?? (path.startsWith("/app/sessions") && main.some((i) => i.group === "Planificación") ? "Planificación" : undefined);
   const [openGroups, setOpenGroups] = useState<string[]>([]);
   const toggle = (g: string) => setOpenGroups((xs) => (xs.includes(g) ? xs.filter((x) => x !== g) : [...xs, g]));
 

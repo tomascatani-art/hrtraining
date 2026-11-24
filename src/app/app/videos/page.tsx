@@ -24,7 +24,7 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
   const pre = sp.file ? videos.find((v) => v.id === sp.file) : undefined;
   return (
     <>
-      <PageHeader title="Análisis biomecánico y video" subtitle="Cámara lenta, cuadro por cuadro, comparación lado a lado, líneas, ángulos articulares y comentarios con marca de tiempo." />
+      <PageHeader title="Video análisis" subtitle="Cámara lenta, cuadro por cuadro, comparación lado a lado, líneas, ángulos articulares y comentarios con marca de tiempo." />
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
           <Card title="Análisis">
