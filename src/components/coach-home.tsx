@@ -314,7 +314,7 @@ export async function CoachHome() {
         </Fold>
 
         {/* Actividad reciente */}
-        <Fold icon={<Clock size={17} />} title="Actividad reciente (tu grupo)" right={acts.length || undefined}>
+        <Fold icon={<Clock size={17} />} title="Actividad reciente" right={acts.length || undefined}>
           {acts.length ? (
             <ul className="divide-y divide-ink-800">
               {acts.map((x) => (

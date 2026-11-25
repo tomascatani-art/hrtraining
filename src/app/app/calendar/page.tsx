@@ -64,7 +64,6 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         {u.role !== "ATHLETE" && (
           <form className="ml-auto flex gap-2">
             <input type="hidden" name="m" value={`${y}-${m}`} />
-            <select name="group" defaultValue={sp.group ?? ""} className="input py-1.5 text-xs"><option value="">Todos los grupos</option>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select>
             <select name="athlete" defaultValue={sp.athlete ?? ""} className="input py-1.5 text-xs"><option value="">Todos los alumnos</option>{athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
             <button className="btn-ghost btn-sm">Ver</button>
           </form>

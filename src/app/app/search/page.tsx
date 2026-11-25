@@ -93,9 +93,6 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               </div>
             ))}
           </Section>
-          <Section icon={<UsersRound size={16} />} title="Grupos" count={groups.length}>
-            {groups.map((g) => <Link key={g.id} href={`/app/groups/${g.id}`} className="block px-4 py-2.5 font-semibold text-white hover:text-volt">{g.name}</Link>)}
-          </Section>
         </div>
       )}
     </div>

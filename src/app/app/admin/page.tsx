@@ -87,15 +87,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           </div>
         </Card>
         <div className="space-y-6">
-          <Card title="Sumar entrenador">
-            <form action={inviteCoach} className="space-y-3">
-              <Field label="Nombre"><input name="name" className="input" required /></Field>
-              <Field label="Email"><input name="email" type="email" className="input" required /></Field>
-              <Field label="Rol"><select name="role" className="input"><option value="COACH">Entrenador / preparador físico</option><option value="ADMIN">Administrador</option></select></Field>
-              <Submit className="btn-primary w-full">Generar invitación</Submit>
-            </form>
-            <p className="mt-3 text-[11px] text-neutral-600">Entrenador: ve a sus alumnos y grupos. Administrador: ve toda la organización y gestiona usuarios.</p>
-          </Card>
           {false && u.org.isDemo && (
             <Card title="Organización de demostración">
               <p className="mb-3 text-sm muted">Restablece todos los datos ficticios al estado inicial. Las fechas se recalculan desde hoy.</p>

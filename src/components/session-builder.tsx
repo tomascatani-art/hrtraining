@@ -90,7 +90,7 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
           <L label="Para">
             <select className="input" value={f.target} onChange={(e) => setF({ ...f, target: e.target.value })} required>
               <option value="">Elegir…</option>
-              <optgroup label="Grupos">{targets.groups.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</optgroup>
+              
               <optgroup label="Alumnos">{targets.athletes.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</optgroup>
             </select>
           </L>

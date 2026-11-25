@@ -55,7 +55,7 @@ export default async function CompetitionsPage({ searchParams }: { searchParams:
               <Field label="Nombre"><input name="name" defaultValue={edit?.name} className="input" required /></Field>
               <Field label="Para"><select name="target" defaultValue={edit ? (edit.groupId ? `g:${edit.groupId}` : `a:${edit.athleteId}`) : ""} className="input" required>
                 <option value="">Elegir…</option>
-                <optgroup label="Grupos">{groups.map((g) => <option key={g.id} value={`g:${g.id}`}>{g.name}</option>)}</optgroup>
+                
                 <optgroup label="Alumnos">{athletes.map((a) => <option key={a.id} value={`a:${a.id}`}>{a.name}</option>)}</optgroup>
               </select></Field>
               <div className="grid grid-cols-2 gap-2">

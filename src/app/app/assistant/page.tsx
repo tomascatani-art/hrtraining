@@ -94,7 +94,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
                 <form action={createFromProposal} className="grid gap-3 sm:grid-cols-4">
                   <input type="hidden" name="plan" value={JSON.stringify(proposal)} />
                   <Field label="Nombre"><input name="name" defaultValue={`Bloque ${CAPACITIES[objective].label.toLowerCase()}`} className="input" /></Field>
-                  <Field label="Para"><select name="target" defaultValue={athlete ? `a:${athlete}` : ""} className="input" required><option value="">Elegir…</option><optgroup label="Grupos">{groups.map((g) => <option key={g.id} value={`g:${g.id}`}>{g.name}</option>)}</optgroup><optgroup label="Alumnos">{athletes.map((a) => <option key={a.id} value={`a:${a.id}`}>{a.name}</option>)}</optgroup></select></Field>
+                  <Field label="Para"><select name="target" defaultValue={athlete ? `a:${athlete}` : ""} className="input" required><option value="">Elegir…</option><optgroup label="Alumnos">{athletes.map((a) => <option key={a.id} value={`a:${a.id}`}>{a.name}</option>)}</optgroup></select></Field>
                   <Field label="Desde"><input type="date" name="start" defaultValue={new Date(Date.now() + 86400000).toISOString().slice(0, 10)} className="input" /></Field>
                   <Field label="Semanas"><select name="weeks" className="input">{[1, 2, 3, 4, 6, 8].map((w) => <option key={w}>{w}</option>)}</select></Field>
                   <div className="sm:col-span-4 flex items-center justify-between gap-3"><p className="text-xs muted">Las sesiones se crean editables: podés ajustar ejercicios, cargas y fechas después.</p><Submit>Validar y crear sesiones</Submit></div>

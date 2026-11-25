@@ -109,7 +109,7 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
               <Field label="Nombre"><input name="name" defaultValue={a.name} className="input" /></Field>
               <Field label="Deporte"><select name="sport" defaultValue={p?.sport} className="input">{Object.entries(SPORTS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></Field>
               <Field label="Puesto / prueba"><input name="position" defaultValue={p?.position ?? ""} className="input" /></Field>
-              <Field label="Entrenador responsable"><select name="coachId" defaultValue={p?.coachId ?? ""} className="input">{coaches.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
+              <input type="hidden" name="coachId" value={p?.coachId ?? u.id} />
               <Field label="Fecha de nacimiento"><input name="birthDate" type="date" defaultValue={p?.birthDate?.toISOString().slice(0, 10)} className="input" /></Field>
               <Field label="Sexo"><select name="sex" defaultValue={p?.sex ?? ""} className="input"><option value="">—</option><option value="F">Femenino</option><option value="M">Masculino</option><option value="X">Otro</option></select></Field>
               <Field label="Altura (cm)"><input name="heightCm" type="number" step="0.1" defaultValue={p?.heightCm ?? ""} className="input" /></Field>

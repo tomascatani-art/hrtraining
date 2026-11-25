@@ -22,8 +22,7 @@ export default async function NewAthlete() {
           <Field label="Email"><input name="email" type="email" className="input" required /></Field>
           <Field label="Deporte"><select name="sport" className="input">{Object.entries(SPORTS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></Field>
           <Field label="Puesto / prueba / especialidad"><input name="position" className="input" /></Field>
-          <Field label="Grupo"><select name="groupId" className="input"><option value="">Sin grupo</option>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select></Field>
-          <Field label="Entrenador responsable"><select name="coachId" className="input" defaultValue={u.id}>{coaches.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
+          <input type="hidden" name="coachId" value={u.id} />
           <Field label="Fecha de nacimiento"><input name="birthDate" type="date" className="input" /></Field>
           <Field label="Sexo"><select name="sex" className="input"><option value="">—</option><option value="F">Femenino</option><option value="M">Masculino</option><option value="X">Otro / prefiere no decir</option></select></Field>
           <Field label="Altura (cm)"><input name="heightCm" type="number" step="0.1" className="input" /></Field>

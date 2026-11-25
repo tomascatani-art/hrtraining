@@ -37,7 +37,6 @@ export function navFor(role: string, unread: number): { main: Item[]; mobile: It
   const main: Item[] = [
     { href: "/app", label: "Inicio", icon: LayoutDashboard },
     { href: "/app/athletes", label: "Alumnos", icon: Users, group: "Alumnos" },
-    { href: "/app/groups", label: "Grupos", icon: UsersRound, group: "Alumnos" },
     { href: "/app/fees", label: "Cuotas", icon: Wallet, group: "Alumnos" },
     { href: "/app/routines", label: "Rutinas", icon: ClipboardList, group: "Entrenamiento" },
     { href: "/app/templates", label: "Plantillas", icon: LayoutTemplate, group: "Entrenamiento" },

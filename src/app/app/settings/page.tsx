@@ -87,7 +87,7 @@ export default async function SettingsPage() {
           </Card>
         )}
         <Card title="Privacidad">
-          <p className="text-sm leading-relaxed text-neutral-400">Cada usuario ve solo la información que le corresponde: los alumnos acceden a sus propios datos; los entrenadores, a los alumnos y grupos a su cargo; los administradores, a toda la organización. Los archivos se sirven solo a usuarios autorizados. Podés descargar tus evaluaciones desde la sección Evaluaciones.</p>
+          <p className="text-sm leading-relaxed text-neutral-400">Cada usuario ve solo la información que le corresponde: los alumnos acceden a sus propios datos; y vos, como preparador, ves a todos tus alumnos. Los archivos se sirven solo a usuarios autorizados. Podés descargar tus evaluaciones desde la sección Evaluaciones.</p>
         </Card>
       </div>
     </>
