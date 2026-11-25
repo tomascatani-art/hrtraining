@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { PrefetchKind } from "next/dist/client/components/router-reducer/router-reducer-types";
 import clsx from "clsx";
 import { Suspense } from "react";
 import { NavProgress } from "@/components/nav-progress";
@@ -73,7 +74,14 @@ export function Shell({
   unreadMessages: number; unreadNotifications: number; isDemo: boolean; paused?: boolean; children: React.ReactNode;
   brand?: { name: string; logo?: string | null } | null;
 }) {
-  const path = usePathname();
+  const realPath = usePathname();
+  const router = useRouter();
+  // Al tocar un ítem del menú se marca al instante, sin esperar a que llegue la pantalla.
+  const [tapped, setTapped] = useState<string | null>(null);
+  useEffect(() => { setTapped(null); }, [realPath]);
+  const path = tapped ?? realPath;
+  // Al pasar el mouse por un ítem se pide la pantalla por adelantado, así al hacer clic ya está.
+  const warm = (href: string) => { try { router.prefetch(href, { kind: PrefetchKind.FULL }); } catch {} };
   const [open, setOpen] = useState(false);
   const nav = navFor(user.role, unreadMessages);
   // Cuenta pausada: solo cuota y chat
@@ -89,7 +97,7 @@ export function Shell({
     const active = isActive(path, it.href);
     const I = it.icon;
     return (
-      <Link href={it.href} onClick={onNav}
+      <Link href={it.href} prefetch={false} onMouseEnter={() => warm(it.href)} onPointerDown={() => warm(it.href)} onClick={() => { setTapped(it.href); onNav?.(); }}
         className={clsx("group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition", nested && "pl-5",
           active ? "bg-volt text-black" : "text-neutral-400 hover:bg-ink-800 hover:text-white")}>
         <I size={17} />
@@ -175,7 +183,7 @@ export function Shell({
             const I = it.icon;
             const active = isActive(path, it.href);
             return (
-              <Link key={it.href} href={it.href} className={clsx("relative flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium", active ? "text-volt" : "text-neutral-500")}>
+              <Link key={it.href} href={it.href} prefetch={false} onPointerDown={() => warm(it.href)} onClick={() => setTapped(it.href)} className={clsx("relative flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium", active ? "text-volt" : "text-neutral-500")}>
                 {active && <span className="absolute top-0 h-0.5 w-8 rounded-full bg-volt" />}
                 <I size={20} />
                 <span className="truncate max-w-[72px]">{it.label}</span>

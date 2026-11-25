@@ -5,4 +5,5 @@ import { PrismaClient } from "@prisma/client";
 
 const g = globalThis as unknown as { prisma?: PrismaClient };
 export const db = g.prisma ?? new PrismaClient();
-if (process.env.NODE_ENV !== "production") g.prisma = db;
+// Se reutiliza siempre la misma conexión (también en producción) para no abrir una nueva en cada pedido.
+g.prisma = db;

@@ -65,3 +65,14 @@ input[type="range"] { accent-color: rgb(var(--volt)); }
 .recharts-wrapper [fill="#6b5a10"] { fill: rgb(var(--volt) / 0.42); }
 
 @keyframes loadbar { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+
+/* Respuesta inmediata al tocar: sin demora de toque en celular, se achica al apretar y queda marcado mientras carga */
+a, button, [role="button"], label, summary, select, input[type="submit"] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+a:active, button:active:not(:disabled), summary:active { opacity: .75; }
+button[data-pending], input[data-pending] { position: relative; pointer-events: none; opacity: .8; }
+button[data-pending]::after {
+  content: ""; width: 14px; height: 14px; margin-left: 8px; flex: none; display: inline-block; vertical-align: -2px;
+  border: 2px solid currentColor; border-right-color: transparent; border-radius: 9999px; animation: spin .6s linear infinite;
+}
+a[data-pending] { opacity: .6; transition: opacity .1s; }
+@keyframes spin { to { transform: rotate(360deg); } }
