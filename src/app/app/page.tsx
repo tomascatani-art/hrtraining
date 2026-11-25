@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { sessionWhere, visibleAthleteIds } from "@/lib/access";
 import { monitoringFor } from "@/lib/queries";
 import { addDays, startOfDay, startOfWeek, weeklySeries, improvement, dateOnly } from "@/lib/metrics";
-import { TEST_MAP, SESSION_TYPES } from "@/lib/catalog";
+import { TEST_MAP, SESSION_TYPES, isBasicTest } from "@/lib/catalog";
 import { Card, Stat, PageHeader, Empty, Avatar, DemoBadge, fmtDate, fmtDateLong, fmtTime, Delta, fmtNum } from "@/components/ui";
 import { LoadBars, TrendChart } from "@/components/charts";
 import { AlertList } from "@/components/alerts";
@@ -188,7 +188,7 @@ async function AthleteHome({ userId, name }: { userId: string; name: string }) {
 
   const byTest = new Map<string, typeof evals>();
   for (const e of evals) byTest.set(e.testKey, [...(byTest.get(e.testKey) ?? []), e]);
-  const latest = [...byTest.entries()].filter(([k]) => !k.startsWith("FMS_") || k === "FMS_TOTAL").map(([k, list]) => ({ key: k, last: list.at(-1)!, prev: list.at(-2) })).sort((a, b) => +b.last.date - +a.last.date).slice(0, 6);
+  const latest = [...byTest.entries()].filter(([k]) => isBasicTest(k)).map(([k, list]) => ({ key: k, last: list.at(-1)!, prev: list.at(-2) })).sort((a, b) => +b.last.date - +a.last.date).slice(0, 6);
   const sq = byTest.get("RM1_SQ") ?? [];
   const cm = byTest.get("CMJ") ?? [];
   const progress = sq.map((e, i) => ({ x: fmtDate(e.date, { month: "short", year: "2-digit" }), sq: e.value, cmj: cm[i]?.value ?? null }));

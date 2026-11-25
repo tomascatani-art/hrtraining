@@ -97,17 +97,14 @@ export type TestDef = {
   needsLoad?: boolean;
 };
 
-export const TEST_CATEGORIES: Record<TestDef["category"], string> = {
+export const TEST_CATEGORIES: Partial<Record<TestDef["category"], string>> = {
   SALTOS: "Saltos y reactividad",
   FUERZA: "Fuerza máxima",
-  VBT: "Velocidad de ejecución y potencia",
-  FMS: "Movilidad y funcionalidad (FMS)",
   VELOCIDAD: "Velocidad y agilidad",
   RESISTENCIA: "Resistencia",
-  ESPECIFICO: "Específicos por deporte",
 };
 
-export const TESTS: TestDef[] = [
+const ALL_TESTS: TestDef[] = [
   { key: "CMJ", name: "Countermovement Jump (CMJ)", category: "SALTOS", unit: "cm", higherIsBetter: true, protocol: "Manos en la cintura, contramovimiento libre. Mejor de 3 intentos." },
   { key: "SJ", name: "Squat Jump", category: "SALTOS", unit: "cm", higherIsBetter: true, protocol: "Desde 90° de rodilla, 2-3 s de pausa, sin contramovimiento." },
   { key: "ABK", name: "Abalakov", category: "SALTOS", unit: "cm", higherIsBetter: true, protocol: "CMJ con braceo libre." },
@@ -145,7 +142,11 @@ export const TESTS: TestDef[] = [
   { key: "SAQ_TENIS", name: "Spider drill (tenis)", category: "ESPECIFICO", unit: "s", higherIsBetter: false, protocol: "Recorrido a 5 conos de la línea de fondo.", sports: ["TENIS"] },
   { key: "SJFT", name: "Special Judo Fitness Test (índice)", category: "ESPECIFICO", unit: "índice", higherIsBetter: false, protocol: "(FC final + FC 1 min) / lanzamientos totales.", sports: ["COMBATE"] },
 ];
-export const TEST_MAP = Object.fromEntries(TESTS.map((t) => [t.key, t]));
+/** Tests que se usan en la app: solo los básicos (Diego 2026-11-25). El resto queda para leer datos viejos. */
+export const BASIC_TESTS = ["CMJ", "ABK", "RM1_SQ", "RM1_BP", "RM1_DL", "SPR10", "SPR30", "COOPER"];
+export const TESTS: TestDef[] = ALL_TESTS.filter((t) => BASIC_TESTS.includes(t.key));
+export const isBasicTest = (k: string) => BASIC_TESTS.includes(k);
+export const TEST_MAP = Object.fromEntries(ALL_TESTS.map((t) => [t.key, t]));
 export const FMS_COMPONENTS = ["FMS_DS", "FMS_HS", "FMS_ILL", "FMS_SM", "FMS_ASLR", "FMS_TSPU", "FMS_RS"];
 
 // ---------- Plantillas por deporte ----------

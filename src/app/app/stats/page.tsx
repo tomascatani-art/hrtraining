@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { visibleAthleteIds } from "@/lib/access";
-import { TEST_MAP } from "@/lib/catalog";
+import { TEST_MAP, isBasicTest } from "@/lib/catalog";
 import { addDays, best, startOfDay, weeklySeries, wellnessScore, improvement } from "@/lib/metrics";
 import { PageHeader, Card, Empty, Field, fmtDate, fmtNum, Delta } from "@/components/ui";
 import { TrendChart, LoadBars } from "@/components/charts";
@@ -43,7 +43,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
     }
     return [...byDate.entries()].sort().map(([d, v]) => ({ x: fmtDate(d, { day: "2-digit", month: "short", year: "2-digit" }), v: +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(2) }));
   };
-  const pbs = [...new Set(evals.map((e) => e.testKey))].filter((k) => TEST_MAP[k] && !k.startsWith("FMS_")).map((k) => {
+  const pbs = [...new Set(evals.map((e) => e.testKey))].filter((k) => TEST_MAP[k] && isBasicTest(k)).map((k) => {
     const l = evals.filter((e) => e.testKey === k);
     return { k, pb: best(l, TEST_MAP[k].higherIsBetter)!, n: l.length };
   });
