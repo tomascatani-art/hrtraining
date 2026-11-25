@@ -28,7 +28,6 @@ export function navFor(role: string, unread: number): { main: Item[]; mobile: It
       { href: "/app/goals", label: "Objetivos", icon: Target },
       { href: "/app/history", label: "Historial", icon: Activity },
       { href: "/app/files", label: "Archivos", icon: FolderOpen },
-      { href: "/app/library", label: "Ejercicios", icon: Dumbbell },
       { href: "/app/tools", label: "Herramientas", icon: Wrench },
       { href: "/app/settings", label: "Mi perfil", icon: Settings },
     ];

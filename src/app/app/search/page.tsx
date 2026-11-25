@@ -34,7 +34,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   let exercises: { id: string; name: string; category: string | null }[] = [];
   if (words.length) {
     const ids = staff ? await visibleAthleteIds(u) : [u.id];
-    exercises = await db.exercise.findMany({ where: { OR: [{ orgId: null }, { orgId: u.orgId }], ...like("name") }, select: { id: true, name: true, category: true }, orderBy: { name: "asc" }, take: 25 });
+    if (staff) exercises = await db.exercise.findMany({ where: { OR: [{ orgId: null }, { orgId: u.orgId }], ...like("name") }, select: { id: true, name: true, category: true }, orderBy: { name: "asc" }, take: 25 });
     if (staff) {
       athletes = await db.user.findMany({ where: { id: { in: ids }, OR: [like("name"), like("email")] }, select: { id: true, name: true, email: true, avatarKey: true, avatarAt: true, athleteProfile: { select: { sport: true } } }, orderBy: { name: "asc" }, take: 20 });
       const gs = await visibleGroups(u);
@@ -63,7 +63,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     <div className="mx-auto max-w-3xl">
       <form className="relative mb-5">
         <Search size={18} className="absolute left-3.5 top-3.5 text-neutral-500" />
-        <input name="q" defaultValue={q} autoFocus placeholder={staff ? "Buscar alumnos, ejercicios, rutinas, plantillas, grupos…" : "Buscar ejercicios o algo de tu rutina…"} className="input py-3 pl-11 text-base" />
+        <input name="q" defaultValue={q} autoFocus placeholder={staff ? "Buscar alumnos, ejercicios, rutinas, plantillas, grupos…" : "Buscar algo de tu rutina…"} className="input py-3 pl-11 text-base" />
       </form>
       {!words.length ? <p className="text-center text-sm muted">Escribí un nombre: por ejemplo “Sofía”, “sentadilla” o “pretemporada”.</p> :
         total === 0 ? <p className="text-center text-sm muted">No encontré nada con “{q}”.</p> : (

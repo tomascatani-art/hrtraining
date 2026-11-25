@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Search, SlidersHorizontal } from "lucide-react";
 import type { Prisma } from "@prisma/client";
@@ -15,7 +16,9 @@ const PAGE = 60;
 export default async function LibraryPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const u = await requireUser();
   const sp = await searchParams;
-  const staff = u.role !== "ATHLETE";
+  // Diego: el alumno solo ve lo que le planifica su preparador, no la biblioteca entera.
+  if (u.role === "ATHLETE") redirect("/app/routine");
+  const staff = true;
   const scope: Prisma.ExerciseWhereInput = { OR: [{ orgId: null }, { orgId: u.orgId }] };
   const and: Prisma.ExerciseWhereInput[] = [];
   if (sp.q) for (const w of sp.q.trim().split(/\s+/).slice(0, 5)) and.push({ name: { contains: w, mode: "insensitive" } });
