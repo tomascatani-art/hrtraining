@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -14,7 +15,7 @@ async function canEditPhoto(u: Awaited<ReturnType<typeof requireUser>>, targetId
 }
 
 /** Guarda la foto de perfil (ya recortada y achicada en el navegador). */
-export async function setAvatar(fd: FormData) {
+async function _setAvatar(fd: FormData) {
   const u = await requireUser();
   const userId = String(fd.get("userId") || u.id);
   if (!(await canEditPhoto(u, userId))) throw new Error("Sin permiso");
@@ -28,7 +29,7 @@ export async function setAvatar(fd: FormData) {
   revalidatePath("/app", "layout");
 }
 
-export async function removeAvatar(fd: FormData) {
+async function _removeAvatar(fd: FormData) {
   const u = await requireUser();
   const userId = String(fd.get("userId") || u.id);
   if (!(await canEditPhoto(u, userId))) throw new Error("Sin permiso");
@@ -37,3 +38,6 @@ export async function removeAvatar(fd: FormData) {
   if (prev?.avatarKey) await removeFile(prev.avatarKey);
   revalidatePath("/app", "layout");
 }
+
+export async function setAvatar(fd: FormData) { return runAction("setAvatar", _setAvatar, fd); }
+export async function removeAvatar(fd: FormData) { return runAction("removeAvatar", _removeAvatar, fd); }

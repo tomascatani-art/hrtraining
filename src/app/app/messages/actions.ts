@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -17,7 +18,7 @@ export async function contactsFor(u: SessionUser) {
   return db.user.findMany({ where: { orgId: u.orgId, id: { not: u.id }, OR: [{ id: { in: ath } }, { role: { in: ["COACH", "ADMIN"] } }] }, orderBy: [{ role: "asc" }, { name: "asc" }] });
 }
 
-export async function openDirect(fd: FormData) {
+async function _openDirect(fd: FormData) {
   const u = await requireUser();
   const to = String(fd.get("to"));
   const contacts = await contactsFor(u);
@@ -27,7 +28,7 @@ export async function openDirect(fd: FormData) {
   redirect(`/app/messages?c=${c.id}`);
 }
 
-export async function sendMessage(fd: FormData) {
+async function _sendMessage(fd: FormData) {
   const u = await requireUser();
   const conversationId = String(fd.get("conversationId"));
   const m = await db.conversationMember.findUnique({ where: { conversationId_userId: { conversationId, userId: u.id } }, include: { conversation: { include: { members: true } } } });
@@ -50,7 +51,7 @@ export async function sendMessage(fd: FormData) {
   revalidatePath("/app/messages");
 }
 
-export async function broadcast(fd: FormData) {
+async function _broadcast(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const groupId = String(fd.get("groupId"));
   const g = await db.group.findUnique({ where: { id: groupId }, include: { members: true } });
@@ -67,3 +68,7 @@ export async function broadcast(fd: FormData) {
   revalidatePath("/app/messages");
   redirect(conv ? `/app/messages?c=${conv.id}` : "/app/messages");
 }
+
+export async function openDirect(fd: FormData) { return runAction("openDirect", _openDirect, fd); }
+export async function sendMessage(fd: FormData) { return runAction("sendMessage", _sendMessage, fd); }
+export async function broadcast(fd: FormData) { return runAction("broadcast", _broadcast, fd); }

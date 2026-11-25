@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser, hashPassword, verifyPassword } from "@/lib/auth";
@@ -7,7 +8,7 @@ import { putFile, removeFile } from "@/lib/storage";
 import { encryptSecret } from "@/lib/secret";
 import { normalizeHex, contrastWithBlack, MIN_CONTRAST, DEFAULT_ACCENT, isAllowedAccent } from "@/lib/brand";
 
-export async function updateProfile(fd: FormData) {
+async function _updateProfile(fd: FormData) {
   const u = await requireUser();
   const name = String(fd.get("name") ?? "").trim();
   if (name.length < 2) throw new Error("Nombre inválido");
@@ -15,7 +16,7 @@ export async function updateProfile(fd: FormData) {
   revalidatePath("/app", "layout");
 }
 
-export async function changePassword(fd: FormData) {
+async function _changePassword(fd: FormData) {
   const u = await requireUser();
   const cur = String(fd.get("current") ?? ""), next = String(fd.get("next") ?? "");
   if (next.length < 8) throw new Error("La nueva contraseña debe tener al menos 8 caracteres");
@@ -25,7 +26,7 @@ export async function changePassword(fd: FormData) {
   revalidatePath("/app/settings");
 }
 
-export async function updateOrg(fd: FormData) {
+async function _updateOrg(fd: FormData) {
   const u = await requireUser(["ADMIN"]);
   const name = String(fd.get("org") ?? "").trim();
   if (name.length < 2) throw new Error("Nombre inválido");
@@ -43,7 +44,7 @@ export async function updateOrg(fd: FormData) {
 const LOGO_TYPES = ["image/png", "image/jpeg", "image/webp"];
 
 /** Marca propia: nombre visible, enlace de ingreso, color de acento y logo. */
-export async function updateBrand(fd: FormData) {
+async function _updateBrand(fd: FormData) {
   const u = await requireUser(["ADMIN"]);
   const org = await db.organization.findUniqueOrThrow({ where: { id: u.orgId } });
   const brandName = String(fd.get("brandName") ?? "").trim().slice(0, 60) || null;
@@ -79,3 +80,8 @@ export async function hideSetupGuide() {
   await db.organization.update({ where: { id: u.orgId }, data: { setupHidden: true } });
   revalidatePath("/app");
 }
+
+export async function updateProfile(fd: FormData) { return runAction("updateProfile", _updateProfile, fd); }
+export async function changePassword(fd: FormData) { return runAction("changePassword", _changePassword, fd); }
+export async function updateOrg(fd: FormData) { return runAction("updateOrg", _updateOrg, fd); }
+export async function updateBrand(fd: FormData) { return runAction("updateBrand", _updateBrand, fd); }

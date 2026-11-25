@@ -168,7 +168,7 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
         {library("max-h-[60vh]")}
       </aside>
       {picker && (
-        <div className="fixed inset-0 z-[60] flex flex-col bg-ink-950 xl:hidden" role="dialog" aria-label="Biblioteca de ejercicios">
+        <div style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }} className="fixed inset-0 z-[60] flex flex-col bg-ink-950 xl:hidden" role="dialog" aria-label="Biblioteca de ejercicios">
           <div className="flex items-center justify-between gap-3 border-b border-ink-700 px-4 py-3">
             <h2 className="h2">Biblioteca</h2>
             <button type="button" onClick={() => setPicker(false)} className="btn-ghost btn-sm" aria-label="Cerrar"><X size={16} /></button>

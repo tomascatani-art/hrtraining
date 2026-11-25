@@ -1,11 +1,12 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { parseDay } from "@/lib/metrics";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { assertAthlete, audit, notify } from "@/lib/access";
 
-export async function saveCompetition(fd: FormData) {
+async function _saveCompetition(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const id = String(fd.get("id") ?? "");
   const [kind, targetId] = String(fd.get("target") ?? "").split(":");
@@ -33,7 +34,7 @@ export async function saveCompetition(fd: FormData) {
   revalidatePath("/app/competitions");
 }
 
-export async function deleteCompetition(fd: FormData) {
+async function _deleteCompetition(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const c = await db.competition.findUnique({ where: { id: String(fd.get("id")) } });
   if (!c || c.orgId !== u.orgId) return;
@@ -41,3 +42,6 @@ export async function deleteCompetition(fd: FormData) {
   await audit(u, "ELIMINAR", "Competencia", c.name);
   revalidatePath("/app/competitions");
 }
+
+export async function saveCompetition(fd: FormData) { return runAction("saveCompetition", _saveCompetition, fd); }
+export async function deleteCompetition(fd: FormData) { return runAction("deleteCompetition", _deleteCompetition, fd); }

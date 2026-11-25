@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -6,7 +7,7 @@ import { assertAthlete, audit, notify } from "@/lib/access";
 import { parseDay } from "@/lib/metrics";
 
 /** Carga un RM nuevo. Queda en el historial y le avisa a la otra parte (entrenador o alumno). */
-export async function saveRM(fd: FormData) {
+async function _saveRM(fd: FormData) {
   const u = await requireUser();
   const athleteId = u.role === "ATHLETE" ? u.id : String(fd.get("athleteId"));
   await assertAthlete(u, athleteId);
@@ -34,7 +35,7 @@ export async function saveRM(fd: FormData) {
 }
 
 /** Marca como vistos los RM que cargó la otra parte. */
-export async function markRMSeen(fd: FormData) {
+async function _markRMSeen(fd: FormData) {
   const u = await requireUser();
   const ids = fd.getAll("id").map(String);
   const rows = await db.exerciseRM.findMany({ where: { id: { in: ids } } });
@@ -44,7 +45,7 @@ export async function markRMSeen(fd: FormData) {
   revalidatePath("/app/rm");
 }
 
-export async function deleteRM(fd: FormData) {
+async function _deleteRM(fd: FormData) {
   const u = await requireUser();
   const r = await db.exerciseRM.findUnique({ where: { id: String(fd.get("id")) } });
   if (!r) return;
@@ -56,3 +57,7 @@ export async function deleteRM(fd: FormData) {
 }
 
 const fmt = (n: number) => n.toLocaleString("es-AR", { maximumFractionDigits: 1 });
+
+export async function saveRM(fd: FormData) { return runAction("saveRM", _saveRM, fd); }
+export async function markRMSeen(fd: FormData) { return runAction("markRMSeen", _markRMSeen, fd); }
+export async function deleteRM(fd: FormData) { return runAction("deleteRM", _deleteRM, fd); }

@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { parseDay } from "@/lib/metrics";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -52,7 +53,7 @@ async function buildMicros(planId: string, meso: { id: string; startDate: Date; 
   return weeks;
 }
 
-export async function createPlan(fd: FormData) {
+async function _createPlan(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const target = String(fd.get("target") ?? "");
   const [kind, targetId] = target.split(":");
@@ -87,7 +88,7 @@ export async function createPlan(fd: FormData) {
   redirect(`/app/planning/${plan.id}`);
 }
 
-export async function updatePlan(fd: FormData) {
+async function _updatePlan(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const p = await ownPlan(u, String(fd.get("id")));
   await db.plan.update({ where: { id: p.id }, data: { name: String(fd.get("name") ?? p.name), goal: String(fd.get("goal") ?? "") || null, startDate: parseDay(String(fd.get("startDate"))), endDate: parseDay(String(fd.get("endDate"))) } });
@@ -95,7 +96,7 @@ export async function updatePlan(fd: FormData) {
   revalidatePath(`/app/planning/${p.id}`);
 }
 
-export async function deletePlan(fd: FormData) {
+async function _deletePlan(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const p = await ownPlan(u, String(fd.get("id")));
   await db.plan.delete({ where: { id: p.id } });
@@ -103,7 +104,7 @@ export async function deletePlan(fd: FormData) {
   redirect("/app/planning");
 }
 
-export async function saveBlock(fd: FormData) {
+async function _saveBlock(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const p = await ownPlan(u, String(fd.get("planId")));
   const id = String(fd.get("id") ?? "");
@@ -148,7 +149,7 @@ export async function saveBlock(fd: FormData) {
   redirect(`/app/planning/${p.id}`);
 }
 
-export async function deleteBlock(fd: FormData) {
+async function _deleteBlock(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const b = await db.planBlock.findUnique({ where: { id: String(fd.get("id")) } });
   if (!b) return;
@@ -158,7 +159,7 @@ export async function deleteBlock(fd: FormData) {
   redirect(`/app/planning/${b.planId}`);
 }
 
-export async function sharePlan(fd: FormData) {
+async function _sharePlan(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const p = await ownPlan(u, String(fd.get("id")));
   const ids = p.athleteId ? [p.athleteId] : p.groupId ? (await db.groupMember.findMany({ where: { groupId: p.groupId } })).map((m) => m.athleteId) : [];
@@ -167,7 +168,7 @@ export async function sharePlan(fd: FormData) {
 }
 
 /** Copia una planificación completa (estructura y, si se pide, sus sesiones con ejercicios) a otro alumno, corrida a una nueva fecha de inicio. */
-export async function copyPlan(fd: FormData) {
+async function _copyPlan(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const p = await ownPlan(u, String(fd.get("id")));
   const athleteId = String(fd.get("athleteId") ?? "");
@@ -205,3 +206,11 @@ export async function copyPlan(fd: FormData) {
   await audit(u, "CREAR", "Planificación", `Copia de ${p.name} para ${target?.name ?? ""}${sessions ? ` (${sessions} sesiones)` : ""}`, copy.id);
   redirect(`/app/planning/${copy.id}?copiada=${sessions}`);
 }
+
+export async function createPlan(fd: FormData) { return runAction("createPlan", _createPlan, fd); }
+export async function updatePlan(fd: FormData) { return runAction("updatePlan", _updatePlan, fd); }
+export async function deletePlan(fd: FormData) { return runAction("deletePlan", _deletePlan, fd); }
+export async function saveBlock(fd: FormData) { return runAction("saveBlock", _saveBlock, fd); }
+export async function deleteBlock(fd: FormData) { return runAction("deleteBlock", _deleteBlock, fd); }
+export async function sharePlan(fd: FormData) { return runAction("sharePlan", _sharePlan, fd); }
+export async function copyPlan(fd: FormData) { return runAction("copyPlan", _copyPlan, fd); }

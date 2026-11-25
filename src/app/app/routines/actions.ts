@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Prisma } from "@prisma/client";
@@ -24,7 +25,7 @@ async function snapshot(routineId: string, name: string, data: unknown, byId: st
 }
 
 /** Guardar una versión a mano, con un nombre (ej: "antes del torneo"). */
-export async function saveSnapshot(fd: FormData) {
+async function _saveSnapshot(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const r = await ownRoutine(u, String(fd.get("id")));
   await snapshot(r.id, r.name, r.data, u.id, String(fd.get("label") ?? "").trim().slice(0, 60));
@@ -32,7 +33,7 @@ export async function saveSnapshot(fd: FormData) {
 }
 
 /** Vuelve el plan a como estaba en esa versión. Antes guarda cómo está ahora, así nada se pierde. */
-export async function restoreSnapshot(fd: FormData) {
+async function _restoreSnapshot(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const snap = await db.routineSnapshot.findUnique({ where: { id: String(fd.get("snapshotId")) } });
   if (!snap) throw new Error("Versión no encontrada");
@@ -53,7 +54,7 @@ async function tellAthlete(athleteId: string, title: string) {
   await notify([athleteId], { kind: "SESION", title, body: "Entrá a Mi rutina para verla.", link: "/app/routine" });
 }
 
-export async function createRoutine(fd: FormData) {
+async function _createRoutine(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const athleteId = String(fd.get("athleteId") ?? "") || null;
   const templateId = String(fd.get("templateId") ?? "") || null;
@@ -106,7 +107,7 @@ export async function saveRoutine(id: string, name: string, raw: unknown) {
 }
 
 /** Pasa la rutina entera a otro alumno. La que tenía queda en "Versiones guardadas". */
-export async function copyRoutine(fd: FormData) {
+async function _copyRoutine(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const r = await ownRoutine(u, String(fd.get("id")));
   const to = String(fd.get("athleteId") ?? "");
@@ -141,7 +142,7 @@ export async function copyDay(fromId: string, dayId: string, toAthleteId: string
   return { ok: true, name: a?.name ?? "", targetId: target.id };
 }
 
-export async function saveAsTemplate(fd: FormData) {
+async function _saveAsTemplate(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const r = await ownRoutine(u, String(fd.get("id")));
   const data = cloneRoutine(sanitizeRoutine(r.data));
@@ -152,7 +153,7 @@ export async function saveAsTemplate(fd: FormData) {
 }
 
 /** Vuelve a poner una versión guardada como la rutina actual (la actual pasa a versiones). */
-export async function restoreVersion(fd: FormData) {
+async function _restoreVersion(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const r = await ownRoutine(u, String(fd.get("id")));
   if (!r.athleteId) throw new Error("Solo las rutinas de un alumno tienen versiones");
@@ -163,7 +164,7 @@ export async function restoreVersion(fd: FormData) {
 }
 
 /** Reemplaza todo el plan del alumno por una plantilla. Lo que tenía queda en versiones. */
-export async function replaceWithTemplate(fd: FormData) {
+async function _replaceWithTemplate(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const r = await ownRoutine(u, String(fd.get("id")));
   const t = await ownRoutine(u, String(fd.get("templateId")));
@@ -179,7 +180,7 @@ export async function replaceWithTemplate(fd: FormData) {
 }
 
 /** Empieza un plan en blanco. El actual queda en versiones. */
-export async function newPlan(fd: FormData) {
+async function _newPlan(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const r = await ownRoutine(u, String(fd.get("id")));
   if (!r.athleteId) throw new Error("Sin alumno");
@@ -191,7 +192,7 @@ export async function newPlan(fd: FormData) {
 }
 
 /** Rutina extra (además del plan principal): por ejemplo, una de vacaciones o de prevención. */
-export async function addExtra(fd: FormData) {
+async function _addExtra(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const athleteId = String(fd.get("athleteId"));
   await assertAthlete(u, athleteId);
@@ -205,7 +206,7 @@ export async function addExtra(fd: FormData) {
 }
 
 /** Próximo plan: queda guardado y pasa a ser el actual en la fecha elegida. */
-export async function scheduleNext(fd: FormData) {
+async function _scheduleNext(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const athleteId = String(fd.get("athleteId"));
   await assertAthlete(u, athleteId);
@@ -220,7 +221,7 @@ export async function scheduleNext(fd: FormData) {
   redirect(`/app/routines/${n.id}`);
 }
 
-export async function deleteRoutine(fd: FormData) {
+async function _deleteRoutine(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const r = await ownRoutine(u, String(fd.get("id")));
   if (r.athleteId && r.active && !r.extra) throw new Error("La rutina actual no se borra; pasale otra o restaurá una versión");
@@ -228,3 +229,15 @@ export async function deleteRoutine(fd: FormData) {
   await audit(u, "ELIMINAR", "Rutina", r.name, r.id);
   redirect(r.athleteId ? `/app/athletes/${r.athleteId}?tab=rutina` : "/app/routines");
 }
+
+export async function saveSnapshot(fd: FormData) { return runAction("saveSnapshot", _saveSnapshot, fd); }
+export async function restoreSnapshot(fd: FormData) { return runAction("restoreSnapshot", _restoreSnapshot, fd); }
+export async function createRoutine(fd: FormData) { return runAction("createRoutine", _createRoutine, fd); }
+export async function copyRoutine(fd: FormData) { return runAction("copyRoutine", _copyRoutine, fd); }
+export async function saveAsTemplate(fd: FormData) { return runAction("saveAsTemplate", _saveAsTemplate, fd); }
+export async function restoreVersion(fd: FormData) { return runAction("restoreVersion", _restoreVersion, fd); }
+export async function replaceWithTemplate(fd: FormData) { return runAction("replaceWithTemplate", _replaceWithTemplate, fd); }
+export async function newPlan(fd: FormData) { return runAction("newPlan", _newPlan, fd); }
+export async function addExtra(fd: FormData) { return runAction("addExtra", _addExtra, fd); }
+export async function scheduleNext(fd: FormData) { return runAction("scheduleNext", _scheduleNext, fd); }
+export async function deleteRoutine(fd: FormData) { return runAction("deleteRoutine", _deleteRoutine, fd); }

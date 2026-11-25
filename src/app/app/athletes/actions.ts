@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { parseDay } from "@/lib/metrics";
 import { randomBytes } from "crypto";
 import { z } from "zod";
@@ -18,7 +19,7 @@ const athleteSchema = z.object({
   email: z.string().email("Email inválido"),
 });
 
-export async function createAthlete(fd: FormData) {
+async function _createAthlete(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const { name, email } = athleteSchema.parse({ name: String(fd.get("name") ?? "").trim(), email: String(fd.get("email") ?? "").trim().toLowerCase() });
   if (await db.user.findUnique({ where: { email } })) throw new Error("Ya existe un usuario con ese email");
@@ -43,7 +44,7 @@ export async function createAthlete(fd: FormData) {
   redirect(`/app/athletes/${athlete.id}?invitado=1${mail.sent ? "&mail=1" : ""}`);
 }
 
-export async function updateAthlete(fd: FormData) {
+async function _updateAthlete(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const id = String(fd.get("id"));
   await assertAthlete(u, id);
@@ -66,7 +67,7 @@ export async function updateAthlete(fd: FormData) {
   revalidatePath(`/app/athletes/${id}`);
 }
 
-export async function regenerateInvite(fd: FormData) {
+async function _regenerateInvite(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const id = String(fd.get("id"));
   await assertAthlete(u, id);
@@ -77,7 +78,7 @@ export async function regenerateInvite(fd: FormData) {
 }
 
 /** El entrenador genera un enlace para que el alumno elija una contraseña nueva (por si no le llega el mail). */
-export async function resetLinkForAthlete(fd: FormData) {
+async function _resetLinkForAthlete(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const id = String(fd.get("id"));
   await assertAthlete(u, id);
@@ -87,7 +88,7 @@ export async function resetLinkForAthlete(fd: FormData) {
   redirect(`/app/athletes/${id}?clave=${encodeURIComponent(url.split("/reset/")[1])}`);
 }
 
-export async function saveGoal(fd: FormData) {
+async function _saveGoal(fd: FormData) {
   const u = await requireUser();
   const athleteId = u.role === "ATHLETE" ? u.id : String(fd.get("athleteId"));
   await assertAthlete(u, athleteId);
@@ -108,7 +109,7 @@ export async function saveGoal(fd: FormData) {
   revalidatePath(`/app/athletes/${athleteId}`);
 }
 
-export async function toggleGoal(fd: FormData) {
+async function _toggleGoal(fd: FormData) {
   const u = await requireUser();
   const g = await db.goal.findUnique({ where: { id: String(fd.get("id")) } });
   if (!g) return;
@@ -118,7 +119,7 @@ export async function toggleGoal(fd: FormData) {
   revalidatePath(`/app/athletes/${g.athleteId}`);
 }
 
-export async function deleteGoal(fd: FormData) {
+async function _deleteGoal(fd: FormData) {
   const u = await requireUser();
   const g = await db.goal.findUnique({ where: { id: String(fd.get("id")) } });
   if (!g) return;
@@ -127,3 +128,11 @@ export async function deleteGoal(fd: FormData) {
   revalidatePath("/app/goals");
   revalidatePath(`/app/athletes/${g.athleteId}`);
 }
+
+export async function createAthlete(fd: FormData) { return runAction("createAthlete", _createAthlete, fd); }
+export async function updateAthlete(fd: FormData) { return runAction("updateAthlete", _updateAthlete, fd); }
+export async function regenerateInvite(fd: FormData) { return runAction("regenerateInvite", _regenerateInvite, fd); }
+export async function resetLinkForAthlete(fd: FormData) { return runAction("resetLinkForAthlete", _resetLinkForAthlete, fd); }
+export async function saveGoal(fd: FormData) { return runAction("saveGoal", _saveGoal, fd); }
+export async function toggleGoal(fd: FormData) { return runAction("toggleGoal", _toggleGoal, fd); }
+export async function deleteGoal(fd: FormData) { return runAction("deleteGoal", _deleteGoal, fd); }

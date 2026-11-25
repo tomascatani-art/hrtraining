@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -12,7 +13,7 @@ function refresh(athleteId: string) {
 }
 
 /** Guarda una medición. La carga el entrenador; el alumno la ve en su carpeta. */
-export async function saveAnthropometry(fd: FormData) {
+async function _saveAnthropometry(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const athleteId = String(fd.get("athleteId"));
   await assertAthlete(u, athleteId);
@@ -37,7 +38,7 @@ export async function saveAnthropometry(fd: FormData) {
   refresh(athleteId);
 }
 
-export async function deleteAnthropometry(fd: FormData) {
+async function _deleteAnthropometry(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const row = await db.anthropometry.findUnique({ where: { id: String(fd.get("id")) } });
   if (!row) return;
@@ -46,3 +47,6 @@ export async function deleteAnthropometry(fd: FormData) {
   await audit(u, "ELIMINAR", "Antropometría", `Medición del ${row.date.toLocaleDateString("es-AR")}`, row.athleteId);
   refresh(row.athleteId);
 }
+
+export async function saveAnthropometry(fd: FormData) { return runAction("saveAnthropometry", _saveAnthropometry, fd); }
+export async function deleteAnthropometry(fd: FormData) { return runAction("deleteAnthropometry", _deleteAnthropometry, fd); }

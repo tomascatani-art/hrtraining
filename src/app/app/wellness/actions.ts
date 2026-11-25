@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -6,7 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { notify } from "@/lib/access";
 import { computeAlerts, startOfDay, addDays, dateOnly } from "@/lib/metrics";
 
-export async function saveWellness(fd: FormData) {
+async function _saveWellness(fd: FormData) {
   const u = await requireUser(["ATHLETE"]);
   const clamp = (k: string, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(Number(fd.get(k) ?? lo))));
   const date = dateOnly(new Date());
@@ -32,3 +33,5 @@ export async function saveWellness(fd: FormData) {
   revalidatePath("/app");
   redirect("/app/wellness?ok=1");
 }
+
+export async function saveWellness(fd: FormData) { return runAction("saveWellness", _saveWellness, fd); }

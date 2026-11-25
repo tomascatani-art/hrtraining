@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -11,7 +12,7 @@ async function ownGroup(u: SessionUser, id: string) {
   return g;
 }
 
-export async function createGroup(fd: FormData) {
+async function _createGroup(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const name = String(fd.get("name") ?? "").trim();
   if (!name) throw new Error("El grupo necesita un nombre");
@@ -23,7 +24,7 @@ export async function createGroup(fd: FormData) {
   redirect(`/app/groups/${g.id}`);
 }
 
-export async function updateGroup(fd: FormData) {
+async function _updateGroup(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const g = await ownGroup(u, String(fd.get("id")));
   await db.group.update({ where: { id: g.id }, data: { name: String(fd.get("name") ?? g.name), sport: String(fd.get("sport") ?? g.sport), color: String(fd.get("color") ?? g.color), description: String(fd.get("description") ?? "") || null } });
@@ -31,7 +32,7 @@ export async function updateGroup(fd: FormData) {
   revalidatePath(`/app/groups/${g.id}`);
 }
 
-export async function addMembers(fd: FormData) {
+async function _addMembers(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const g = await ownGroup(u, String(fd.get("id")));
   const ids = fd.getAll("athleteId").map(String).filter(Boolean);
@@ -43,7 +44,7 @@ export async function addMembers(fd: FormData) {
   revalidatePath(`/app/groups/${g.id}`);
 }
 
-export async function removeMember(fd: FormData) {
+async function _removeMember(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const g = await ownGroup(u, String(fd.get("id")));
   const athleteId = String(fd.get("athleteId"));
@@ -53,10 +54,16 @@ export async function removeMember(fd: FormData) {
   revalidatePath(`/app/groups/${g.id}`);
 }
 
-export async function deleteGroup(fd: FormData) {
+async function _deleteGroup(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const g = await ownGroup(u, String(fd.get("id")));
   await db.group.delete({ where: { id: g.id } });
   await audit(u, "ELIMINAR", "Grupo", `Grupo ${g.name}`, g.id);
   redirect("/app/groups");
 }
+
+export async function createGroup(fd: FormData) { return runAction("createGroup", _createGroup, fd); }
+export async function updateGroup(fd: FormData) { return runAction("updateGroup", _updateGroup, fd); }
+export async function addMembers(fd: FormData) { return runAction("addMembers", _addMembers, fd); }
+export async function removeMember(fd: FormData) { return runAction("removeMember", _removeMember, fd); }
+export async function deleteGroup(fd: FormData) { return runAction("deleteGroup", _deleteGroup, fd); }

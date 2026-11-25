@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -48,7 +49,7 @@ async function recipients(athleteId: string | null, groupId: string | null) {
   return [];
 }
 
-export async function saveSession(fd: FormData) {
+async function _saveSession(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const data = sessionSchema.parse(JSON.parse(String(fd.get("payload"))));
   const [kind, targetId] = data.target.split(":");
@@ -90,7 +91,7 @@ export async function saveSession(fd: FormData) {
   redirect(`/app/sessions/${id}`);
 }
 
-export async function duplicateSession(fd: FormData) {
+async function _duplicateSession(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const s = await ownSession(u, String(fd.get("id")));
   const items = await db.sessionExercise.findMany({ where: { sessionId: s.id } });
@@ -107,7 +108,7 @@ export async function duplicateSession(fd: FormData) {
 }
 
 /** Copia un día (sesión con todos sus ejercicios) a otro alumno y/o a otra fecha. Mantiene la hora. */
-export async function copySession(fd: FormData) {
+async function _copySession(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const s = await ownSession(u, String(fd.get("id")));
   const athleteId = String(fd.get("athleteId") ?? "") || null;
@@ -131,7 +132,7 @@ export async function copySession(fd: FormData) {
   redirect(`/app/sessions/${copy.id}?copiada=1`);
 }
 
-export async function deleteSession(fd: FormData) {
+async function _deleteSession(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const s = await ownSession(u, String(fd.get("id")));
   await db.session.delete({ where: { id: s.id } });
@@ -154,7 +155,7 @@ const logSchema = z.object({
 });
 
 /** Registro de la sesión por el alumno (o por el entrenador en su nombre). */
-export async function saveLog(fd: FormData) {
+async function _saveLog(fd: FormData) {
   const u = await requireUser();
   const data = logSchema.parse(JSON.parse(String(fd.get("payload"))));
   const athleteId = u.role === "ATHLETE" ? u.id : data.athleteId!;
@@ -188,7 +189,7 @@ export async function saveLog(fd: FormData) {
   redirect(`/app/sessions/${s.id}?ok=1`);
 }
 
-export async function quickAttendance(fd: FormData) {
+async function _quickAttendance(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const s = await ownSession(u, String(fd.get("sessionId")));
   const athleteId = String(fd.get("athleteId"));
@@ -202,7 +203,7 @@ export async function quickAttendance(fd: FormData) {
   revalidatePath(`/app/sessions/${s.id}`);
 }
 
-export async function commentLog(fd: FormData) {
+async function _commentLog(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const log = await db.workoutLog.findUnique({ where: { id: String(fd.get("logId")) }, include: { session: true } });
   if (!log) throw new Error("Registro no encontrado");
@@ -284,3 +285,11 @@ export async function athleteExerciseContext(target: string): Promise<{ rms: Rec
   }
   return { rms, history };
 }
+
+export async function saveSession(fd: FormData) { return runAction("saveSession", _saveSession, fd); }
+export async function duplicateSession(fd: FormData) { return runAction("duplicateSession", _duplicateSession, fd); }
+export async function copySession(fd: FormData) { return runAction("copySession", _copySession, fd); }
+export async function deleteSession(fd: FormData) { return runAction("deleteSession", _deleteSession, fd); }
+export async function saveLog(fd: FormData) { return runAction("saveLog", _saveLog, fd); }
+export async function quickAttendance(fd: FormData) { return runAction("quickAttendance", _quickAttendance, fd); }
+export async function commentLog(fd: FormData) { return runAction("commentLog", _commentLog, fd); }

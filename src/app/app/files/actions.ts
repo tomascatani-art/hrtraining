@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -6,7 +7,7 @@ import { audit } from "@/lib/access";
 import { canAccessFile, removeFile } from "@/lib/storage";
 import { PROFILE_FOLDERS } from "@/lib/catalog";
 
-export async function deleteFile(fd: FormData) {
+async function _deleteFile(fd: FormData) {
   const u = await requireUser();
   const f = await db.fileAsset.findUnique({ where: { id: String(fd.get("id")) } });
   if (!f || !(await canAccessFile(u, f))) throw new Error("Archivo no encontrado");
@@ -20,7 +21,7 @@ export async function deleteFile(fd: FormData) {
   if (f.athleteId) revalidatePath(`/app/athletes/${f.athleteId}`);
 }
 
-export async function toggleShare(fd: FormData) {
+async function _toggleShare(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const f = await db.fileAsset.findUnique({ where: { id: String(fd.get("id")) } });
   if (!f || f.orgId !== u.orgId) return;
@@ -28,7 +29,7 @@ export async function toggleShare(fd: FormData) {
   revalidatePath("/app/files");
 }
 
-export async function moveFile(fd: FormData) {
+async function _moveFile(fd: FormData) {
   const u = await requireUser();
   const f = await db.fileAsset.findUnique({ where: { id: String(fd.get("id")) } });
   if (!f || !f.athleteId || !(await canAccessFile(u, f))) throw new Error("Archivo no encontrado");
@@ -39,3 +40,7 @@ export async function moveFile(fd: FormData) {
   revalidatePath(`/app/athletes/${f.athleteId}`);
   revalidatePath("/app/folder");
 }
+
+export async function deleteFile(fd: FormData) { return runAction("deleteFile", _deleteFile, fd); }
+export async function toggleShare(fd: FormData) { return runAction("toggleShare", _toggleShare, fd); }
+export async function moveFile(fd: FormData) { return runAction("moveFile", _moveFile, fd); }

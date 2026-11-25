@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -13,7 +14,7 @@ async function ownAnalysis(u: SessionUser, id: string) {
   return a;
 }
 
-export async function createAnalysis(fd: FormData) {
+async function _createAnalysis(fd: FormData) {
   const u = await requireUser();
   const video = await db.fileAsset.findUnique({ where: { id: String(fd.get("videoId")) } });
   if (!video || video.kind !== "VIDEO" || !(await canAccessFile(u, video))) throw new Error("Video inválido");
@@ -38,7 +39,7 @@ export async function saveDrawings(id: string, drawings: unknown) {
   return { ok: true };
 }
 
-export async function addVideoComment(fd: FormData) {
+async function _addVideoComment(fd: FormData) {
   const u = await requireUser();
   const a = await ownAnalysis(u, String(fd.get("analysisId")));
   const body = String(fd.get("body") ?? "").trim();
@@ -50,16 +51,21 @@ export async function addVideoComment(fd: FormData) {
   revalidatePath(`/app/videos/${a.id}`);
 }
 
-export async function setAnalysisStatus(fd: FormData) {
+async function _setAnalysisStatus(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const a = await ownAnalysis(u, String(fd.get("id")));
   await db.videoAnalysis.update({ where: { id: a.id }, data: { status: String(fd.get("status")) === "REVISADO" ? "REVISADO" : "PENDIENTE" } });
   revalidatePath(`/app/videos/${a.id}`);
 }
 
-export async function deleteAnalysis(fd: FormData) {
+async function _deleteAnalysis(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const a = await ownAnalysis(u, String(fd.get("id")));
   await db.videoAnalysis.delete({ where: { id: a.id } });
   redirect("/app/videos");
 }
+
+export async function createAnalysis(fd: FormData) { return runAction("createAnalysis", _createAnalysis, fd); }
+export async function addVideoComment(fd: FormData) { return runAction("addVideoComment", _addVideoComment, fd); }
+export async function setAnalysisStatus(fd: FormData) { return runAction("setAnalysisStatus", _setAnalysisStatus, fd); }
+export async function deleteAnalysis(fd: FormData) { return runAction("deleteAnalysis", _deleteAnalysis, fd); }

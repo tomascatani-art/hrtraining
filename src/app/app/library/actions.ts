@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
@@ -8,7 +9,7 @@ import { audit } from "@/lib/access";
 const list = (fd: FormData, k: string) => fd.getAll(k).map(String).filter(Boolean);
 const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim() || null;
 
-export async function saveExercise(fd: FormData) {
+async function _saveExercise(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const id = s(fd, "id");
   const muscles = list(fd, "muscles");
@@ -35,7 +36,7 @@ export async function saveExercise(fd: FormData) {
   redirect(`/app/library/${exId}`);
 }
 
-export async function cloneExercise(fd: FormData) {
+async function _cloneExercise(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const ex = await db.exercise.findUnique({ where: { id: String(fd.get("id")) } });
   if (!ex || (ex.orgId && ex.orgId !== u.orgId)) throw new Error("Ejercicio no encontrado");
@@ -44,7 +45,7 @@ export async function cloneExercise(fd: FormData) {
   redirect(`/app/library/${copy.id}/edit`);
 }
 
-export async function deleteExercise(fd: FormData) {
+async function _deleteExercise(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const ex = await db.exercise.findUnique({ where: { id: String(fd.get("id")) }, include: { _count: { select: { sessionItems: true } } } });
   if (!ex || ex.orgId !== u.orgId) throw new Error("Solo podés eliminar ejercicios de tu organización");
@@ -55,7 +56,7 @@ export async function deleteExercise(fd: FormData) {
 }
 
 /** El club le pone (o cambia) el link de video a cualquier ejercicio, también a los de la biblioteca base. */
-export async function setExerciseLink(fd: FormData) {
+async function _setExerciseLink(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const exerciseId = String(fd.get("exerciseId") ?? "");
   const url = String(fd.get("url") ?? "").trim();
@@ -70,3 +71,8 @@ export async function setExerciseLink(fd: FormData) {
   revalidatePath("/app/library");
   revalidatePath(`/app/library/${ex.id}`);
 }
+
+export async function saveExercise(fd: FormData) { return runAction("saveExercise", _saveExercise, fd); }
+export async function cloneExercise(fd: FormData) { return runAction("cloneExercise", _cloneExercise, fd); }
+export async function deleteExercise(fd: FormData) { return runAction("deleteExercise", _deleteExercise, fd); }
+export async function setExerciseLink(fd: FormData) { return runAction("setExerciseLink", _setExerciseLink, fd); }

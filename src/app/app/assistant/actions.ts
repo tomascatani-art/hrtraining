@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
@@ -6,7 +7,7 @@ import { assertAthlete, audit, notify } from "@/lib/access";
 
 type Day = { title: string; items: { exerciseId: string; sets: number; reps: string; percent1RM: number | null; targetRir: number | null; restSec: number | null }[] };
 
-export async function createFromProposal(fd: FormData) {
+async function _createFromProposal(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const [kind, id] = String(fd.get("target") ?? "").split(":");
   if (kind === "a") await assertAthlete(u, id);
@@ -35,3 +36,5 @@ export async function createFromProposal(fd: FormData) {
   await audit(u, "CREAR", "Rutina (asistente)", `${name}: ${plan.length * weeks} sesiones`);
   redirect(first ? `/app/sessions/${first}` : "/app/calendar");
 }
+
+export async function createFromProposal(fd: FormData) { return runAction("createFromProposal", _createFromProposal, fd); }

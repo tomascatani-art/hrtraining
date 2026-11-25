@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -9,7 +10,7 @@ import { sendInviteMail, createResetLink } from "@/lib/account-mail";
 import { appOrigin } from "@/lib/origin";
 import { createDemo } from "../../../../prisma/demo";
 
-export async function inviteCoach(fd: FormData) {
+async function _inviteCoach(fd: FormData) {
   const u = await requireUser(["ADMIN"]);
   const email = String(fd.get("email") ?? "").trim().toLowerCase();
   const name = String(fd.get("name") ?? "").trim();
@@ -22,7 +23,7 @@ export async function inviteCoach(fd: FormData) {
   redirect(`/app/admin?invited=${c.id}${mail.sent ? "&mail=1" : ""}`);
 }
 
-export async function updateUser(fd: FormData) {
+async function _updateUser(fd: FormData) {
   const u = await requireUser(["ADMIN"]);
   const id = String(fd.get("id"));
   const target = await db.user.findUnique({ where: { id } });
@@ -44,7 +45,7 @@ export async function resetDemo() {
 }
 
 /** El administrador genera el enlace para que un usuario del club elija una contraseña nueva (y se lo manda por WhatsApp). */
-export async function resetLinkForUser(fd: FormData) {
+async function _resetLinkForUser(fd: FormData) {
   const u = await requireUser(["ADMIN"]);
   const target = await db.user.findUnique({ where: { id: String(fd.get("id")) } });
   if (!target || target.orgId !== u.orgId) throw new Error("Usuario no encontrado");
@@ -54,10 +55,15 @@ export async function resetLinkForUser(fd: FormData) {
   redirect(`/app/admin?para=${target.id}&clave=${encodeURIComponent(url.split("/reset/")[1])}#claves`);
 }
 
-export async function dismissResetRequest(fd: FormData) {
+async function _dismissResetRequest(fd: FormData) {
   const u = await requireUser(["ADMIN"]);
   const target = await db.user.findUnique({ where: { id: String(fd.get("id")) } });
   if (!target || target.orgId !== u.orgId) return;
   await db.user.update({ where: { id: target.id }, data: { resetRequestedAt: null } });
   revalidatePath("/app/admin");
 }
+
+export async function inviteCoach(fd: FormData) { return runAction("inviteCoach", _inviteCoach, fd); }
+export async function updateUser(fd: FormData) { return runAction("updateUser", _updateUser, fd); }
+export async function resetLinkForUser(fd: FormData) { return runAction("resetLinkForUser", _resetLinkForUser, fd); }
+export async function dismissResetRequest(fd: FormData) { return runAction("dismissResetRequest", _dismissResetRequest, fd); }

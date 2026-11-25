@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { parseDay } from "@/lib/metrics";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -8,7 +9,7 @@ import { assertAthlete, audit, notify } from "@/lib/access";
 import { TEST_MAP, FMS_COMPONENTS } from "@/lib/catalog";
 
 /** Guarda una batería de tests para uno o varios alumnos. Campos: v__<athleteId>__<testKey> */
-export async function saveBattery(fd: FormData) {
+async function _saveBattery(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const date = parseDay(String(fd.get("date")), 12);
   const notes = String(fd.get("notes") ?? "") || null;
@@ -46,7 +47,7 @@ export async function saveBattery(fd: FormData) {
   redirect(single ? `/app/athletes/${single}?tab=evaluaciones` : "/app/evaluations?ok=1");
 }
 
-export async function deleteEvaluation(fd: FormData) {
+async function _deleteEvaluation(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const e = await db.evaluation.findUnique({ where: { id: String(fd.get("id")) } });
   if (!e) return;
@@ -55,3 +56,6 @@ export async function deleteEvaluation(fd: FormData) {
   await audit(u, "ELIMINAR", "Evaluación", `${TEST_MAP[e.testKey]?.name ?? e.testKey}: ${e.value} ${e.unit}`, e.id);
   revalidatePath("/app/evaluations");
 }
+
+export async function saveBattery(fd: FormData) { return runAction("saveBattery", _saveBattery, fd); }
+export async function deleteEvaluation(fd: FormData) { return runAction("deleteEvaluation", _deleteEvaluation, fd); }

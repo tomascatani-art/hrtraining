@@ -1,4 +1,5 @@
 "use server";
+import { runAction } from "@/lib/action-error";
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -69,7 +70,7 @@ export async function acceptInviteAction(_: FormState, fd: FormData): Promise<Fo
   redirect("/app");
 }
 
-export async function demoLoginAction(fd: FormData) {
+async function _demoLoginAction(fd: FormData) {
   const as = fd.get("as") === "athlete" ? "deportista.demo@hrtraining.co" : "entrenador.demo@hrtraining.co";
   const user = await db.user.findUnique({ where: { email: as } });
   if (!user) redirect("/login?demo=missing");
@@ -115,3 +116,5 @@ export async function resetPasswordAction(_: FormState, fd: FormData): Promise<F
   await db.auditLog.create({ data: { orgId: user.orgId, userId: user.id, action: "EDITAR", entity: "Usuario", summary: "Cambio de contraseña con enlace" } });
   redirect("/login?clave=1");
 }
+
+export async function demoLoginAction(fd: FormData) { return runAction("demoLoginAction", _demoLoginAction, fd); }
