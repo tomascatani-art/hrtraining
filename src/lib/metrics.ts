@@ -108,7 +108,7 @@ export type Alert = {
   detail: string;
 };
 
-/** Alertas de seguimiento. Comparan al deportista con su propia línea base. */
+/** Alertas de seguimiento. Comparan al alumno con su propia línea base. */
 export function computeAlerts(wellness: WellnessRow[], loads: LoadPoint[], now = new Date()): Alert[] {
   const alerts: Alert[] = [];
   const sorted = [...wellness].sort((a, b) => +a.date - +b.date);

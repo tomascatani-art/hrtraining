@@ -54,7 +54,7 @@ export default async function VideosPage({ searchParams }: { searchParams: Promi
               <form action={createAnalysis} className="space-y-3">
                 <Field label="Video"><select name="videoId" defaultValue={pre?.id} className="input">{videos.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}</select></Field>
                 <Field label="Comparar con (opcional)"><select name="compareId" className="input"><option value="">Sin comparación</option>{videos.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}</select></Field>
-                {staff && <Field label="Deportista"><select name="athleteId" defaultValue={pre?.athleteId ?? sp.athlete ?? ""} className="input"><option value="">Elegir…</option>{athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>}
+                {staff && <Field label="Alumno"><select name="athleteId" defaultValue={pre?.athleteId ?? sp.athlete ?? ""} className="input"><option value="">Elegir…</option>{athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>}
                 <Field label="Título"><input name="title" className="input" placeholder="Ej: Salida de tacos — semana 8" /></Field>
                 <Field label="Movimiento"><input name="movement" className="input" placeholder="Sentadilla, sprint, salto, brazada…" /></Field>
                 <Submit className="btn-primary w-full">Abrir analizador</Submit>

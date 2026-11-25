@@ -31,7 +31,7 @@ export default async function SessionPage({ params, searchParams }: { params: Pr
   const staff = u.role !== "ATHLETE";
   const assigned = s.group ? s.group.members.map((m) => m.athlete) : s.athlete ? [s.athlete] : [];
   const visible = staff ? await visibleAthleteIds(u) : [u.id];
-  // Para quién se registra: el deportista mismo, o el entrenador en nombre de un deportista (?as=)
+  // Para quién se registra: el alumno mismo, o el entrenador en nombre de un alumno (?as=)
   const logFor = u.role === "ATHLETE" ? u.id : sp.as && visible.includes(sp.as) ? sp.as : null;
   const existing = logFor ? s.logs.find((l) => l.athleteId === logFor) : null;
 
@@ -65,11 +65,11 @@ export default async function SessionPage({ params, searchParams }: { params: Pr
       {sp.copiada && <div className="mb-4 rounded-xl border border-volt/40 bg-volt/10 px-4 py-3 text-sm text-white">Sesión copiada con todos sus ejercicios. Podés editarla sin tocar la original.</div>}
       {staff && (
         <details className="card mb-6 group">
-          <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3 text-sm font-semibold text-white"><Copy size={15} className="text-volt" />Copiar este día a otro deportista o a otra fecha</summary>
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-3 text-sm font-semibold text-white"><Copy size={15} className="text-volt" />Copiar este día a otro alumno o a otra fecha</summary>
           <form action={copySession} className="grid gap-3 border-t border-ink-800 px-5 py-4 sm:grid-cols-4">
             <input type="hidden" name="id" value={s.id} />
             <label className="sm:col-span-2"><span className="label mb-1 block">Para</span>
-              <select name="athleteId" className="input" defaultValue=""><option value="">{s.group ? `El mismo grupo (${s.group.name})` : `El mismo deportista (${s.athlete?.name ?? ""})`}</option>{copyTargets.filter((a) => a.id !== s.athleteId).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
+              <select name="athleteId" className="input" defaultValue=""><option value="">{s.group ? `El mismo grupo (${s.group.name})` : `El mismo alumno (${s.athlete?.name ?? ""})`}</option>{copyTargets.filter((a) => a.id !== s.athleteId).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
             <label><span className="label mb-1 block">Día</span><input name="date" type="date" defaultValue={srcDay} className="input" /></label>
             <label><span className="label mb-1 block">Título</span><input name="title" defaultValue={s.title} className="input" /></label>
             <div className="sm:col-span-4 flex justify-end"><Submit pendingText="Copiando…">Copiar sesión</Submit></div>
@@ -138,7 +138,7 @@ export default async function SessionPage({ params, searchParams }: { params: Pr
                     {l && (
                       <form action={commentLog} className="ml-11 mt-2 flex gap-2">
                         <input type="hidden" name="logId" value={l.id} />
-                        <input name="comment" defaultValue={l.coachComment ?? ""} placeholder="Comentario o corrección para el deportista…" className="input py-1.5 text-xs" />
+                        <input name="comment" defaultValue={l.coachComment ?? ""} placeholder="Comentario o corrección para el alumno…" className="input py-1.5 text-xs" />
                         <Submit className="btn-ghost btn-sm" pendingText="…">Enviar</Submit>
                       </form>
                     )}

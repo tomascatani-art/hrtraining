@@ -45,12 +45,12 @@ export default async function LoadPage({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <PageHeader title="Control de cargas y fatiga" subtitle="Carga interna (sRPE), carga externa (volumen), bienestar diario y disponibilidad. Las alertas comparan a cada deportista con su propia línea base."
+      <PageHeader title="Control de cargas y fatiga" subtitle="Carga interna (sRPE), carga externa (volumen), bienestar diario y disponibilidad. Las alertas comparan a cada alumno con su propia línea base."
         actions={<form className="flex gap-2"><select name="group" defaultValue={sp.group ?? ""} className="input py-2 text-sm"><option value="">Todos</option>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select><button className="btn-ghost btn-sm">Filtrar</button></form>} />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Check-in de hoy" value={`${checkedToday.length}/${mon.length}`} hint="cuestionarios completados" />
         <Stat label="Bienestar promedio" value={avgToday != null ? avgToday.toFixed(1) : "—"} unit="/25" hint="registros de hoy" />
-        <Stat label="Con alertas" value={new Set(alerts.filter((a) => a.kind !== "SIN_REGISTRO").map((a) => a.athlete.id)).size} hint="deportistas" accent={alerts.some((a) => a.level === "ATENCION")} />
+        <Stat label="Con alertas" value={new Set(alerts.filter((a) => a.kind !== "SIN_REGISTRO").map((a) => a.athlete.id)).size} hint="alumnos" accent={alerts.some((a) => a.level === "ATENCION")} />
         <Stat label="Carga 7d promedio" value={fmtNum(mon.reduce((s, m) => s + m.indicators.acute, 0) / Math.max(1, mon.length))} unit="UA" />
         <Stat label="RIR medio 7d" value={avgRir != null ? avgRir.toFixed(1) : "—"} hint={`${recentLogs.length} sesiones registradas`} />
       </div>
@@ -60,7 +60,7 @@ export default async function LoadPage({ searchParams }: { searchParams: Promise
           {mon.length ? (
             <div className="overflow-x-auto px-4 pb-4 sm:px-5">
               <table className="w-full min-w-[640px] border-separate border-spacing-[3px] text-xs">
-                <thead><tr><th className="py-2 text-left label">Deportista</th>{days.map((d) => <th key={+d} className="num text-[10px] font-normal text-neutral-500">{d.getDate()}</th>)}</tr></thead>
+                <thead><tr><th className="py-2 text-left label">Alumno</th>{days.map((d) => <th key={+d} className="num text-[10px] font-normal text-neutral-500">{d.getDate()}</th>)}</tr></thead>
                 <tbody>
                   {mon.map((m) => (
                     <tr key={m.user.id}>
@@ -78,20 +78,20 @@ export default async function LoadPage({ searchParams }: { searchParams: Promise
                 <span>Bajo</span><div className="h-2 w-32 rounded" style={{ background: `linear-gradient(90deg, ${cellColor(8)}, ${cellColor(15)}, ${cellColor(22)})` }} /><span>Alto</span><span className="ml-3">• = molestia reportada</span>
               </div>
             </div>
-          ) : <div className="p-5"><Empty title="Sin deportistas" /></div>}
+          ) : <div className="p-5"><Empty title="Sin alumnos" /></div>}
         </Card>
         <Card title="Alertas"><AlertList items={alerts.filter((a) => a.kind !== "SIN_REGISTRO")} /></Card>
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
-        <Card title="Carga interna · sRPE" action={<span className="label">UA por deportista</span>}><LoadBars data={int} /></Card>
-        <Card title="Carga externa · volumen" action={<span className="label">kg por deportista</span>}><LoadBars data={ext} unit="kg" name="Volumen" /></Card>
+        <Card title="Carga interna · sRPE" action={<span className="label">UA por alumno</span>}><LoadBars data={int} /></Card>
+        <Card title="Carga externa · volumen" action={<span className="label">kg por alumno</span>}><LoadBars data={ext} unit="kg" name="Volumen" /></Card>
       </div>
 
-      <Card title="Indicadores por deportista" className="mt-6" pad={false}>
+      <Card title="Indicadores por alumno" className="mt-6" pad={false}>
         <div className="overflow-x-auto">
           <table className="table min-w-[900px]">
-            <thead><tr><th>Deportista</th><th>Aguda 7d</th><th>Crónica 4s</th><th>Ag:Cr</th><th>Monotonía</th><th>Strain</th><th>Sueño</th><th>Disponib.</th><th>Sin registro</th></tr></thead>
+            <thead><tr><th>Alumno</th><th>Aguda 7d</th><th>Crónica 4s</th><th>Ag:Cr</th><th>Monotonía</th><th>Strain</th><th>Sueño</th><th>Disponib.</th><th>Sin registro</th></tr></thead>
             <tbody>
               {mon.map((m) => (
                 <tr key={m.user.id}>
@@ -111,7 +111,7 @@ export default async function LoadPage({ searchParams }: { searchParams: Promise
         </div>
         <div className="space-y-1 px-5 py-4 text-[11px] leading-relaxed text-neutral-600">
           <p><b className="text-neutral-400">sRPE</b> = RPE de la sesión (CR-10) × duración en minutos. <b className="text-neutral-400">Ag:Cr</b> = carga de 7 días ÷ promedio semanal de 4 semanas. <b className="text-neutral-400">Monotonía</b> = media diaria ÷ desvío estándar (Foster). <b className="text-neutral-400">Strain</b> = carga semanal × monotonía.</p>
-          <p>Estos valores describen la carga y sus cambios; ninguno predice lesiones por sí solo. Usalos junto con la observación y la conversación con el deportista.</p>
+          <p>Estos valores describen la carga y sus cambios; ninguno predice lesiones por sí solo. Usalos junto con la observación y la conversación con el alumno.</p>
         </div>
       </Card>
     </>

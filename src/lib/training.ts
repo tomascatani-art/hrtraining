@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 
 export { roundToPlates, plateBreakdown, classifyNote, NOTE_KINDS } from "@/lib/plates";
 
-/** Último RM cargado por ejercicio para un deportista. Si no hay RM cargado, usa el 1RM de las evaluaciones para los tres básicos. */
+/** Último RM cargado por ejercicio para un alumno. Si no hay RM cargado, usa el 1RM de las evaluaciones para los tres básicos. */
 export async function latestRMs(athleteId: string, exerciseIds?: string[]) {
   const rows = await db.exerciseRM.findMany({
     where: { athleteId, ...(exerciseIds ? { exerciseId: { in: exerciseIds } } : {}) },
@@ -28,7 +28,7 @@ export async function latestRMs(athleteId: string, exerciseIds?: string[]) {
 }
 const EVAL_FOR: [RegExp, string][] = [[/^Sentadilla (trasera|frontal)/, "RM1_SQ"], [/^Press de banca/, "RM1_BP"], [/^Peso muerto convencional/, "RM1_DL"]];
 
-/** Sesiones asignadas a un deportista (individuales o de sus grupos). */
+/** Sesiones asignadas a un alumno (individuales o de sus grupos). */
 export async function athleteSessionWhere(athleteId: string) {
   const groups = await db.groupMember.findMany({ where: { athleteId }, select: { groupId: true } });
   return { OR: [{ athleteId }, { groupId: { in: groups.map((g) => g.groupId) } }] };

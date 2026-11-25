@@ -37,7 +37,7 @@ export async function createAthlete(fd: FormData) {
       ...(groupId ? { memberships: { create: { groupId } } } : {}),
     },
   });
-  await audit(u, "CREAR", "Deportista", `Alta de ${name}`, athlete.id);
+  await audit(u, "CREAR", "Alumno", `Alta de ${name}`, athlete.id);
   const mail = fd.get("sendMail") === "on" ? await sendInviteMail({ ...athlete, org: u.org }, await appOrigin()) : { sent: false };
   revalidatePath("/app/athletes");
   redirect(`/app/athletes/${athlete.id}?invitado=1${mail.sent ? "&mail=1" : ""}`);
@@ -62,7 +62,7 @@ export async function updateAthlete(fd: FormData) {
       },
     },
   });
-  await audit(u, "EDITAR", "Deportista", `Edición de perfil`, id);
+  await audit(u, "EDITAR", "Alumno", `Edición de perfil`, id);
   revalidatePath(`/app/athletes/${id}`);
 }
 
@@ -76,14 +76,14 @@ export async function regenerateInvite(fd: FormData) {
   redirect(`/app/athletes/${id}?invitado=1${mail.sent ? "&mail=1" : ""}`);
 }
 
-/** El entrenador genera un enlace para que el deportista elija una contraseña nueva (por si no le llega el mail). */
+/** El entrenador genera un enlace para que el alumno elija una contraseña nueva (por si no le llega el mail). */
 export async function resetLinkForAthlete(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const id = String(fd.get("id"));
   await assertAthlete(u, id);
   const url = await createResetLink(id, await appOrigin());
   await db.user.update({ where: { id }, data: { resetRequestedAt: null } });
-  await audit(u, "EDITAR", "Deportista", "Enlace para cambiar contraseña", id);
+  await audit(u, "EDITAR", "Alumno", "Enlace para cambiar contraseña", id);
   redirect(`/app/athletes/${id}?clave=${encodeURIComponent(url.split("/reset/")[1])}`);
 }
 

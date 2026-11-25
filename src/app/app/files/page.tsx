@@ -29,7 +29,7 @@ export default async function FilesPage({ searchParams }: { searchParams: Promis
 
   return (
     <>
-      <PageHeader title="Archivos y documentos" subtitle={staff ? "Videos, planillas, PDFs e imágenes. Asociá cada archivo a un deportista o compartilo con toda la organización." : "Documentos que te compartió tu entrenador y archivos que subiste."} />
+      <PageHeader title="Archivos y documentos" subtitle={staff ? "Videos, planillas, PDFs e imágenes. Asociá cada archivo a un alumno o compartilo con toda la organización." : "Documentos que te compartió tu entrenador y archivos que subiste."} />
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="xl:col-span-2">
           <div className="mb-3 flex gap-1">{[["", "Todos"], ["DOCUMENTO", "Documentos"], ["VIDEO", "Videos"], ["IMAGEN", "Imágenes"]].map(([k, l]) => <Link key={k} href={`/app/files${k ? `?kind=${k}` : ""}`} className={`tab ${(sp.kind ?? "") === k ? "tab-active" : ""}`}>{l}</Link>)}</div>

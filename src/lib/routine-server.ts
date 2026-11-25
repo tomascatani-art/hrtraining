@@ -26,7 +26,7 @@ export async function libraryPicker(orgId: string) {
   return exs.map((e) => [e.id, e.name, vids.get(e.id) ?? null] as [string, string, string | null]);
 }
 
-/** Plan actual del deportista. Si había un "próximo plan" con fecha ya cumplida, pasa a ser el actual (el anterior queda en versiones). */
+/** Plan actual del alumno. Si había un "próximo plan" con fecha ya cumplida, pasa a ser el actual (el anterior queda en versiones). */
 export async function currentRoutine(athleteId: string) {
   const now = new Date();
   const due = await db.routine.findFirst({ where: { athleteId, extra: false, active: false, startsOn: { lte: now } }, orderBy: { startsOn: "desc" } });

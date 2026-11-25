@@ -10,7 +10,7 @@ import { WhatsAppShare } from "@/components/whatsapp-share";
 
 export const metadata = { title: "Administración" };
 
-const ROLE: Record<string, string> = { ADMIN: "Administrador", COACH: "Entrenador", ATHLETE: "Deportista" };
+const ROLE: Record<string, string> = { ADMIN: "Administrador", COACH: "Entrenador", ATHLETE: "Alumno" };
 
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ invited?: string; page?: string; mail?: string; para?: string; clave?: string }> }) {
   const u = await requireUser(["ADMIN"]);
@@ -32,7 +32,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <PageHeader title="Administración" subtitle={`${u.org.name} · usuarios, permisos, historial de cambios y copias de seguridad.`}
         actions={<a href="/api/backup" className="btn-ghost"><Download size={15} />Copia de seguridad (JSON)</a>} />
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
-        {[["Entrenadores", users.filter((x) => x.role !== "ATHLETE").length], ["Deportistas", users.filter((x) => x.role === "ATHLETE").length], ["Sesiones", counts[0]], ["Evaluaciones", counts[1]], ["Almacenamiento", `${((counts[2]._sum.size ?? 0) / 1e6).toFixed(1)} MB`]].map(([l, v]) => (
+        {[["Entrenadores", users.filter((x) => x.role !== "ATHLETE").length], ["Alumnos", users.filter((x) => x.role === "ATHLETE").length], ["Sesiones", counts[0]], ["Evaluaciones", counts[1]], ["Almacenamiento", `${((counts[2]._sum.size ?? 0) / 1e6).toFixed(1)} MB`]].map(([l, v]) => (
           <div key={l as string} className="card card-pad"><div className="label">{l}</div><div className="num mt-1 text-2xl font-semibold text-white">{v}</div></div>
         ))}
       </div>
@@ -69,7 +69,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               <tbody>
                 {users.map((x) => (
                   <tr key={x.id}>
-                    <td><div className="flex items-center gap-2"><Avatar name={x.name} src={avatarSrc(x)} size={28} /><div><div className="text-white">{x.name} {x.isDemo && <DemoBadge />}</div><div className="text-xs muted">{x.email}{x.role !== "ATHLETE" && x._count.coachedAthletes ? ` · ${x._count.coachedAthletes} deportistas` : ""}</div></div></div></td>
+                    <td><div className="flex items-center gap-2"><Avatar name={x.name} src={avatarSrc(x)} size={28} /><div><div className="text-white">{x.name} {x.isDemo && <DemoBadge />}</div><div className="text-xs muted">{x.email}{x.role !== "ATHLETE" && x._count.coachedAthletes ? ` · ${x._count.coachedAthletes} alumnos` : ""}</div></div></div></td>
                     <td colSpan={2}>
                       <form action={updateUser} className="flex items-center gap-2">
                         <input type="hidden" name="id" value={x.id} />
@@ -94,7 +94,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               <Field label="Rol"><select name="role" className="input"><option value="COACH">Entrenador / preparador físico</option><option value="ADMIN">Administrador</option></select></Field>
               <Submit className="btn-primary w-full">Generar invitación</Submit>
             </form>
-            <p className="mt-3 text-[11px] text-neutral-600">Entrenador: ve a sus deportistas y grupos. Administrador: ve toda la organización y gestiona usuarios.</p>
+            <p className="mt-3 text-[11px] text-neutral-600">Entrenador: ve a sus alumnos y grupos. Administrador: ve toda la organización y gestiona usuarios.</p>
           </Card>
           {u.org.isDemo && (
             <Card title="Organización de demostración">

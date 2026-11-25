@@ -17,7 +17,7 @@ export default async function EditSession({ params }: { params: Promise<{ id: st
   const locked = s.items.length - editable.length;
   return (
     <>
-      <PageHeader title="Editar sesión" subtitle={locked ? `${locked} ejercicio(s) ya tienen series registradas por deportistas y se conservan sin cambios.` : undefined} />
+      <PageHeader title="Editar sesión" subtitle={locked ? `${locked} ejercicio(s) ya tienen series registradas por alumnos y se conservan sin cambios.` : undefined} />
       <SessionBuilder action={saveSession} {...opts}
         initial={{
           id: s.id, title: s.title, date: s.date.toISOString(), type: s.type, durationMin: s.durationMin, targetRpe: s.targetRpe, capacities: s.capacities,

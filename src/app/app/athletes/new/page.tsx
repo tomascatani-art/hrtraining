@@ -5,7 +5,7 @@ import { PageHeader, Card, Field } from "@/components/ui";
 import { Submit } from "@/components/forms";
 import { createAthlete } from "../actions";
 
-export const metadata = { title: "Nuevo deportista" };
+export const metadata = { title: "Nuevo alumno" };
 
 export default async function NewAthlete() {
   const u = await requireUser(["COACH", "ADMIN"]);
@@ -15,7 +15,7 @@ export default async function NewAthlete() {
   ]);
   return (
     <>
-      <PageHeader title="Nuevo deportista" subtitle="Se genera un enlace de invitación para que el deportista elija su contraseña y acceda a su espacio personal." />
+      <PageHeader title="Nuevo alumno" subtitle="Se genera un enlace de invitación para que el alumno elija su contraseña y acceda a su espacio personal." />
       <Card className="max-w-3xl">
         <form action={createAthlete} className="grid gap-4 sm:grid-cols-2">
           <Field label="Nombre y apellido"><input name="name" className="input" required /></Field>

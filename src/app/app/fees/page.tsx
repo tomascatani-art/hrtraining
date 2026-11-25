@@ -41,16 +41,16 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
 
   return (
     <>
-      <PageHeader title="Cuotas" subtitle={`Estado de pago de cada deportista. Vencimiento: día ${org.feeDueDay} de cada mes.`}
+      <PageHeader title="Cuotas" subtitle={`Estado de pago de cada alumno. Vencimiento: día ${org.feeDueDay} de cada mes.`}
         actions={<div className="flex items-center gap-1">
           <Link href={`/app/fees?m=${shiftMonth(period, -1)}`} className="btn-ghost px-2" aria-label="Mes anterior"><ChevronLeft size={16} /></Link>
           <span className="min-w-[150px] text-center font-display font-semibold text-white">{monthLabel(period)}</span>
           <Link href={`/app/fees?m=${shiftMonth(period, 1)}`} className="btn-ghost px-2" aria-label="Mes siguiente"><ChevronRight size={16} /></Link>
         </div>} />
-      {!org.feeAmount && u.role === "ADMIN" && <div className="card card-pad mb-6 text-sm">Todavía no definiste la cuota mensual del club ni el WhatsApp de contacto. <Link href="/app/settings" className="text-volt hover:underline">Configurarlo en Ajustes</Link>.</div>}
+      {!org.feeAmount && u.role === "ADMIN" && <div className="card card-pad mb-6 text-sm">Todavía no definiste tu cuota mensual ni tu WhatsApp de contacto. <Link href="/app/settings" className="text-volt hover:underline">Configurarlo en Ajustes</Link>.</div>}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Cobrado" value={money(sum(paid))} hint={`${paid.length} pagaron`} />
-        <Stat label="Pendiente" value={money(sum(pending))} hint={`${pending.length} deportistas${overdue ? " · vencido" : ""}`} accent={overdue && pending.length > 0} />
+        <Stat label="Pendiente" value={money(sum(pending))} hint={`${pending.length} alumnos${overdue ? " · vencido" : ""}`} accent={overdue && pending.length > 0} />
         <Stat label="Al día" value={rows.length ? Math.round(((rows.length - pending.length) / rows.length) * 100) : "—"} unit={rows.length ? "%" : undefined} hint="pagos y bonificados" />
         <Stat label="Cuentas pausadas" value={rows.filter((r) => r.a.athleteProfile?.paused).length} hint="solo ven el chat" />
       </div>
@@ -83,7 +83,7 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
                   </div>
                   <details className="w-full text-xs sm:w-auto">
                     <summary className="cursor-pointer text-neutral-500 hover:text-white">Cuota propia</summary>
-                    <form action={setAthleteFee} className="mt-2 flex gap-2"><input type="hidden" name="athleteId" value={a.id} /><input name="feeAmount" inputMode="decimal" defaultValue={a.athleteProfile?.feeAmount ?? ""} placeholder={org.feeAmount ? `Club: ${org.feeAmount}` : "Monto"} className="input w-32 py-1 text-xs" /><Submit className="btn-ghost btn-sm" pendingText="…">Guardar</Submit></form>
+                    <form action={setAthleteFee} className="mt-2 flex gap-2"><input type="hidden" name="athleteId" value={a.id} /><input name="feeAmount" inputMode="decimal" defaultValue={a.athleteProfile?.feeAmount ?? ""} placeholder={org.feeAmount ? `General: ${org.feeAmount}` : "Monto"} className="input w-32 py-1 text-xs" /><Submit className="btn-ghost btn-sm" pendingText="…">Guardar</Submit></form>
                   </details>
                 </li>
               );

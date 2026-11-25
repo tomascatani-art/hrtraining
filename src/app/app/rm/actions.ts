@@ -5,7 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { assertAthlete, audit, notify } from "@/lib/access";
 import { parseDay } from "@/lib/metrics";
 
-/** Carga un RM nuevo. Queda en el historial y le avisa a la otra parte (entrenador o deportista). */
+/** Carga un RM nuevo. Queda en el historial y le avisa a la otra parte (entrenador o alumno). */
 export async function saveRM(fd: FormData) {
   const u = await requireUser();
   const athleteId = u.role === "ATHLETE" ? u.id : String(fd.get("athleteId"));

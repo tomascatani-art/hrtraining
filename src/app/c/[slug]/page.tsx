@@ -7,7 +7,7 @@ import { accentVars, logoUrl } from "@/lib/brand";
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const org = await db.organization.findUnique({ where: { slug }, select: { name: true, brandName: true } });
-  return { title: org ? `Ingresar · ${org.brandName || org.name}` : "Club no encontrado" };
+  return { title: org ? `Ingresar · ${org.brandName || org.name}` : "Página no encontrada" };
 }
 
 /** Pantalla de ingreso con la marca del club. */

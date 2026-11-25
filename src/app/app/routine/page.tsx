@@ -7,6 +7,7 @@ import { PageHeader, Empty, fmtDate } from "@/components/ui";
 import { RoutineView } from "@/components/routine-view";
 import { withVideos, currentRoutine, extraRoutines } from "@/lib/routine-server";
 import { currentWeek, sanitizeRoutine } from "@/lib/routine";
+import { dateOnly } from "@/lib/metrics";
 
 export const metadata = { title: "Mi rutina" };
 
@@ -20,6 +21,7 @@ export default async function MyRoutine({ searchParams }: { searchParams: Promis
   const data = await withVideos(u.orgId, r.data);
   const week = currentWeek(data);
   const notice = main ? sanitizeRoutine(main.data).meta.notice?.trim() : "";
+  const todayChecks = await db.routineCheck.findMany({ where: { routineId: r.id, date: dateOnly(new Date()) }, select: { rowId: true } });
   const coach = r.coachId ? await db.user.findUnique({ where: { id: r.coachId }, select: { name: true } }) : null;
   return (
     <>
@@ -33,7 +35,7 @@ export default async function MyRoutine({ searchParams }: { searchParams: Promis
           {extras.map((x) => <Link key={x.id} href={`/app/routine?r=${x.id}`} className={r.id === x.id ? "chip-volt whitespace-nowrap" : "chip-mute whitespace-nowrap hover:text-white"}>{x.name}</Link>)}
         </div>
       )}
-      <RoutineView data={data} week={week} />
+      <RoutineView data={data} week={week} checks={{ routineId: r.id, done: todayChecks.map((c) => c.rowId) }} />
     </>
   );
 }

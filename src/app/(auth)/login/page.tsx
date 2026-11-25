@@ -20,7 +20,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           {sp.demo === "missing" && <p className="mb-3 text-sm text-amber-300">La demo no está cargada.</p>}
           <form action={demoLoginAction} className="grid grid-cols-2 gap-2">
             <button name="as" value="coach" className="btn-ghost">Entrenador demo</button>
-            <button name="as" value="athlete" className="btn-ghost">Deportista demo</button>
+            <button name="as" value="athlete" className="btn-ghost">Alumno demo</button>
           </form>
           <p className="mt-3 text-xs text-neutral-600">La demo usa datos ficticios marcados como DEMO.</p>
         </>

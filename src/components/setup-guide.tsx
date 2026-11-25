@@ -15,9 +15,9 @@ export async function SetupGuide({ u }: { u: SessionUser }) {
   ]);
   const admin = u.role === "ADMIN";
   const steps = [
-    ...(admin ? [{ done: org.feeAmount != null || !!org.whatsapp, label: "Datos del club", hint: "Cuota mensual y WhatsApp de contacto", href: "/app/settings" }] : []),
+    ...(admin ? [{ done: org.feeAmount != null || !!org.whatsapp, label: "Tus datos de cobro", hint: "Cuota mensual y tu WhatsApp de contacto", href: "/app/settings" }] : []),
     ...(admin ? [{ done: !!(org.brandName || org.logoKey), label: "Tu marca", hint: "Nombre, logo y enlace de ingreso propio", href: "/app/settings" }] : []),
-    { done: athletes > 0, label: "Sumar deportistas", hint: "De a uno o toda la lista desde Excel", href: "/app/athletes/import" },
+    { done: athletes > 0, label: "Sumar alumnos", hint: "De a uno o toda la lista desde Excel", href: "/app/athletes/import" },
     { done: sessions > 0, label: "Primera sesión", hint: "Armala desde la biblioteca de ejercicios", href: "/app/sessions/new" },
     { done: evals > 0, label: "Primera evaluación", hint: "Saltos, velocidad, fuerza y más", href: "/app/evaluations/new" },
     ...(admin ? [{ done: !!org.mpToken, label: "Cobrar con Mercado Pago", hint: "Opcional: las cuotas se marcan solas", href: "/app/settings" }] : []),

@@ -40,9 +40,9 @@ export function navFor(role: string, unread: number): { main: Item[]; mobile: It
   // Menú agrupado en 5 secciones para no abrumar (Diego, 24-11-2026)
   const main: Item[] = [
     { href: "/app", label: "Inicio", icon: LayoutDashboard },
-    { href: "/app/athletes", label: "Deportistas", icon: Users, group: "Equipo" },
-    { href: "/app/groups", label: "Grupos", icon: UsersRound, group: "Equipo" },
-    { href: "/app/fees", label: "Cuotas", icon: Wallet, group: "Equipo" },
+    { href: "/app/athletes", label: "Alumnos", icon: Users, group: "Alumnos" },
+    { href: "/app/groups", label: "Grupos", icon: UsersRound, group: "Alumnos" },
+    { href: "/app/fees", label: "Cuotas", icon: Wallet, group: "Alumnos" },
     { href: "/app/routines", label: "Rutinas", icon: ClipboardList, group: "Planificación" },
     { href: "/app/planning", label: "Planificación", icon: CalendarRange, group: "Planificación" },
     { href: "/app/calendar", label: "Calendario", icon: CalendarDays, group: "Planificación" },
@@ -54,12 +54,12 @@ export function navFor(role: string, unread: number): { main: Item[]; mobile: It
     { href: "/app/videos", label: "Video análisis", icon: Video, group: "Rendimiento" },
     { href: "/app/messages", label: "Mensajes", icon: MessageSquare, badge: unread, group: "Comunicación" },
     { href: "/app/files", label: "Archivos", icon: FolderOpen, group: "Comunicación" },
-    { href: "/app/sports", label: "Deportes", icon: Shapes, group: "Club" },
-    { href: "/app/assistant", label: "Asistente", icon: Sparkles, group: "Club" },
-    { href: "/app/tools", label: "Herramientas", icon: Wrench, group: "Club" },
+    { href: "/app/sports", label: "Deportes", icon: Shapes, group: "Mi cuenta" },
+    { href: "/app/assistant", label: "Asistente", icon: Sparkles, group: "Mi cuenta" },
+    { href: "/app/tools", label: "Herramientas", icon: Wrench, group: "Mi cuenta" },
   ];
-  if (role === "ADMIN") main.push({ href: "/app/admin", label: "Administración", icon: ShieldCheck, group: "Club" });
-  main.push({ href: "/app/settings", label: "Ajustes", icon: Settings, group: "Club" });
+  if (role === "ADMIN") main.push({ href: "/app/admin", label: "Usuarios y respaldo", icon: ShieldCheck, group: "Mi cuenta" });
+  main.push({ href: "/app/settings", label: "Ajustes", icon: Settings, group: "Mi cuenta" });
   return { main, mobile: pick(main, ["/app", "/app/athletes", "/app/routines", "/app/library", "/app/messages"]) };
 }
 
@@ -87,7 +87,7 @@ export function Shell({
   // Cuenta pausada: solo cuota y chat
   const pausedNav: Item[] = [{ href: "/app/paused", label: "Mi cuota", icon: Wallet }, ...nav.main.filter((i) => i.href === "/app/messages")];
   const { main, mobile } = paused ? { main: pausedNav, mobile: pausedNav } : nav;
-  const roleLabel = user.role === "ADMIN" ? "Administrador" : user.role === "COACH" ? "Entrenador" : "Deportista";
+  const roleLabel = user.role === "ADMIN" ? "Preparador físico" : user.role === "COACH" ? "Ayudante" : "Alumno";
 
   const activeGroup = main.find((i) => i.group && isActive(path, i.href))?.group ?? (path.startsWith("/app/sessions") && main.some((i) => i.group === "Planificación") ? "Planificación" : undefined);
   const [openGroups, setOpenGroups] = useState<string[]>([]);
@@ -139,7 +139,7 @@ export function Shell({
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-ink-700 bg-ink-950 lg:flex">
         <div className="flex h-16 min-w-0 items-center px-5"><Link href="/app" className="min-w-0"><Logo brand={brand} /></Link></div>
         <div className="mx-4 mb-3 rounded-xl border border-ink-700 bg-ink-900 px-3 py-2">
-          <div className="label">Organización</div>
+          <div className="label">Tu espacio</div>
           <div className="truncate text-sm font-semibold text-white">{user.org}</div>
         </div>
         <div className="flex-1 overflow-y-auto px-3 pb-4"><NavList /></div>

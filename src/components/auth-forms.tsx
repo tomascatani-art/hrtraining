@@ -29,7 +29,7 @@ export function RegisterForm() {
   return (
     <form action={action} className="space-y-4">
       <div><span className="label mb-1.5 block">Tu nombre</span><input className="input" name="name" required /></div>
-      <div><span className="label mb-1.5 block">Gimnasio, club o equipo</span><input className="input" name="org" required /></div>
+      <div><span className="label mb-1.5 block">Tu marca como preparador (opcional)</span><input className="input" name="org" placeholder="Ej: HR Training. Si lo dejás vacío, usamos tu nombre" /></div>
       <div><span className="label mb-1.5 block">Email</span><input className="input" name="email" type="email" required /></div>
       <div><span className="label mb-1.5 block">Contraseña</span><input className="input" name="password" type="password" minLength={8} required /></div>
       <ErrorBox msg={state?.error} />

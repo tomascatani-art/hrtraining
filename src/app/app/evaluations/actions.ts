@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/auth";
 import { assertAthlete, audit, notify } from "@/lib/access";
 import { TEST_MAP, FMS_COMPONENTS } from "@/lib/catalog";
 
-/** Guarda una batería de tests para uno o varios deportistas. Campos: v__<athleteId>__<testKey> */
+/** Guarda una batería de tests para uno o varios alumnos. Campos: v__<athleteId>__<testKey> */
 export async function saveBattery(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const date = parseDay(String(fd.get("date")), 12);
@@ -40,7 +40,7 @@ export async function saveBattery(fd: FormData) {
     await notify([athleteId], { kind: "EVALUACION", title: "Nuevos resultados de evaluación", body: `${toSave.length} tests registrados`, link: "/app/evaluations" });
   }
   if (!count) throw new Error("No se cargó ningún resultado");
-  await audit(u, "CREAR", "Evaluación", `${count} resultados (${rows.size} deportistas)`);
+  await audit(u, "CREAR", "Evaluación", `${count} resultados (${rows.size} alumnos)`);
   revalidatePath("/app/evaluations");
   const single = rows.size === 1 ? [...rows.keys()][0] : null;
   redirect(single ? `/app/athletes/${single}?tab=evaluaciones` : "/app/evaluations?ok=1");

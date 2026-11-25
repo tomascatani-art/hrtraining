@@ -35,7 +35,7 @@ export default async function NewEvaluation({ searchParams }: { searchParams: Pr
         <Card className="max-w-4xl">
           <form className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Deportista"><select name="athlete" defaultValue={sp.athlete ?? ""} className="input"><option value="">—</option>{athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
+              <Field label="Alumno"><select name="athlete" defaultValue={sp.athlete ?? ""} className="input"><option value="">—</option>{athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
               <Field label="o grupo completo"><select name="group" defaultValue={sp.group ?? ""} className="input"><option value="">—</option>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select></Field>
             </div>
             {(Object.keys(TEST_CATEGORIES) as (keyof typeof TEST_CATEGORIES)[]).map((c) => (
@@ -61,7 +61,7 @@ export default async function NewEvaluation({ searchParams }: { searchParams: Pr
   const videos = await db.fileAsset.findMany({ where: { orgId: u.orgId, kind: "VIDEO", OR: [{ athleteId: { in: targets.map((t) => t.id) } }, { shared: true }] }, orderBy: { createdAt: "desc" }, take: 30 });
   return (
     <>
-      <PageHeader title="Nueva evaluación" subtitle={`2 · Cargá los resultados. ${targets.length} deportista(s), ${selected.length} test(s). Los campos vacíos se ignoran.`} actions={<Link href="/app/evaluations/new" className="btn-ghost">Cambiar selección</Link>} />
+      <PageHeader title="Nueva evaluación" subtitle={`2 · Cargá los resultados. ${targets.length} alumno(s), ${selected.length} test(s). Los campos vacíos se ignoran.`} actions={<Link href="/app/evaluations/new" className="btn-ghost">Cambiar selección</Link>} />
       <form action={saveBattery} className="space-y-6">
         <Card>
           <div className="grid gap-4 sm:grid-cols-3">
@@ -73,7 +73,7 @@ export default async function NewEvaluation({ searchParams }: { searchParams: Pr
         <Card pad={false}>
           <div className="overflow-x-auto">
             <table className="table">
-              <thead><tr><th className="sticky left-0 z-10 bg-ink-850">Deportista</th>{selected.map((k) => <th key={k} title={TEST_MAP[k].protocol}>{TEST_MAP[k].name}<div className="text-[9px] normal-case tracking-normal text-neutral-600">{TEST_MAP[k].unit}{k.startsWith("FMS_") ? " · 0-3" : ""}</div></th>)}</tr></thead>
+              <thead><tr><th className="sticky left-0 z-10 bg-ink-850">Alumno</th>{selected.map((k) => <th key={k} title={TEST_MAP[k].protocol}>{TEST_MAP[k].name}<div className="text-[9px] normal-case tracking-normal text-neutral-600">{TEST_MAP[k].unit}{k.startsWith("FMS_") ? " · 0-3" : ""}</div></th>)}</tr></thead>
               <tbody>
                 {targets.map((a) => (
                   <tr key={a.id}>

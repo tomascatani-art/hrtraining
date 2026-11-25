@@ -164,7 +164,7 @@ export const SPORT_TEMPLATES: Record<string, { focus: string[]; tests: string[];
   COMBATE: { focus: ["POTENCIA", "FUERZA_RESISTENCIA", "RESISTENCIA_ANAEROBICA", "FUERZA_MAXIMA"], tests: ["SJFT", "CMJ", "RM1_BP", "RM1_DL"], weekly: ["TECNICO", "FUERZA", "TECNICO", "RESISTENCIA", "TECNICO"], note: "Control de peso y potencia en agarre y tronco." },
 };
 
-/** Bloques dentro de una sesión. El color identifica el bloque en el armado y en la vista del deportista. */
+/** Bloques dentro de una sesión. El color identifica el bloque en el armado y en la vista del alumno. */
 export const BLOCKS: Record<string, { label: string; color: string }> = {
   ACTIVACION: { label: "Activación", color: "#3a8fd6" },
   MOVILIDAD: { label: "Movilidad", color: "#4fb39a" },
@@ -182,10 +182,10 @@ export const BLOCKS: Record<string, { label: string; color: string }> = {
   VUELTA_CALMA: { label: "Vuelta a la calma", color: "#94a3b8" },
 };
 
-/** Frases rápidas para que el deportista anote cómo le fue en un ejercicio con un toque. */
+/** Frases rápidas para que el alumno anote cómo le fue en un ejercicio con un toque. */
 export const QUICK_NOTES = ["Me sentí bien", "Me costó", "Salió fácil", "Con energía", "Cansado/a", "Dolor o molestia", "Subí el peso", "Bajé el peso"];
 
-// Carpeta por deportista: secciones para ordenar documentos del perfil.
+// Carpeta por alumno: secciones para ordenar documentos del perfil.
 export const PROFILE_FOLDERS = [
   { key: "ANTROPOMETRIA", label: "Antropometría", hint: "Mediciones, pliegues, composición corporal" },
   { key: "ESTUDIOS", label: "Estudios médicos", hint: "Aptos, análisis, informes de profesionales" },

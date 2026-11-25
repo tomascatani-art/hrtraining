@@ -32,7 +32,7 @@ export default async function Compare({ searchParams }: { searchParams: Promise<
       <PageHeader title="Comparar evaluaciones" subtitle="Elegí dos momentos y compará todos los tests. El cambio está orientado al rendimiento: positivo siempre indica mejora." />
       <Card className="mb-6">
         <form className="grid gap-3 sm:grid-cols-4">
-          {u.role !== "ATHLETE" && <Field label="Deportista"><select name="athlete" defaultValue={athleteId} className="input">{athletes.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></Field>}
+          {u.role !== "ATHLETE" && <Field label="Alumno"><select name="athlete" defaultValue={athleteId} className="input">{athletes.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select></Field>}
           <Field label="Momento A"><select name="a" defaultValue={a} className="input">{dates.map((d) => <option key={d} value={d}>{fmtDate(d, { day: "2-digit", month: "short", year: "numeric" })}</option>)}</select></Field>
           <Field label="Momento B"><select name="b" defaultValue={b} className="input">{dates.map((d) => <option key={d} value={d}>{fmtDate(d, { day: "2-digit", month: "short", year: "numeric" })}</option>)}</select></Field>
           <div className="flex items-end"><button className="btn-primary w-full">Comparar</button></div>

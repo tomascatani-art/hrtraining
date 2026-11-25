@@ -12,7 +12,7 @@ export const shiftMonth = (key: string, n: number) => {
   return monthKey(new Date(y, m - 1 + n, 15));
 };
 
-/** Estado de la cuota del mes para un deportista. Sin registro = pendiente. */
+/** Estado de la cuota del mes para un alumno. Sin registro = pendiente. */
 export async function feeStatusFor(athleteId: string, period = monthKey()) {
   const [fee, user] = await Promise.all([
     db.fee.findUnique({ where: { athleteId_period: { athleteId, period } } }),

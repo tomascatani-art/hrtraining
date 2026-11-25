@@ -24,10 +24,10 @@ export default async function RoutinesPage({ searchParams }: { searchParams: Pro
   const withR = athletes.filter((a) => a.routines[0]).length;
   return (
     <>
-      <PageHeader eyebrow="Planificación" title="Rutinas por deportista" subtitle={`La planilla de cada uno: días, bloques, ejercicios y semanas. ${withR} de ${athletes.length} deportistas ya tienen rutina.`} />
+      <PageHeader eyebrow="Planificación" title="Rutinas por alumno" subtitle={`La planilla de cada uno: días, bloques, ejercicios y semanas. ${withR} de ${athletes.length} alumnos ya tienen rutina.`} />
       <div className="grid gap-5 xl:grid-cols-3">
         <div className="xl:col-span-2">
-          <form className="mb-3"><input name="q" defaultValue={sp.q} placeholder="Buscar deportista…" className="input" /></form>
+          <form className="mb-3"><input name="q" defaultValue={sp.q} placeholder="Buscar alumno…" className="input" /></form>
           <div className="card divide-y divide-ink-700">
             {athletes.map((a) => {
               const r = a.routines[0];
@@ -49,12 +49,12 @@ export default async function RoutinesPage({ searchParams }: { searchParams: Pro
                 </div>
               );
             })}
-            {athletes.length === 0 && <div className="p-6 text-center text-sm muted">No hay deportistas {sp.q ? "con ese nombre" : "asignados todavía"}.</div>}
+            {athletes.length === 0 && <div className="p-6 text-center text-sm muted">No hay alumnos {sp.q ? "con ese nombre" : "asignados todavía"}.</div>}
           </div>
         </div>
         <div className="space-y-5">
           <Card title="Plantillas" action={<ClipboardList size={16} className="text-volt" />}>
-            <p className="mb-3 text-sm muted">Rutinas modelo para no empezar de cero. Al crear la rutina de un deportista elegís “Desde: …”.</p>
+            <p className="mb-3 text-sm muted">Rutinas modelo para no empezar de cero. Al crear la rutina de un alumno elegís “Desde: …”.</p>
             <div className="space-y-2">
               {templates.map((t) => {
                 const d = sanitizeRoutine(t.data);

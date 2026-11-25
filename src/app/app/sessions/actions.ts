@@ -29,7 +29,7 @@ const sessionSchema = z.object({
   durationMin: z.coerce.number().int().min(5).max(600),
   targetRpe: z.coerce.number().int().min(1).max(10).nullable().optional(),
   capacities: z.array(z.string()).default([]),
-  target: z.string().min(3, "Elegí un deportista o grupo"),
+  target: z.string().min(3, "Elegí un alumno o grupo"),
   planId: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   repeatWeeks: z.coerce.number().int().min(0).max(26).default(0),
@@ -106,7 +106,7 @@ export async function duplicateSession(fd: FormData) {
   redirect(`/app/sessions/${copy.id}`);
 }
 
-/** Copia un día (sesión con todos sus ejercicios) a otro deportista y/o a otra fecha. Mantiene la hora. */
+/** Copia un día (sesión con todos sus ejercicios) a otro alumno y/o a otra fecha. Mantiene la hora. */
 export async function copySession(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const s = await ownSession(u, String(fd.get("id")));
@@ -153,7 +153,7 @@ const logSchema = z.object({
   notes: z.array(z.object({ itemId: z.string(), note: z.string().max(500) })).default([]),
 });
 
-/** Registro de la sesión por el deportista (o por el entrenador en su nombre). */
+/** Registro de la sesión por el alumno (o por el entrenador en su nombre). */
 export async function saveLog(fd: FormData) {
   const u = await requireUser();
   const data = logSchema.parse(JSON.parse(String(fd.get("payload"))));
@@ -162,7 +162,7 @@ export async function saveLog(fd: FormData) {
   const s = await db.session.findFirst({ where: { id: data.sessionId, ...(await sessionWhere(u.role === "ATHLETE" ? u : u)) }, include: { items: true, group: { include: { members: true } } } });
   if (!s) throw new Error("Sesión no encontrada");
   const assigned = s.athleteId === athleteId || s.group?.members.some((m) => m.athleteId === athleteId);
-  if (!assigned) throw new Error("Este deportista no está asignado a la sesión");
+  if (!assigned) throw new Error("Este alumno no está asignado a la sesión");
   const itemIds = new Set(s.items.map((i) => i.id));
   const sets = data.sets.filter((x) => itemIds.has(x.itemId) && (x.reps != null || x.loadKg != null || x.timeSec != null));
   const load = data.rpe != null && data.durationMin != null ? data.rpe * data.durationMin : null;
@@ -216,7 +216,7 @@ export async function commentLog(fd: FormData) {
 export type RecentUse = { date: string; title: string; who: string; times: number };
 
 /**
- * Ejercicios que el destinatario de la sesión (deportista o grupo) ya tuvo
+ * Ejercicios que el destinatario de la sesión (alumno o grupo) ya tuvo
  * en los 30 días anteriores a la fecha de la sesión. Incluye sesiones
  * individuales y sesiones de los grupos a los que pertenece.
  */
@@ -259,7 +259,7 @@ export async function recentExerciseUse(target: string, dateIso: string, exclude
 export type ExerciseHistory = { date: string; kg: number | null; reps: number | null; note: string | null };
 
 /**
- * Datos del deportista para armar la sesión: su RM por ejercicio y lo que fue anotando
+ * Datos del alumno para armar la sesión: su RM por ejercicio y lo que fue anotando
  * (kilos usados y notas) en las últimas semanas. Solo aplica a sesiones individuales.
  */
 export async function athleteExerciseContext(target: string): Promise<{ rms: Record<string, number>; history: Record<string, ExerciseHistory[]> }> {

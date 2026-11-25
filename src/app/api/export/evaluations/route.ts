@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   if (only) ids = ids.filter((i) => i === only);
   const evals = await db.evaluation.findMany({ where: { athleteId: { in: ids } }, include: { athlete: true }, orderBy: [{ athleteId: "asc" }, { testKey: "asc" }, { date: "asc" }] });
   const esc = (v: unknown) => { const s = v == null ? "" : String(v); return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
-  const lines = [["Deportista", "Email", "Fecha", "Categoría", "Test", "Valor", "Unidad", "Notas", "Demo"].join(";")];
+  const lines = [["Alumno", "Email", "Fecha", "Categoría", "Test", "Valor", "Unidad", "Notas", "Demo"].join(";")];
   for (const e of evals) {
     const t = TEST_MAP[e.testKey];
     lines.push([e.athlete.name, e.athlete.email, e.date.toISOString().slice(0, 10), t ? TEST_CATEGORIES[t.category] : "", t?.name ?? e.testKey, String(e.value).replace(".", ","), e.unit, e.notes ?? "", e.isDemo ? "DEMO" : ""].map(esc).join(";"));

@@ -37,7 +37,7 @@ export default async function GroupDetail({ params }: { params: Promise<{ id: st
           {mon.length ? (
             <div className="overflow-x-auto">
               <table className="table min-w-[640px]">
-                <thead><tr><th>Deportista</th><th>Bienestar</th><th>Disponib.</th><th>Carga 7d</th><th>Alertas</th><th></th></tr></thead>
+                <thead><tr><th>Alumno</th><th>Bienestar</th><th>Disponib.</th><th>Carga 7d</th><th>Alertas</th><th></th></tr></thead>
                 <tbody>
                   {mon.map((m) => (
                     <tr key={m.user.id}>
@@ -52,10 +52,10 @@ export default async function GroupDetail({ params }: { params: Promise<{ id: st
                 </tbody>
               </table>
             </div>
-          ) : <div className="p-5"><Empty title="Grupo vacío">Sumá deportistas desde el panel lateral.</Empty></div>}
+          ) : <div className="p-5"><Empty title="Grupo vacío">Sumá alumnos desde el panel lateral.</Empty></div>}
         </Card>
         <div className="space-y-6">
-          <Card title="Sumar deportistas">
+          <Card title="Sumar alumnos">
             {candidates.length ? (
               <form action={addMembers} className="space-y-3">
                 <input type="hidden" name="id" value={g.id} />
@@ -64,7 +64,7 @@ export default async function GroupDetail({ params }: { params: Promise<{ id: st
                 </div>
                 <Submit className="btn-primary w-full">Agregar seleccionados</Submit>
               </form>
-            ) : <p className="text-sm muted">Todos los deportistas ya están en el grupo. <Link href="/app/athletes/new" className="text-volt">Crear uno nuevo</Link></p>}
+            ) : <p className="text-sm muted">Todos los alumnos ya están en el grupo. <Link href="/app/athletes/new" className="text-volt">Crear uno nuevo</Link></p>}
           </Card>
           <Card title="Alertas del grupo"><AlertList items={alerts} showDisclaimer={false} /></Card>
         </div>

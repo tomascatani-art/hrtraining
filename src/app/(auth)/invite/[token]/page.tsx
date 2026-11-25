@@ -13,7 +13,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
       {(user.org.brandName || user.org.logoKey) && <div className="mb-6"><Logo size={44} brand={{ name: user.org.brandName || user.org.name, logo: logoUrl(user.org) }} /></div>}
       <div className="label text-volt">Invitación</div>
       <h1 className="h1 mt-1">Hola, {user.name.split(" ")[0]}</h1>
-      <p className="mt-1 mb-6 text-sm muted">Te sumaron a <b className="text-white">{user.org.brandName || user.org.name}</b> como {user.role === "ATHLETE" ? "deportista" : "entrenador"}. Elegí tu contraseña para entrar.</p>
+      <p className="mt-1 mb-6 text-sm muted">Te sumaron a <b className="text-white">{user.org.brandName || user.org.name}</b> como {user.role === "ATHLETE" ? "alumno" : "entrenador"}. Elegí tu contraseña para entrar.</p>
       <InviteForm token={token} />
     </div>
   );

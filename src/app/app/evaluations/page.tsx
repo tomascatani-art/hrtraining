@@ -31,7 +31,7 @@ export default async function EvaluationsPage({ searchParams }: { searchParams: 
       </> : <a href={`/api/export/evaluations`} className="btn-ghost"><Download size={15} />Descargar mis datos</a>} />
   );
 
-  // Evolución de un test para un deportista
+  // Evolución de un test para un alumno
   if (athleteId && test) {
     const [a, list] = await Promise.all([
       db.user.findUnique({ where: { id: athleteId } }),
@@ -114,7 +114,7 @@ export default async function EvaluationsPage({ searchParams }: { searchParams: 
         <Card title="Matriz del equipo · último resultado" pad={false}>
           <div className="overflow-x-auto">
             <table className="table">
-              <thead><tr><th className="sticky left-0 bg-ink-850">Deportista</th>{usedTests.map((t) => <th key={t.key}><Link href={`/app/evaluations?test=${t.key}`} className="hover:text-volt">{t.key.replace("_", " ")}</Link><div className="text-[9px] normal-case tracking-normal text-neutral-600">{t.unit}</div></th>)}</tr></thead>
+              <thead><tr><th className="sticky left-0 bg-ink-850">Alumno</th>{usedTests.map((t) => <th key={t.key}><Link href={`/app/evaluations?test=${t.key}`} className="hover:text-volt">{t.key.replace("_", " ")}</Link><div className="text-[9px] normal-case tracking-normal text-neutral-600">{t.unit}</div></th>)}</tr></thead>
               <tbody>
                 {athletes.map((a) => (
                   <tr key={a.id}>
@@ -141,7 +141,7 @@ export default async function EvaluationsPage({ searchParams }: { searchParams: 
               </tbody>
             </table>
           </div>
-          <p className="px-5 py-3 text-[11px] text-neutral-600">Valores en amarillo: cuartil superior del equipo. Variación respecto de la evaluación anterior del mismo deportista (positivo = mejora).</p>
+          <p className="px-5 py-3 text-[11px] text-neutral-600">Valores en amarillo: cuartil superior del equipo. Variación respecto de la evaluación anterior del mismo alumno (positivo = mejora).</p>
         </Card>
       )}
       <Card title="Catálogo de tests disponibles" className="mt-6">

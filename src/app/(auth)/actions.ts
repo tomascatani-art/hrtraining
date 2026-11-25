@@ -28,7 +28,7 @@ export async function loginAction(_: FormState, fd: FormData): Promise<FormState
 
 const registerSchema = z.object({
   name: z.string().min(2, "Ingresá tu nombre"),
-  org: z.string().min(2, "Ingresá el nombre de tu gimnasio, club o equipo"),
+  org: z.string(),
   email: z.string().email("Email inválido"),
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
 });
@@ -36,7 +36,7 @@ const registerSchema = z.object({
 export async function registerAction(_: FormState, fd: FormData): Promise<FormState> {
   const parsed = registerSchema.safeParse({
     name: String(fd.get("name") ?? "").trim(),
-    org: String(fd.get("org") ?? "").trim(),
+    org: String(fd.get("org") ?? "").trim() || String(fd.get("name") ?? "").trim(),
     email: String(fd.get("email") ?? "").trim().toLowerCase(),
     password: fd.get("password"),
   });
@@ -92,7 +92,7 @@ export async function forgotPasswordAction(_: ForgotState, fd: FormData): Promis
   const recent = user?.resetRequestedAt && Date.now() - user.resetRequestedAt.getTime() < 60000; // máx. 1 pedido por minuto
   if (user && user.active && !user.isDemo && !recent) {
     await db.user.update({ where: { id: user.id }, data: { resetRequestedAt: new Date() } });
-    // Aviso dentro de la app al administrador del club y al entrenador del deportista: le mandan el enlace por WhatsApp
+    // Aviso dentro de la app al administrador del club y al entrenador del alumno: le mandan el enlace por WhatsApp
     const admins = await db.user.findMany({ where: { orgId: user.orgId, role: "ADMIN", active: true, id: { not: user.id } }, select: { id: true } });
     const coach = user.role === "ATHLETE" ? (await db.athleteProfile.findUnique({ where: { userId: user.id }, select: { coachId: true } }))?.coachId : null;
     const title = `${user.name} pidió una contraseña nueva`;

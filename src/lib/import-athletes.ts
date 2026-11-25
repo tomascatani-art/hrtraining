@@ -2,7 +2,7 @@ import "server-only";
 import ExcelJS from "exceljs";
 import { SPORTS } from "@/lib/catalog";
 
-// Carga masiva de deportistas desde Excel (.xlsx) o CSV.
+// Carga masiva de alumnos desde Excel (.xlsx) o CSV.
 export const IMPORT_COLUMNS = ["Nombre y apellido", "Email", "Deporte", "Puesto", "Grupo", "Fecha de nacimiento", "Sexo", "Altura (cm)", "Peso (kg)", "Cuota mensual"] as const;
 export const MAX_ROWS = 500;
 
@@ -113,7 +113,7 @@ export function toRows(table: string[][], existingEmails: Set<string>): { rows: 
 
 export async function templateWorkbook() {
   const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet("Deportistas");
+  const ws = wb.addWorksheet("Alumnos");
   ws.addRow([...IMPORT_COLUMNS]);
   ws.addRow(["Ejemplo: Juan Pérez", "juan@ejemplo.com", "Fútbol", "Mediocampista", "Primera", "15/03/2004", "M", 178, 72, 25000]);
   ws.getRow(1).font = { bold: true };
@@ -122,7 +122,7 @@ export async function templateWorkbook() {
   ws.columns.forEach((c) => (c.width = 22));
   const sports = Object.values(SPORTS).map((s) => s.label);
   const help = wb.addWorksheet("Ayuda");
-  help.addRows([["Cómo completar"], ["Una fila por deportista. Solo Nombre y Email son obligatorios."], ["Borrá la fila de ejemplo antes de subir la planilla."], ["Deportes válidos: " + sports.join(", ")], ["Si el grupo no existe, se crea solo."], ["Fecha: dd/mm/aaaa. Altura en cm, peso en kg."]]);
+  help.addRows([["Cómo completar"], ["Una fila por alumno. Solo Nombre y Email son obligatorios."], ["Borrá la fila de ejemplo antes de subir la planilla."], ["Deportes válidos: " + sports.join(", ")], ["Si el grupo no existe, se crea solo."], ["Fecha: dd/mm/aaaa. Altura en cm, peso en kg."]]);
   help.getColumn(1).width = 100;
   return wb.xlsx.writeBuffer();
 }

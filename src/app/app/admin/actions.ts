@@ -29,8 +29,8 @@ export async function updateUser(fd: FormData) {
   if (!target || target.orgId !== u.orgId) throw new Error("Usuario no encontrado");
   if (id === u.id) throw new Error("No podés modificar tu propio rol o estado");
   const role = String(fd.get("role") ?? target.role) as "ADMIN" | "COACH" | "ATHLETE";
-  if (target.role === "ATHLETE" && role !== "ATHLETE") throw new Error("Un deportista no puede convertirse en entrenador desde aquí");
-  if (target.role !== "ATHLETE" && role === "ATHLETE") throw new Error("Un entrenador no puede convertirse en deportista");
+  if (target.role === "ATHLETE" && role !== "ATHLETE") throw new Error("Un alumno no puede convertirse en entrenador desde aquí");
+  if (target.role !== "ATHLETE" && role === "ATHLETE") throw new Error("Un entrenador no puede convertirse en alumno");
   await db.user.update({ where: { id }, data: { role, active: fd.get("active") === "on" } });
   await audit(u, "EDITAR", "Usuario", `${target.name}: rol ${role}, ${fd.get("active") === "on" ? "activo" : "inactivo"}`, id);
   revalidatePath("/app/admin");

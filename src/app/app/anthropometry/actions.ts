@@ -11,7 +11,7 @@ function refresh(athleteId: string) {
   revalidatePath("/app/folder");
 }
 
-/** Guarda una medición. La carga el entrenador; el deportista la ve en su carpeta. */
+/** Guarda una medición. La carga el entrenador; el alumno la ve en su carpeta. */
 export async function saveAnthropometry(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const athleteId = String(fd.get("athleteId"));

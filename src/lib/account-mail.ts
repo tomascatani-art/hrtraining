@@ -24,6 +24,6 @@ export async function sendInviteMail(user: { email: string; name: string; role: 
   if (!user.inviteToken) return { sent: false as const };
   const brand = brandOf(user.org);
   const url = `${origin}/invite/${user.inviteToken}`;
-  const m = mailLayout({ brand, title: `Te sumaron a ${brand}`, body: `Hola ${user.name.split(" ")[0]}, te invitaron como ${user.role === "ATHLETE" ? "deportista" : "entrenador"}. Elegí tu contraseña para entrar y ver tus entrenamientos.`, cta: "Activar mi cuenta", url });
+  const m = mailLayout({ brand, title: `Te sumaron a ${brand}`, body: `Hola ${user.name.split(" ")[0]}, te invitaron como ${user.role === "ATHLETE" ? "alumno" : "entrenador"}. Elegí tu contraseña para entrar y ver tus entrenamientos.`, cta: "Activar mi cuenta", url });
   return sendMail({ to: user.email, subject: `Te sumaron a ${brand}`, ...m });
 }

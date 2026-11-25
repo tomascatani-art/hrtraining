@@ -38,7 +38,7 @@ export function Uploader({ athletes, accept, defaultAthlete, allowShare, label =
     <div className="space-y-3">
       {athletes && athletes.length > 0 && (
         <select value={athleteId} onChange={(e) => setAthleteId(e.target.value)} className="input">
-          <option value="">Sin deportista asociado</option>
+          <option value="">Sin alumno asociado</option>
           {athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
         </select>
       )}

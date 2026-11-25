@@ -22,7 +22,7 @@ export async function previewImport(_: PreviewState, fd: FormData): Promise<Prev
   const emails = new Set((await db.user.findMany({ select: { email: true } })).map((x) => x.email.toLowerCase()));
   const { rows, missing } = toRows(table, emails);
   if (missing.length) return { missing, fileName: file.name };
-  if (!rows.length) return { error: "La planilla no tiene filas con deportistas", fileName: file.name };
+  if (!rows.length) return { error: "La planilla no tiene filas con alumnos", fileName: file.name };
   return { rows, fileName: file.name };
 }
 
@@ -58,7 +58,7 @@ export async function commitImport(_: CommitState, fd: FormData): Promise<Commit
     created++;
     if (sendMail && (await sendInviteMail({ ...athlete, org: u.org }, origin)).sent) mailed++;
   }
-  await audit(u, "CREAR", "Deportista", `Importación de ${created} deportistas desde planilla`);
+  await audit(u, "CREAR", "Alumno", `Importación de ${created} alumnos desde planilla`);
   revalidatePath("/app/athletes");
   revalidatePath("/app/groups");
   revalidatePath("/app");

@@ -55,7 +55,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
   const advanced = ["muscle", "chain", "pattern", "capacity", "sport", "equipment", "level", "own", "video"].some((k) => sp[k]);
   return (
     <>
-      <PageHeader title="Biblioteca de ejercicios" subtitle={`${all} ejercicios cargados · ${linkedCount} con tu link de video. Tocá “Pegar link” para ponerle el video de YouTube; el deportista lo ve adentro de la app.`}
+      <PageHeader title="Biblioteca de ejercicios" subtitle={`${all} ejercicios cargados · ${linkedCount} con tu link de video. Tocá “Pegar link” para ponerle el video de YouTube; el alumno lo ve adentro de la app.`}
         actions={staff ? <Link href="/app/library/new" className="btn-primary">Crear ejercicio</Link> : undefined} />
 
       <form className="relative mb-3">
@@ -84,7 +84,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
           {sel("chain", "Cadena cinética", Object.entries(CHAINS))}
           {sel("sport", "Deporte", Object.entries(SPORTS).map(([k, v]) => [k, v.label]))}
           {sel("video", "Con o sin video", [["1", "Con video"], ["0", "Sin video todavía"]])}
-          {staff && <label className="flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" name="own" value="1" defaultChecked={sp.own === "1"} />Solo los creados por el club</label>}
+          {staff && <label className="flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" name="own" value="1" defaultChecked={sp.own === "1"} />Solo los que creé yo</label>}
           <div className="flex gap-2"><button className="btn-primary flex-1">Filtrar</button><Link href="/app/library" className="btn-ghost">Limpiar</Link></div>
         </form>
       </details>
@@ -96,7 +96,7 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
             {items.map((e) => (
               <div key={e.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3">
                 <Link href={`/app/library/${e.id}`} className="group min-w-0 flex-1 basis-56">
-                  <div className="flex items-center gap-2"><span className="truncate font-semibold text-white group-hover:text-volt">{e.name}</span>{e.orgId && <span className="chip-volt">Del club</span>}</div>
+                  <div className="flex items-center gap-2"><span className="truncate font-semibold text-white group-hover:text-volt">{e.name}</span>{e.orgId && <span className="chip-volt">Mío</span>}</div>
                   <div className="truncate text-xs muted">{e.category ?? PATTERNS[e.pattern]?.split(" /")[0]}{e.primaryMuscle !== e.category && ` · ${e.primaryMuscle}`}{e.equipment.length ? ` · ${e.equipment.slice(0, 2).join(", ")}` : ""}</div>
                 </Link>
                 <div className="ml-auto"><ExerciseLinkInline exerciseId={e.id} name={e.name} url={videos.get(e.id)} canEdit={staff} save={setExerciseLink} /></div>

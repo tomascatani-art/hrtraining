@@ -28,7 +28,7 @@ export default async function GroupsPage() {
               <div className="mt-1 text-sm muted">{sportLabel(g.sport)} · {g.coach.name}</div>
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex -space-x-2">{g.members.slice(0, 6).map((m) => <span key={m.athleteId} className="rounded-full ring-2 ring-ink-850"><Avatar name={m.athlete.name} src={avatarSrc(m.athlete)} size={28} /></span>)}</div>
-                <div className="text-right text-xs muted"><span className="num text-white">{g.members.length}</span> deportistas · <span className="num text-white">{g._count.sessions}</span> sesiones</div>
+                <div className="text-right text-xs muted"><span className="num text-white">{g.members.length}</span> alumnos · <span className="num text-white">{g._count.sessions}</span> sesiones</div>
               </div>
             </Link>
           ))}

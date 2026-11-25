@@ -18,12 +18,12 @@ export function ImportWizard({ mailReady }: { mailReady: boolean }) {
     return (
       <div className="card card-pad text-center">
         <CheckCircle2 size={40} className="mx-auto mb-3 text-volt" />
-        <h2 className="h2">Se cargaron {result.created} deportistas</h2>
+        <h2 className="h2">Se cargaron {result.created} alumnos</h2>
         <p className="mt-2 text-sm muted">
           {result.mailed ? `Le mandamos la invitación por mail a ${result.mailed}. ` : "Cada uno tiene su enlace de invitación en su perfil para compartirlo por WhatsApp. "}
           {result.groups?.length ? `Grupos nuevos: ${result.groups.join(", ")}.` : ""}
         </p>
-        <Link href="/app/athletes" className="btn-primary mt-5">Ver deportistas</Link>
+        <Link href="/app/athletes" className="btn-primary mt-5">Ver alumnos</Link>
       </div>
     );
   }
@@ -34,7 +34,7 @@ export function ImportWizard({ mailReady }: { mailReady: boolean }) {
         <div className="card card-pad">
           <div className="label mb-2 text-volt">Paso 1</div>
           <h3 className="font-semibold text-white">Descargá la plantilla</h3>
-          <p className="mt-1 text-sm muted">Una fila por deportista. Solo nombre y email son obligatorios. Si ya tenés tu planilla, podés subirla igual: reconocemos columnas como “Nombre”, “Mail”, “Grupo” o “Peso”.</p>
+          <p className="mt-1 text-sm muted">Una fila por alumno. Solo nombre y email son obligatorios. Si ya tenés tu planilla, podés subirla igual: reconocemos columnas como “Nombre”, “Mail”, “Grupo” o “Peso”.</p>
           <a href="/api/export/athletes-template" className="btn-ghost mt-4"><Download size={16} />Plantilla de Excel</a>
         </div>
         <form action={previewAction} className="card card-pad">
@@ -85,7 +85,7 @@ export function ImportWizard({ mailReady }: { mailReady: boolean }) {
               <input type="checkbox" checked={sendMail} onChange={(e) => setSendMail(e.target.checked)} />
               Mandarles la invitación por mail{!mailReady && " (el envío de mails todavía no está configurado: quedan los enlaces en cada perfil)"}
             </label>
-            <Submit pendingText="Cargando…" disabled={!ok.length}>Cargar {ok.length} deportistas</Submit>
+            <Submit pendingText="Cargando…" disabled={!ok.length}>Cargar {ok.length} alumnos</Submit>
           </form>
           {result?.error && <p className="px-5 pb-4 text-sm text-red-300">{result.error}</p>}
         </div>

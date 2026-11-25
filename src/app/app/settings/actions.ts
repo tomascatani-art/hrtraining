@@ -49,7 +49,7 @@ export async function updateBrand(fd: FormData) {
   const brandName = String(fd.get("brandName") ?? "").trim().slice(0, 60) || null;
   const rawSlug = String(fd.get("slug") ?? "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
   const slug = rawSlug.length >= 3 ? rawSlug : null;
-  if (slug && (await db.organization.count({ where: { slug, id: { not: org.id } } }))) throw new Error("Ese enlace ya lo usa otro club. Probá con otro.");
+  if (slug && (await db.organization.count({ where: { slug, id: { not: org.id } } }))) throw new Error("Ese enlace ya lo usa otra cuenta. Probá con otro.");
   const colorIn = String(fd.get("brandColor") ?? "").trim();
   let brandColor: string | null = null;
   if (colorIn) {
@@ -69,7 +69,7 @@ export async function updateBrand(fd: FormData) {
   if (fd.get("removeLogo") === "1") { data.logoKey = null; data.logoMime = null; }
   await db.organization.update({ where: { id: org.id }, data });
   if (org.logoKey && "logoKey" in data) await removeFile(org.logoKey);
-  await audit(u, "EDITAR", "Organización", "Marca del club actualizada");
+  await audit(u, "EDITAR", "Organización", "Marca actualizada");
   revalidatePath("/app", "layout");
   if (slug) revalidatePath(`/c/${slug}`);
 }

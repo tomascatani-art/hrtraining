@@ -68,7 +68,7 @@ export async function createDemo(db: PrismaClient) {
   await deleteDemo(db);
   const r = rng(42);
   const hash = await bcrypt.hash("demo1234", 10);
-  const org = await db.organization.create({ data: { slug: "club-demo", name: "Club Demo Hrtraining", isDemo: true, feeAmount: 25000, feeDueDay: 10 } });
+  const org = await db.organization.create({ data: { slug: "club-demo", name: "Hrtraining Demo", isDemo: true, feeAmount: 25000, feeDueDay: 10 } });
 
   const coach = await db.user.create({ data: { orgId: org.id, email: "entrenador.demo@hrtraining.co", name: "Martina Demo", role: "ADMIN", passwordHash: hash, isDemo: true } });
   const coach2 = await db.user.create({ data: { orgId: org.id, email: "preparador.demo@hrtraining.co", name: "Joaquín Demo", role: "COACH", passwordHash: hash, isDemo: true } });
@@ -356,7 +356,7 @@ export async function ensureDemoRoutines(db: PrismaClient) {
   const row = (name: string, cells: string[], note = "", extra: Record<string, unknown> = {}) => ({ id: id(), exerciseId: find(name), name, note, video: null, cells, rm: ["", "", "", ""], rest: "90", mode: "normal", link: "", ...extra });
   const data = {
     weeks: 4,
-    meta: { objective: "Fuerza y potencia de tren inferior (ejemplo)", start: new Date(Date.now() - 8 * 86400000).toISOString().slice(0, 10), notes: "Datos de ejemplo del club demo.", rest: "2-3 min", notice: "Ejemplo de aviso: esta semana bajamos el volumen, priorizá la técnica. Cualquier molestia me avisás." },
+    meta: { objective: "Fuerza y potencia de tren inferior (ejemplo)", start: new Date(Date.now() - 8 * 86400000).toISOString().slice(0, 10), notes: "Datos de ejemplo.", rest: "2-3 min", notice: "Ejemplo de aviso: esta semana bajamos el volumen, priorizá la técnica. Cualquier molestia me avisás." },
     warmup: [
       { id: id(), exerciseId: find("Movilidad de cadera"), name: "Movilidad de cadera", detail: "2x8 c/lado", video: null },
       { id: id(), exerciseId: find("Skipping alto"), name: "Skipping alto", detail: "3x20 m", video: null },
@@ -420,6 +420,8 @@ export async function ensureDemoExpiring(db: PrismaClient) {
 export async function trimDemo(db: PrismaClient) {
   const org = await db.organization.findFirst({ where: { isDemo: true } });
   if (!org) return;
+  // Ya no es "club": la cuenta demo es de un preparador físico
+  if (org.name.startsWith("Club")) await db.organization.update({ where: { id: org.id }, data: { name: "Hrtraining Demo" } });
   const keepEmails = ["entrenador.demo@hrtraining.co", "deportista.demo@hrtraining.co"];
   const coach = await db.user.findFirst({ where: { orgId: org.id, email: keepEmails[0] } });
   if (!coach) return;
@@ -443,4 +445,21 @@ export async function trimDemo(db: PrismaClient) {
   const empty = convs.filter((c) => c._count.members < 2).map((c) => c.id);
   if (empty.length) await db.conversation.deleteMany({ where: { id: { in: empty } } });
   console.log(`Demo reducida: se quitaron ${ids.length} usuarios de ejemplo.`);
+}
+
+/** Tics de ejemplo (DEMO): la deportista demo marcó ejercicios ayer y hace 3 días. */
+export async function ensureDemoChecks(db: PrismaClient) {
+  const r = await db.routine.findFirst({ where: { isDemo: true, active: true, template: false, extra: false, athleteId: { not: null }, org: { isDemo: true } } });
+  if (!r?.athleteId) return;
+  const since = new Date(Date.now() - 4 * 86400000);
+  if (await db.routineCheck.count({ where: { routineId: r.id, createdAt: { gte: since } } })) return;
+  const days = ((r.data as { days?: { id: string; blocks: { rows: { id: string; name: string }[] }[] }[] }).days ?? []);
+  const plan: [number, number, number][] = [[1, 0, 1], [3, Math.min(1, days.length - 1), 0.6]]; // [hace días, día de la rutina, parte hecha]
+  for (const [ago, di, part] of plan) {
+    const day = days[di]; if (!day) continue;
+    const rows = day.blocks.flatMap((b) => b.rows.filter((x) => x.name));
+    const d = new Date(Date.now() - ago * 86400000);
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    await db.routineCheck.createMany({ data: rows.slice(0, Math.ceil(rows.length * part)).map((x) => ({ routineId: r.id, athleteId: r.athleteId!, date, dayId: day.id, rowId: x.id, createdAt: d })), skipDuplicates: true });
+  }
 }

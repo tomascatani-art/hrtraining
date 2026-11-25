@@ -2,7 +2,7 @@ import "server-only";
 import { db } from "./db";
 import type { SessionUser } from "./auth";
 
-/** IDs de deportistas que el usuario puede ver según su rol. */
+/** IDs de alumnos que el usuario puede ver según su rol. */
 export async function visibleAthleteIds(u: SessionUser): Promise<string[]> {
   if (u.role === "ATHLETE") return [u.id];
   if (u.role === "ADMIN") {
@@ -30,10 +30,10 @@ export async function canSeeAthlete(u: SessionUser, athleteId: string) {
 }
 
 export async function assertAthlete(u: SessionUser, athleteId: string) {
-  if (!(await canSeeAthlete(u, athleteId))) throw new Error("Sin permiso sobre este deportista");
+  if (!(await canSeeAthlete(u, athleteId))) throw new Error("Sin permiso sobre este alumno");
 }
 
-/** Grupos visibles: el admin ve todos; el entrenador, los suyos; el deportista, donde es miembro. */
+/** Grupos visibles: el admin ve todos; el entrenador, los suyos; el alumno, donde es miembro. */
 export async function visibleGroups(u: SessionUser) {
   if (u.role === "ADMIN") return db.group.findMany({ where: { orgId: u.orgId }, orderBy: { name: "asc" } });
   if (u.role === "COACH") return db.group.findMany({ where: { orgId: u.orgId, coachId: u.id }, orderBy: { name: "asc" } });

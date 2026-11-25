@@ -28,7 +28,7 @@ export async function checkUpload(u: SessionUser, raw: { name?: unknown; type?: 
   return { ok: true, meta: { name, type, size, athleteId, folder, note, shared } };
 }
 
-/** Registra el archivo ya guardado y avisa al entrenador si lo subió un deportista. */
+/** Registra el archivo ya guardado y avisa al entrenador si lo subió un alumno. */
 export async function registerUpload(u: SessionUser, meta: UploadMeta, key: string, size: number) {
   const asset = await db.fileAsset.create({
     data: { orgId: u.orgId, ownerId: u.id, athleteId: meta.athleteId, name: meta.name, mime: meta.type, size, storageKey: key, kind: kindOf(meta.type), folder: meta.folder, note: meta.note, shared: meta.shared },

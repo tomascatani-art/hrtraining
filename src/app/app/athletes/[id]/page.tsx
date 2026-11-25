@@ -104,7 +104,7 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
       {tab === "objetivos" && <GoalsPanel athleteId={id} canEdit />}
       {tab === "resumen" && (
         <div className="grid gap-6 xl:grid-cols-3">
-          <Card title="Datos del deportista" className="xl:col-span-2">
+          <Card title="Datos del alumno" className="xl:col-span-2">
             <form action={updateAthlete} className="grid gap-4 sm:grid-cols-2">
               <input type="hidden" name="id" value={a.id} />
               <Field label="Nombre"><input name="name" defaultValue={a.name} className="input" /></Field>
@@ -162,7 +162,7 @@ async function RoutineTab({ athleteId, orgId }: { athleteId: string; orgId: stri
   return (
     <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div><div className="h2">{r.name}</div><div className="text-xs muted">Así la ve el deportista en “Mi rutina”.</div></div>
+        <div><div className="h2">{r.name}</div><div className="text-xs muted">Así la ve el alumno en “Mi rutina”.</div></div>
         <Link href={`/app/routines/${r.id}`} className="btn-primary">Editar rutina</Link>
       </div>
       <RoutineView data={data} week={currentWeek(data)} />

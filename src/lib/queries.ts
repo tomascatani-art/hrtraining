@@ -10,7 +10,7 @@ export async function athleteLoadPoints(athleteIds: string[], since: Date) {
   return logs;
 }
 
-/** Estado de monitoreo por deportista: alertas, indicadores de carga y último bienestar. */
+/** Estado de monitoreo por alumno: alertas, indicadores de carga y último bienestar. */
 export async function monitoringFor(athleteIds: string[]) {
   const since = addDays(startOfDay(new Date()), -42);
   const [users, logs, wellness] = await Promise.all([

@@ -25,7 +25,7 @@ export default async function NewPlan({ searchParams }: { searchParams: Promise<
           <Field label="Para"><select name="target" defaultValue={def} className="input" required>
             <option value="">Elegir…</option>
             <optgroup label="Grupos">{groups.map((g) => <option key={g.id} value={`g:${g.id}`}>{g.name}</option>)}</optgroup>
-            <optgroup label="Deportistas">{athletes.map((a) => <option key={a.id} value={`a:${a.id}`}>{a.name}</option>)}</optgroup>
+            <optgroup label="Alumnos">{athletes.map((a) => <option key={a.id} value={`a:${a.id}`}>{a.name}</option>)}</optgroup>
           </select></Field>
           <Field label="Deporte"><select name="sport" defaultValue={sp.sport} className="input">{Object.entries(SPORTS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></Field>
           <Field label="Inicio"><input name="startDate" type="date" className="input" defaultValue={today.toISOString().slice(0, 10)} required /></Field>

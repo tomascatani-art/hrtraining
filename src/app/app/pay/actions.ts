@@ -6,7 +6,7 @@ import { requireUser } from "@/lib/auth";
 import { feeStatusFor, monthKey } from "@/lib/fees";
 import { orgToken, createFeeCheckout } from "@/lib/mercadopago";
 
-/** El deportista paga su cuota del mes: crea el cobro en Mercado Pago y lo lleva a pagar. */
+/** El alumno paga su cuota del mes: crea el cobro en Mercado Pago y lo lleva a pagar. */
 export async function payFee() {
   const u = await requireUser(["ATHLETE"]);
   const period = monthKey();

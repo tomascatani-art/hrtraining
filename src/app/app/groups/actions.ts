@@ -39,7 +39,7 @@ export async function addMembers(fd: FormData) {
   await db.groupMember.createMany({ data: valid.map((a) => ({ groupId: g.id, athleteId: a.id })), skipDuplicates: true });
   const conv = await db.conversation.findUnique({ where: { groupId: g.id } });
   if (conv) await db.conversationMember.createMany({ data: valid.map((a) => ({ conversationId: conv.id, userId: a.id })), skipDuplicates: true });
-  await audit(u, "EDITAR", "Grupo", `Se sumaron ${valid.length} deportistas a ${g.name}`, g.id);
+  await audit(u, "EDITAR", "Grupo", `Se sumaron ${valid.length} alumnos a ${g.name}`, g.id);
   revalidatePath(`/app/groups/${g.id}`);
 }
 

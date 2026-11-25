@@ -1,4 +1,4 @@
-// Rutina del deportista (estilo planilla): días → bloques → ejercicios, con una columna por semana.
+// Rutina del alumno (estilo planilla): días → bloques → ejercicios, con una columna por semana.
 // Se guarda como JSON en Routine.data. Estas funciones sirven en servidor y navegador.
 
 export type RowLink = "" | "superserie" | "circuito";

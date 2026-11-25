@@ -11,7 +11,7 @@ export async function saveCompetition(fd: FormData) {
   const [kind, targetId] = String(fd.get("target") ?? "").split(":");
   if (kind === "a") await assertAthlete(u, targetId);
   else if (kind === "g") { const g = await db.group.findUnique({ where: { id: targetId } }); if (!g || g.orgId !== u.orgId) throw new Error("Grupo inválido"); }
-  else throw new Error("Elegí deportista o grupo");
+  else throw new Error("Elegí alumno o grupo");
   const data = {
     name: String(fd.get("name") ?? "").trim(), date: parseDay(String(fd.get("date")), 12), location: String(fd.get("location") ?? "") || null,
     sport: String(fd.get("sport") ?? "GENERAL"), priority: String(fd.get("priority") ?? "B"),

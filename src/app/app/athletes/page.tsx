@@ -9,7 +9,7 @@ import { wellnessScore } from "@/lib/metrics";
 import { SPORTS, sportLabel } from "@/lib/catalog";
 import { PageHeader, Avatar, DemoBadge, Empty, fmtNum } from "@/components/ui";
 
-export const metadata = { title: "Deportistas" };
+export const metadata = { title: "Alumnos" };
 
 export default async function AthletesPage({ searchParams }: { searchParams: Promise<{ q?: string; sport?: string; group?: string }> }) {
   const u = await requireUser(["COACH", "ADMIN"]);
@@ -28,17 +28,17 @@ export default async function AthletesPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <PageHeader title="Deportistas" subtitle="Seguimiento individual: bienestar, disponibilidad, carga reciente y alertas." actions={<><Link href="/app/athletes/import" className="btn-ghost"><FileSpreadsheet size={16} />Cargar desde Excel</Link><Link href="/app/athletes/new" className="btn-primary"><UserPlus size={16} />Nuevo deportista</Link></>} />
+      <PageHeader title="Alumnos" subtitle="Seguimiento individual: bienestar, disponibilidad, carga reciente y alertas." actions={<><Link href="/app/athletes/import" className="btn-ghost"><FileSpreadsheet size={16} />Cargar desde Excel</Link><Link href="/app/athletes/new" className="btn-primary"><UserPlus size={16} />Nuevo alumno</Link></>} />
       <form className="mb-4 grid gap-2 sm:grid-cols-[1fr_200px_200px_auto]">
         <input name="q" defaultValue={sp.q} placeholder="Buscar por nombre…" className="input" />
         <select name="sport" defaultValue={sp.sport ?? ""} className="input"><option value="">Todos los deportes</option>{Object.entries(SPORTS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select>
         <select name="group" defaultValue={sp.group ?? ""} className="input"><option value="">Todos los grupos</option>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select>
         <button className="btn-ghost">Filtrar</button>
       </form>
-      {rows.length === 0 ? <Empty title="No hay deportistas" action={<div className="flex flex-wrap justify-center gap-2"><Link href="/app/athletes/new" className="btn-primary">Sumar el primero</Link><Link href="/app/athletes/import" className="btn-ghost">Cargar desde Excel</Link></div>}>Sumá deportistas y recibirán una invitación para activar su cuenta.</Empty> : (
+      {rows.length === 0 ? <Empty title="No hay alumnos" action={<div className="flex flex-wrap justify-center gap-2"><Link href="/app/athletes/new" className="btn-primary">Sumar el primero</Link><Link href="/app/athletes/import" className="btn-ghost">Cargar desde Excel</Link></div>}>Sumá alumnos y recibirán una invitación para activar su cuenta.</Empty> : (
         <div className="card overflow-x-auto">
           <table className="table min-w-[860px]">
-            <thead><tr><th>Deportista</th><th>Deporte</th><th>Grupo</th><th>Bienestar</th><th>Disponib.</th><th>Carga 7d</th><th>Ag:Cr</th><th>Estado</th></tr></thead>
+            <thead><tr><th>Alumno</th><th>Deporte</th><th>Grupo</th><th>Bienestar</th><th>Disponib.</th><th>Carga 7d</th><th>Ag:Cr</th><th>Estado</th></tr></thead>
             <tbody>
               {rows.map(({ user: a, lastWellness: w, indicators: ind, alerts }) => {
                 const att = alerts.filter((x) => x.level === "ATENCION").length;

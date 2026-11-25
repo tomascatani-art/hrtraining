@@ -71,7 +71,7 @@ export async function RMPanel({ athleteId, viewer }: { athleteId: string; viewer
                     <span className="w-16 text-xs muted">{fmtDate(r.date)}</span>
                     <span className="flex-1 text-white">{r.exercise.name}</span>
                     <span className="num">{prev ? <span className="muted">{fmtKg(prev.kg)} → </span> : null}<b className="text-white">{fmtKg(r.kg)} kg</b></span>
-                    <span className="chip-mute text-[10px]">{r.source === "DEPORTISTA" ? "Deportista" : "Entrenador"}</span>
+                    <span className="chip-mute text-[10px]">{r.source === "DEPORTISTA" ? "Alumno" : "Entrenador"}</span>
                     {(viewer === "COACH" || r.source === "DEPORTISTA") && (
                       <form action={deleteRM}><input type="hidden" name="id" value={r.id} /><ConfirmSubmit message="¿Borrar este RM del historial?" className="text-xs text-neutral-500 hover:text-red-400">Borrar</ConfirmSubmit></form>
                     )}
@@ -92,7 +92,7 @@ export async function RMPanel({ athleteId, viewer }: { athleteId: string; viewer
               <Field label="Fecha"><input name="date" type="date" className="input" /></Field>
             </div>
             <Submit className="btn-primary w-full">Guardar RM</Submit>
-            <p className="text-xs muted">{viewer === "ATHLETE" ? "Tu entrenador recibe un aviso con el cambio." : "El deportista recibe un aviso con el cambio."}</p>
+            <p className="text-xs muted">{viewer === "ATHLETE" ? "Tu entrenador recibe un aviso con el cambio." : "El alumno recibe un aviso con el cambio."}</p>
           </form>
         </Card>
         {suggestions.length > 0 && (

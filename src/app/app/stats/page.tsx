@@ -147,7 +147,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
-        <Card title="Volumen semanal" action={<span className="label">kg{focus ? "" : " / deportista"}</span>}><LoadBars data={vol} unit="kg" name="Volumen" /></Card>
+        <Card title="Volumen semanal" action={<span className="label">kg{focus ? "" : " / alumno"}</span>}><LoadBars data={vol} unit="kg" name="Volumen" /></Card>
         <Card title="Asistencia semanal" action={<span className="label">%</span>}><LoadBars data={att} unit="%" name="Asistencia" /></Card>
         <Card title="Cumplimiento de objetivos">
           <div className="flex items-baseline gap-2"><span className="num text-5xl font-bold text-volt">{goals.length ? Math.round((goalsDone / goals.length) * 100) : 0}%</span><span className="text-sm muted">{goalsDone} de {goals.length} objetivos</span></div>

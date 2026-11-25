@@ -4,7 +4,7 @@ import { Card, fmtDate } from "./ui";
 import { Sparkline } from "./charts";
 import { SensationsCard } from "./today-panel";
 
-/** Kilos que el deportista fue usando en cada ejercicio (la serie más pesada de cada sesión). */
+/** Kilos que el alumno fue usando en cada ejercicio (la serie más pesada de cada sesión). */
 export async function KgUsedCard({ athleteId }: { athleteId: string }) {
   const sets = await db.setLog.findMany({
     where: { log: { athleteId }, loadKg: { gt: 0 } },

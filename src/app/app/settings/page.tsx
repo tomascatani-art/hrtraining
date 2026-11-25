@@ -48,7 +48,7 @@ export default async function SettingsPage() {
         {u.role === "ADMIN" && (
           <Card title="Organización">
             <form action={updateOrg} className="space-y-3">
-              <Field label="Nombre del gimnasio, club o equipo"><input name="org" defaultValue={u.org.name} className="input" /></Field>
+              <Field label="Tu marca o tu nombre como preparador"><input name="org" defaultValue={u.org.name} className="input" /></Field>
               <Field label="WhatsApp para cuotas (con código de país, ej. 5491122334455)"><input name="whatsapp" inputMode="tel" defaultValue={u.org.whatsapp ?? ""} className="input" placeholder="54911…" /></Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Cuota mensual"><input name="feeAmount" inputMode="decimal" defaultValue={u.org.feeAmount ?? ""} className="input" placeholder="Ej: 25000" /></Field>
@@ -59,18 +59,18 @@ export default async function SettingsPage() {
                   <input name="mpToken" type="password" autoComplete="off" className="input" placeholder={u.org.mpToken ? "Configurado · dejalo vacío para mantenerlo" : "APP_USR-…"} />
                 </Field>
                 {u.org.mpToken ? <label className="mt-2 flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" name="mpRemove" value="1" />Desconectar Mercado Pago</label>
-                  : <p className="mt-2 text-xs muted">Con esto tus deportistas pagan la cuota desde la app y se marca sola como pagada.</p>}
+                  : <p className="mt-2 text-xs muted">Con esto tus alumnos pagan la cuota desde la app y se marca sola como pagada.</p>}
               </div>
               <Submit>Guardar</Submit>
             </form>
           </Card>
         )}
         {u.role === "ADMIN" && (
-          <Card title="Marca del club" className="lg:col-span-2">
+          <Card title="Tu marca" className="lg:col-span-2">
             <form action={updateBrand} className="grid gap-5 lg:grid-cols-2">
               <div className="space-y-3">
-                <Field label="Nombre que ven tus deportistas" hint="Si lo dejás vacío se usa Hrtraining.co"><input name="brandName" defaultValue={u.org.brandName ?? ""} maxLength={60} className="input" placeholder={u.org.name} /></Field>
-                <Field label="Enlace de ingreso del club" hint={u.org.slug ? `${origin}/c/${u.org.slug}` : "Ej: hernan-training (solo letras, números y guiones)"}><input name="slug" defaultValue={u.org.slug ?? ""} maxLength={40} className="input" placeholder="nombre-del-club" /></Field>
+                <Field label="Nombre que ven tus alumnos" hint="Si lo dejás vacío se usa Hrtraining.co"><input name="brandName" defaultValue={u.org.brandName ?? ""} maxLength={60} className="input" placeholder={u.org.name} /></Field>
+                <Field label="Tu enlace de ingreso para alumnos" hint={u.org.slug ? `${origin}/c/${u.org.slug}` : "Ej: hernan-training (solo letras, números y guiones)"}><input name="slug" defaultValue={u.org.slug ?? ""} maxLength={40} className="input" placeholder="tu-nombre" /></Field>
                 <Field label="Logo (PNG, JPG o WebP, hasta 2 MB)"><input name="logo" type="file" accept="image/png,image/jpeg,image/webp" className="input file:mr-3 file:rounded-lg file:border-0 file:bg-ink-700 file:px-3 file:py-1 file:text-white" /></Field>
                 {u.org.logoKey && <label className="flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" name="removeLogo" value="1" />Quitar el logo actual</label>}
               </div>
@@ -87,7 +87,7 @@ export default async function SettingsPage() {
           </Card>
         )}
         <Card title="Privacidad">
-          <p className="text-sm leading-relaxed text-neutral-400">Cada usuario ve solo la información que le corresponde: los deportistas acceden a sus propios datos; los entrenadores, a los deportistas y grupos a su cargo; los administradores, a toda la organización. Los archivos se sirven solo a usuarios autorizados. Podés descargar tus evaluaciones desde la sección Evaluaciones.</p>
+          <p className="text-sm leading-relaxed text-neutral-400">Cada usuario ve solo la información que le corresponde: los alumnos acceden a sus propios datos; los entrenadores, a los alumnos y grupos a su cargo; los administradores, a toda la organización. Los archivos se sirven solo a usuarios autorizados. Podés descargar tus evaluaciones desde la sección Evaluaciones.</p>
         </Card>
       </div>
     </>

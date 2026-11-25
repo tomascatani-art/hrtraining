@@ -79,7 +79,7 @@ export function WorkoutLogger({ action, sessionId, athleteId, items, defaultDura
                     {isAthlete && <Link href="/app/rm" className="ml-2 text-volt hover:underline">Cambiar</Link>}
                   </div>
                 ) : (
-                  <div className="mt-1.5 text-xs text-neutral-400">Sin RM cargado para este ejercicio. {isAthlete ? <Link href="/app/rm" className="text-volt hover:underline">Cargar mi RM</Link> : "Cargalo en la pestaña RM del deportista."}</div>
+                  <div className="mt-1.5 text-xs text-neutral-400">Sin RM cargado para este ejercicio. {isAthlete ? <Link href="/app/rm" className="text-volt hover:underline">Cargar mi RM</Link> : "Cargalo en la pestaña RM del alumno."}</div>
                 )
               ) : null}
             </div>

@@ -39,7 +39,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
     db.evaluation.groupBy({ by: ["date"], where: { athleteId: { in: athleteFocus ? [athleteFocus] : ids }, date: { gte: gridStart, lt: gridEnd } }, _count: true }),
     u.role !== "ATHLETE" ? visibleGroups(u) : Promise.resolve([]),
     u.role !== "ATHLETE" ? db.user.findMany({ where: { id: { in: ids } }, orderBy: { name: "asc" } }) : Promise.resolve([]),
-    // Microciclos de la planificación del deportista o grupo seleccionado
+    // Microciclos de la planificación del alumno o grupo seleccionado
     (async () => {
       const groupIds = sp.group ? [sp.group] : athleteFocus ? (await db.groupMember.findMany({ where: { athleteId: athleteFocus } })).map((g) => g.groupId) : [];
       if (!groupIds.length && !athleteFocus) return [];
@@ -65,7 +65,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           <form className="ml-auto flex gap-2">
             <input type="hidden" name="m" value={`${y}-${m}`} />
             <select name="group" defaultValue={sp.group ?? ""} className="input py-1.5 text-xs"><option value="">Todos los grupos</option>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select>
-            <select name="athlete" defaultValue={sp.athlete ?? ""} className="input py-1.5 text-xs"><option value="">Todos los deportistas</option>{athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+            <select name="athlete" defaultValue={sp.athlete ?? ""} className="input py-1.5 text-xs"><option value="">Todos los alumnos</option>{athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
             <button className="btn-ghost btn-sm">Ver</button>
           </form>
         )}

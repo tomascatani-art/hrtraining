@@ -23,7 +23,7 @@ export default async function SportsPage() {
           return (
             <section key={k} className="card card-pad relative overflow-hidden">
               <div className="absolute inset-x-0 top-0 h-1" style={{ background: SPORTS[k].color }} />
-              <div className="flex items-start justify-between gap-2"><h2 className="h2">{SPORTS[k].label}</h2><span className="text-xs muted">{n} deportistas · {ex} ejercicios</span></div>
+              <div className="flex items-start justify-between gap-2"><h2 className="h2">{SPORTS[k].label}</h2><span className="text-xs muted">{n} alumnos · {ex} ejercicios</span></div>
               <p className="mt-1 text-sm muted">{t.note}</p>
               <div className="mt-4 label">Capacidades prioritarias</div>
               <div className="mt-1.5 flex flex-wrap gap-1">{t.focus.map((c, i) => <span key={c} className={i === 0 ? "chip-volt" : "chip-mute"}>{CAPACITIES[c].label}</span>)}</div>

@@ -27,7 +27,7 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
   const [picker, setPicker] = useState(false); // biblioteca a pantalla completa en celular
   const [lastAdded, setLastAdded] = useState<string | null>(null);
   const [repeat, setRepeat] = useState(0);
-  // Ejercicios que este deportista o grupo ya hizo en los 30 días anteriores a la fecha de la sesión
+  // Ejercicios que este alumno o grupo ya hizo en los 30 días anteriores a la fecha de la sesión
   const [used, setUsed] = useState<Record<string, RecentUse>>({});
   useEffect(() => {
     if (!f.target || !f.date) { setUsed({}); return; }
@@ -38,7 +38,7 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
     return () => { live = false; clearTimeout(t); };
   }, [f.target, f.date, f.id]);
   const repeated = items.filter((i) => used[i.exerciseId]).length;
-  // RM y lo anotado por el deportista (solo sesiones individuales)
+  // RM y lo anotado por el alumno (solo sesiones individuales)
   const [ctx, setCtx] = useState<{ rms: Record<string, number>; history: Record<string, ExerciseHistory[]> }>({ rms: {}, history: {} });
   useEffect(() => {
     let live = true;
@@ -91,7 +91,7 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
             <select className="input" value={f.target} onChange={(e) => setF({ ...f, target: e.target.value })} required>
               <option value="">Elegir…</option>
               <optgroup label="Grupos">{targets.groups.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</optgroup>
-              <optgroup label="Deportistas">{targets.athletes.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</optgroup>
+              <optgroup label="Alumnos">{targets.athletes.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}</optgroup>
             </select>
           </L>
           <L label="Fecha y hora"><input type="datetime-local" suppressHydrationWarning className="input" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} required /></L>
@@ -116,7 +116,7 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
 
         <section className="card">
           <div className="flex items-center justify-between p-4 sm:p-5"><h2 className="h2">Ejercicios</h2><span className="label">{items.length} ejercicios</span></div>
-          {repeated > 0 && <p className="mx-3 mb-3 flex items-center gap-2 rounded-xl border border-volt/40 bg-volt/10 px-3 py-2 text-sm text-volt sm:mx-5"><RotateCcw size={15} className="shrink-0" />{repeated === 1 ? "1 ejercicio se repite" : `${repeated} ejercicios se repiten`} respecto del último mes para {f.target.startsWith("g:") ? "este grupo" : "este deportista"}.</p>}
+          {repeated > 0 && <p className="mx-3 mb-3 flex items-center gap-2 rounded-xl border border-volt/40 bg-volt/10 px-3 py-2 text-sm text-volt sm:mx-5"><RotateCcw size={15} className="shrink-0" />{repeated === 1 ? "1 ejercicio se repite" : `${repeated} ejercicios se repiten`} respecto del último mes para {f.target.startsWith("g:") ? "este grupo" : "este alumno"}.</p>}
           {items.length === 0 && <p className="px-5 pb-3 text-sm muted">Agregá ejercicios desde la biblioteca.</p>}
           <ol className="space-y-3 px-3 pb-4 sm:px-5">
             {items.map((it, i) => (
@@ -144,7 +144,7 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
                 {it.percent1RM && ctx.rms[it.exerciseId] ? (() => {
                   const k = kgFromPercent(ctx.rms[it.exerciseId], Number(it.percent1RM));
                   return <p className="mt-2 text-xs text-neutral-300">≈ <b className="num text-white">{fmtKg(k.rounded)} kg</b> con su RM de {fmtKg(ctx.rms[it.exerciseId])} kg{k.adjusted ? ` (${fmtKg(k.exact)} redondeado a discos)` : ""}</p>;
-                })() : it.percent1RM && f.target.startsWith("a:") ? <p className="mt-2 text-xs text-neutral-500">Sin RM cargado para este ejercicio: el deportista lo puede cargar al entrenar.</p> : null}
+                })() : it.percent1RM && f.target.startsWith("a:") ? <p className="mt-2 text-xs text-neutral-500">Sin RM cargado para este ejercicio: el alumno lo puede cargar al entrenar.</p> : null}
                 {ctx.history[it.exerciseId]?.length ? (
                   <ul className="mt-2 space-y-0.5 rounded-lg bg-ink-850 px-3 py-2 text-xs">
                     <li className="label mb-1">Lo que anotó</li>
@@ -152,7 +152,7 @@ export function SessionBuilder({ action, exercises, targets, plans, capacities, 
                   </ul>
                 ) : null}
                 {used[it.exerciseId] && <RepeatNote u={used[it.exerciseId]} />}
-                <input className="input mt-2 py-1.5" value={it.notes} placeholder="Nota para el deportista (opcional)" onChange={(e) => upd(it.key, { notes: e.target.value })} />
+                <input className="input mt-2 py-1.5" value={it.notes} placeholder="Nota para el alumno (opcional)" onChange={(e) => upd(it.key, { notes: e.target.value })} />
               </li>
             ))}
           </ol>

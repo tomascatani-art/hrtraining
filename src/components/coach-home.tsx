@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { ChevronDown, Trophy, Wallet, CalendarDays, AlertTriangle, Clock, ClipboardList, Activity, HeartPulse } from "lucide-react";
+import { Check, ChevronDown, Trophy, Wallet, CalendarDays, AlertTriangle, Clock, ClipboardList, Activity, HeartPulse } from "lucide-react";
 import clsx from "clsx";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { avatarSrc } from "@/lib/avatar";
 import { sessionWhere, visibleAthleteIds } from "@/lib/access";
 import { monitoringFor } from "@/lib/queries";
-import { addDays, startOfDay, startOfWeek } from "@/lib/metrics";
+import { addDays, startOfDay, startOfWeek, dateOnly } from "@/lib/metrics";
 import { SESSION_TYPES } from "@/lib/catalog";
 import { monthKey, monthLabel } from "@/lib/fees";
 import { PageHeader, Avatar, fmtDate, fmtDateLong, fmtTime, fmtNum } from "@/components/ui";
@@ -61,7 +61,7 @@ export async function CoachHome() {
   const weekStart = startOfWeek(now);
   const period = monthKey(now);
 
-  const [athletes, monthSessions, weekSessions, comps, fees, routines, plans, mon, logs, wellness, org] = await Promise.all([
+  const [athletes, monthSessions, weekSessions, comps, fees, routines, plans, mon, logs, wellness, org, checks] = await Promise.all([
     db.user.findMany({
       where: { id: { in: ids } },
       select: { id: true, name: true, avatarKey: true, avatarAt: true, isDemo: true, lastSeenAt: true, firstSeenAt: true, athleteProfile: { select: { paused: true, feeAmount: true } } },
@@ -71,12 +71,13 @@ export async function CoachHome() {
     db.session.findMany({ where: { ...sw, date: { gte: weekStart, lt: addDays(weekStart, 7) } }, include: { group: true, athlete: true }, orderBy: { date: "asc" } }),
     db.competition.findMany({ where: { orgId: u.orgId, date: { gte: today }, OR: [{ athleteId: { in: ids } }, { group: { members: { some: { athleteId: { in: ids } } } } }] }, orderBy: { date: "asc" }, take: 6, include: { group: true, athlete: true } }),
     db.fee.findMany({ where: { orgId: u.orgId, period, athleteId: { in: ids } } }),
-    db.routine.findMany({ where: { orgId: u.orgId, active: true, template: false, athleteId: { in: ids } }, select: { id: true, name: true, data: true, createdAt: true, athlete: { select: { id: true, name: true, avatarKey: true, avatarAt: true } } } }),
+    db.routine.findMany({ where: { orgId: u.orgId, active: true, template: false, athleteId: { in: ids } }, select: { id: true, name: true, data: true, createdAt: true, extra: true, athleteId: true, athlete: { select: { id: true, name: true, avatarKey: true, avatarAt: true } } } }),
     db.plan.findMany({ where: { orgId: u.orgId, endDate: { gte: addDays(today, -7), lte: addDays(today, 21) }, OR: [{ athleteId: { in: ids } }, { group: { members: { some: { athleteId: { in: ids } } } } }] }, include: { athlete: true, group: true }, orderBy: { endDate: "asc" } }),
     monitoringFor(ids),
     db.workoutLog.findMany({ where: { athleteId: { in: ids } }, orderBy: { completedAt: "desc" }, take: 30, include: { athlete: { select: { id: true, name: true, avatarKey: true, avatarAt: true, isDemo: true } }, session: { select: { id: true, title: true } } } }),
     db.wellness.findMany({ where: { athleteId: { in: ids } }, orderBy: { createdAt: "desc" }, take: 20, include: { athlete: { select: { id: true, name: true, avatarKey: true, avatarAt: true, isDemo: true } } } }),
     db.organization.findUnique({ where: { id: u.orgId }, select: { feeAmount: true } }),
+    db.routineCheck.findMany({ where: { athleteId: { in: ids }, date: { gte: dateOnly(addDays(today, -31)) } }, select: { routineId: true, athleteId: true, date: true, dayId: true, rowId: true, createdAt: true } }),
   ]);
 
   // ---- Últimas conexiones
@@ -107,6 +108,25 @@ export async function CoachHome() {
     for (const id of who) if (ids.includes(id)) expected.set(id, (expected.get(id) ?? 0) + 1);
     for (const l of s.logs) if ((l.status === "COMPLETADO" || l.status === "PARCIAL") && ids.includes(l.athleteId)) done.set(l.athleteId, (done.get(l.athleteId) ?? 0) + 1);
   }
+  // Rutina: cada día de la rutina que le tocaba en el mes, contra los ejercicios que marcó con el tic.
+  const monthDay = dateOnly(monthStart);
+  for (const r of routines) {
+    if (r.extra || !r.athleteId) continue;
+    const d = r.data as unknown as RoutineData;
+    const days = (d?.days ?? []).map((x) => ({ id: x.id, rows: x.blocks.flatMap((b) => b.rows.filter((rw) => rw.name).map((rw) => rw.id)) })).filter((x) => x.rows.length);
+    if (!days.length) continue;
+    const from = r.createdAt > monthStart ? startOfDay(r.createdAt) : monthStart;
+    const elapsed = Math.max(1, Math.round((+today - +from) / DAY) + 1);
+    const exp = Math.max(1, Math.round((days.length * elapsed) / 7));
+    const byDay = new Map<string, Set<string>>();
+    for (const c of checks) if (c.routineId === r.id && c.date >= monthDay) {
+      const k = `${+c.date}|${c.dayId}`; if (!byDay.has(k)) byDay.set(k, new Set()); byDay.get(k)!.add(c.rowId);
+    }
+    let got = 0;
+    for (const [k, rows] of byDay) { const day = days.find((x) => x.id === k.split("|")[1]); if (day) got += Math.min(1, [...rows].filter((id) => day.rows.includes(id)).length / day.rows.length); }
+    expected.set(r.athleteId, (expected.get(r.athleteId) ?? 0) + exp);
+    done.set(r.athleteId, (done.get(r.athleteId) ?? 0) + Math.round(got * 10) / 10);
+  }
   const ranking = athletes.filter((a) => expected.get(a.id)).map((a) => ({ a, exp: expected.get(a.id)!, done: Math.min(done.get(a.id) ?? 0, expected.get(a.id)!) }))
     .map((r) => ({ ...r, pct: Math.round((r.done / r.exp) * 100) })).sort((x, y) => y.pct - x.pct || y.done - x.done);
   const avgPct = ranking.length ? Math.round(ranking.reduce((s, r) => s + r.pct, 0) / ranking.length) : null;
@@ -134,7 +154,23 @@ export async function CoachHome() {
   // ---- Alertas y actividad reciente
   const alerts = mon.flatMap((m) => m.alerts.filter((a) => a.kind !== "SIN_REGISTRO").map((a) => ({ ...a, athlete: m.user })));
   type Act = { key: string; at: Date; who: { id: string; name: string; avatarKey: string | null; avatarAt: Date | null; isDemo: boolean }; text: React.ReactNode; extra?: string };
+  const athById = new Map(athletes.map((a) => [a.id, a]));
+  const routineById = new Map(routines.map((r) => [r.id, r]));
+  const checkGroups = new Map<string, { athleteId: string; routineId: string; dayId: string; n: number; at: Date }>();
+  for (const c of checks) {
+    const k = `${c.athleteId}|${c.routineId}|${+c.date}|${c.dayId}`;
+    const g = checkGroups.get(k) ?? { athleteId: c.athleteId, routineId: c.routineId, dayId: c.dayId, n: 0, at: c.createdAt };
+    g.n++; if (c.createdAt > g.at) g.at = c.createdAt; checkGroups.set(k, g);
+  }
+  const checkActs: Act[] = [];
+  for (const [k, g] of checkGroups) {
+    const a = athById.get(g.athleteId); const r = routineById.get(g.routineId); if (!a || !r) continue;
+    const day = (r.data as unknown as RoutineData)?.days?.find((x) => x.id === g.dayId);
+    const total = day ? day.blocks.reduce((s, b) => s + b.rows.filter((rw) => rw.name).length, 0) : 0;
+    checkActs.push({ key: "c" + k, at: g.at, who: a, text: <>{total && g.n >= total ? "terminó" : "marcó"} {total ? `${Math.min(g.n, total)} de ${total} ejercicios` : `${g.n} ejercicios`} de <Link href={`/app/routines/${r.id}`} className="text-neutral-200 hover:text-volt">{day?.name ?? "su rutina"}</Link> <Check size={13} className="inline text-volt" /></> });
+  }
   const acts: Act[] = [
+    ...checkActs,
     ...logs.map((l) => ({ key: "l" + l.id, at: l.completedAt, who: l.athlete, text: <>{l.status === "COMPLETADO" ? "completó" : l.status === "PARCIAL" ? "completó una parte de" : "no hizo"} <Link href={`/app/sessions/${l.session.id}`} className="text-neutral-200 hover:text-volt">{l.session.title}</Link></>, extra: l.load != null ? `RPE ${l.rpe} · ${l.load} UA` : undefined })),
     ...wellness.map((w) => ({ key: "w" + w.id, at: w.createdAt, who: w.athlete, text: <>cargó cómo se siente <HeartPulse size={13} className="inline text-volt" /></> })),
   ].sort((a, b) => +b.at - +a.at).slice(0, 25);
@@ -146,7 +182,7 @@ export async function CoachHome() {
       <PageHeader
         eyebrow={fmtDateLong(now)}
         title={`Hola, ${u.name.split(" ")[0]}`}
-        subtitle={`${ids.length} ${ids.length === 1 ? "deportista" : "deportistas"} · ${todayCount} ${todayCount === 1 ? "entró" : "entraron"} hoy`}
+        subtitle={`${ids.length} ${ids.length === 1 ? "alumno" : "alumnos"} · ${todayCount} ${todayCount === 1 ? "entró" : "entraron"} hoy`}
         actions={<><Link href="/app/routines" className="btn-primary">Rutinas</Link><Link href="/app/calendar?new=1" className="btn-ghost">Nueva sesión</Link></>}
       />
       <SetupGuide u={u} />
@@ -172,7 +208,7 @@ export async function CoachHome() {
                 </details>
               )}
             </>
-          ) : <Nada>Todavía nadie abrió la app. Cuando tus deportistas entren, vas a ver acá quién entró y a qué hora.</Nada>}
+          ) : <Nada>Todavía nadie abrió la app. Cuando tus alumnos entren, vas a ver acá quién entró y a qué hora.</Nada>}
           {never.length > 0 && (
             <p className="mt-3 text-sm muted">
               <span className="text-neutral-300">Todavía no entraron:</span> {never.map((a, i) => <span key={a.id}><Link href={`/app/athletes/${a.id}`} className="hover:text-volt">{a.name}</Link>{i < never.length - 1 ? ", " : ""}</span>)}
@@ -190,12 +226,12 @@ export async function CoachHome() {
                   <Avatar name={r.a.name} src={avatarSrc(r.a)} size={28} />
                   <Link href={`/app/athletes/${r.a.id}`} className="min-w-0 flex-1 truncate text-sm font-medium text-white hover:text-volt">{r.a.name}</Link>
                   <span className="hidden h-1.5 w-28 overflow-hidden rounded-full bg-ink-700 sm:block"><span className="block h-full rounded-full bg-volt" style={{ width: `${r.pct}%` }} /></span>
-                  <span className="num w-20 text-right text-xs text-neutral-400">{r.done}/{r.exp} · <span className="font-semibold text-white">{r.pct}%</span></span>
+                  <span className="num w-24 shrink-0 text-right text-xs text-neutral-400">{r.done}/{r.exp} · <span className="font-semibold text-white">{r.pct}%</span></span>
                 </li>
               ))}
             </ol>
           ) : <Nada>Este mes todavía no hay sesiones asignadas para medir el cumplimiento.</Nada>}
-          <p className="mt-3 text-xs text-neutral-600">Sesiones hechas sobre las que le tocaban en {monthLabel(period).toLowerCase()}.</p>
+          <p className="mt-3 text-xs text-neutral-600">Días de rutina marcados con el tic y sesiones hechas, sobre lo que le tocaba en {monthLabel(period).toLowerCase()}.</p>
         </Fold>
 
         {/* Cuotas */}

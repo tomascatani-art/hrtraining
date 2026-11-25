@@ -18,7 +18,7 @@ export async function createAnalysis(fd: FormData) {
   const video = await db.fileAsset.findUnique({ where: { id: String(fd.get("videoId")) } });
   if (!video || video.kind !== "VIDEO" || !(await canAccessFile(u, video))) throw new Error("Video inválido");
   const athleteId = u.role === "ATHLETE" ? u.id : String(fd.get("athleteId") || video.athleteId || "");
-  if (!athleteId) throw new Error("Elegí el deportista");
+  if (!athleteId) throw new Error("Elegí el alumno");
   await assertAthlete(u, athleteId);
   const compareId = String(fd.get("compareId") ?? "") || null;
   if (compareId) {

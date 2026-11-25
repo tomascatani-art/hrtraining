@@ -10,7 +10,7 @@ import { deleteFile, moveFile } from "@/app/app/files/actions";
 const size = (b: number) => (b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.ceil(b / 1e3)} KB`);
 const Icon = ({ k }: { k: string }) => (k === "VIDEO" ? <Film size={18} /> : k === "IMAGEN" ? <ImageIcon size={18} /> : <FileText size={18} />);
 
-/** Carpeta del perfil: documentos del deportista ordenados por sección. La ven el deportista y sus entrenadores. */
+/** Carpeta del perfil: documentos del alumno ordenados por sección. La ven el alumno y sus entrenadores. */
 export async function FolderPanel({ athleteId, viewerId, staff, base, active }: { athleteId: string; viewerId: string; staff: boolean; base: string; active?: string }) {
   const files = await db.fileAsset.findMany({ where: { athleteId }, include: { owner: { select: { name: true } } }, orderBy: { createdAt: "desc" } });
   const keyOf = (f: { folder: string | null }) => f.folder ?? "OTROS";
@@ -70,7 +70,7 @@ export async function FolderPanel({ athleteId, viewerId, staff, base, active }: 
       </div>
       <Card title="Subir a la carpeta">
         <Uploader folders={folders} defaultFolder={active} defaultAthlete={athleteId} label="Subir documento o foto" compact />
-        <p className="mt-3 text-xs muted">Solo lo ven {staff ? "el deportista y sus entrenadores" : "vos y tus entrenadores"}. Los estudios médicos se guardan como respaldo: la app no los interpreta.</p>
+        <p className="mt-3 text-xs muted">Solo lo ven {staff ? "el alumno y sus entrenadores" : "vos y tus entrenadores"}. Los estudios médicos se guardan como respaldo: la app no los interpreta.</p>
       </Card>
     </div>
   );

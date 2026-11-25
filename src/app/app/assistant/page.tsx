@@ -32,7 +32,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
     proposal = generateWeek({ objective, days, level, equipment: eq, library });
   }
 
-  // Recomendaciones basadas en el historial del deportista elegido
+  // Recomendaciones basadas en el historial del alumno elegido
   const recs: string[] = [];
   let used: Record<string, RecentUse> = {};
   if (athlete) {
@@ -49,17 +49,17 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
     const fms = evals.filter((e) => e.testKey === "FMS_TOTAL").at(-1);
     if (fms && fms.value <= 14) recs.push(`FMS total ${fms.value}/21: priorizá movilidad y estabilidad en la entrada en calor.`);
     if (m.indicators.acwr && m.indicators.acwr >= 1.3) recs.push(`La carga de los últimos 7 días es ${m.indicators.acwr.toFixed(2)}× su promedio mensual: conviene una progresión más gradual.`);
-    if (m.lastWellness && wellnessScore(m.lastWellness) <= 13) recs.push("Bienestar bajo en el último registro: consultá con el deportista antes de una sesión exigente.");
+    if (m.lastWellness && wellnessScore(m.lastWellness) <= 13) recs.push("Bienestar bajo en el último registro: consultá con el alumno antes de una sesión exigente.");
     if (!recs.length) recs.push("Sin señales de estancamiento ni cambios bruscos de carga. Podés progresar según lo planificado.");
   }
 
   return (
     <>
-      <PageHeader eyebrow="Basado en reglas de prescripción" title="Asistente de planificación" subtitle="Genera una propuesta semanal según objetivo, nivel, frecuencia y material disponible, y sugiere ajustes a partir del historial del deportista. Siempre la valida el entrenador antes de asignarla." />
+      <PageHeader eyebrow="Basado en reglas de prescripción" title="Asistente de planificación" subtitle="Genera una propuesta semanal según objetivo, nivel, frecuencia y material disponible, y sugiere ajustes a partir del historial del alumno. Siempre la valida el entrenador antes de asignarla." />
       <div className="grid gap-6 xl:grid-cols-3">
         <Card title="Parámetros" className="h-fit">
           <form className="space-y-3">
-            <Field label="Deportista (para recomendaciones)"><select name="athlete" defaultValue={athlete} className="input"><option value="">—</option>{athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
+            <Field label="Alumno (para recomendaciones)"><select name="athlete" defaultValue={athlete} className="input"><option value="">—</option>{athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>
             <Field label="Objetivo principal"><select name="objective" defaultValue={objective} className="input" required><option value="">Elegir…</option>{OBJECTIVES.map((o) => <option key={o} value={o}>{CAPACITIES[o].label}</option>)}</select></Field>
             <div className="grid grid-cols-2 gap-2">
               <Field label="Días / semana"><select name="days" defaultValue={days} className="input">{[2, 3, 4, 5].map((d) => <option key={d}>{d}</option>)}</select></Field>
@@ -94,7 +94,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
                 <form action={createFromProposal} className="grid gap-3 sm:grid-cols-4">
                   <input type="hidden" name="plan" value={JSON.stringify(proposal)} />
                   <Field label="Nombre"><input name="name" defaultValue={`Bloque ${CAPACITIES[objective].label.toLowerCase()}`} className="input" /></Field>
-                  <Field label="Para"><select name="target" defaultValue={athlete ? `a:${athlete}` : ""} className="input" required><option value="">Elegir…</option><optgroup label="Grupos">{groups.map((g) => <option key={g.id} value={`g:${g.id}`}>{g.name}</option>)}</optgroup><optgroup label="Deportistas">{athletes.map((a) => <option key={a.id} value={`a:${a.id}`}>{a.name}</option>)}</optgroup></select></Field>
+                  <Field label="Para"><select name="target" defaultValue={athlete ? `a:${athlete}` : ""} className="input" required><option value="">Elegir…</option><optgroup label="Grupos">{groups.map((g) => <option key={g.id} value={`g:${g.id}`}>{g.name}</option>)}</optgroup><optgroup label="Alumnos">{athletes.map((a) => <option key={a.id} value={`a:${a.id}`}>{a.name}</option>)}</optgroup></select></Field>
                   <Field label="Desde"><input type="date" name="start" defaultValue={new Date(Date.now() + 86400000).toISOString().slice(0, 10)} className="input" /></Field>
                   <Field label="Semanas"><select name="weeks" className="input">{[1, 2, 3, 4, 6, 8].map((w) => <option key={w}>{w}</option>)}</select></Field>
                   <div className="sm:col-span-4 flex items-center justify-between gap-3"><p className="text-xs muted">Las sesiones se crean editables: podés ajustar ejercicios, cargas y fechas después.</p><Submit>Validar y crear sesiones</Submit></div>

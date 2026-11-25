@@ -96,6 +96,7 @@ model User {
   fees                Fee[]
   routines            Routine[]            @relation("routineAthlete")
   routinesCoached     Routine[]            @relation("routineCoach")
+  routineChecks       RoutineCheck[]       @relation("routineChecks")
 
   @@index([orgId, role])
 }
@@ -605,6 +606,7 @@ model Routine {
   updatedAt DateTime     @updatedAt
 
   snapshots RoutineSnapshot[]
+  checks    RoutineCheck[]
 
   @@index([athleteId, active])
   @@index([orgId, template])
@@ -635,4 +637,20 @@ model ExerciseLink {
   updatedAt  DateTime     @updatedAt
 
   @@unique([orgId, exerciseId])
+}
+
+/// Tic del deportista: "ya hice este ejercicio" en la rutina, por día.
+model RoutineCheck {
+  id        String   @id @default(cuid())
+  routineId String
+  routine   Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  athleteId String
+  athlete   User     @relation("routineChecks", fields: [athleteId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  dayId     String
+  rowId     String
+  createdAt DateTime @default(now())
+
+  @@unique([routineId, date, rowId])
+  @@index([athleteId, date])
 }

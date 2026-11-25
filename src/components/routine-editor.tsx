@@ -13,7 +13,7 @@ const move = <T,>(a: T[], i: number, d: number) => { const j = i + d; if (j < 0 
 const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 const hhmm = (d: Date) => d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-/** Planilla del plan del deportista. Se guarda sola mientras editás. */
+/** Planilla del plan del alumno. Se guarda sola mientras editás. */
 export function RoutineEditor({ id, initialName, initial, exercises, athletes, isTemplate, athleteName, save, copyDay, children }: {
   id: string; initialName: string; initial: RoutineData; exercises: Ex[]; athletes: Athlete[]; isTemplate: boolean; athleteName?: string | null;
   save: (id: string, name: string, data: unknown) => Promise<{ ok: boolean; savedAt: string }>;
@@ -73,7 +73,7 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
     <div className="space-y-4">
       {athleteName && (
         <div className="rounded-2xl border border-volt/60 bg-volt/[0.06] p-4">
-          <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-volt"><Megaphone size={16} />Aviso para {athleteName ?? "el deportista"}</div>
+          <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-volt"><Megaphone size={16} />Aviso para {athleteName ?? "el alumno"}</div>
           <p className="mt-1 text-xs text-neutral-400">Lo que escribas acá le aparece destacado en su Inicio, antes de entrenar. Si lo dejás vacío, no se muestra nada.</p>
           <textarea value={data.meta.notice ?? ""} onChange={(e) => set((d) => { d.meta.notice = e.target.value; })} rows={2}
             placeholder="Ej: Esta semana bajamos el volumen, priorizá la técnica. Cualquier molestia me avisás." className="input mt-2 w-full text-sm" />

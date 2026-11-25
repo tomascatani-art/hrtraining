@@ -166,7 +166,7 @@ export async function sharePlan(fd: FormData) {
   revalidatePath(`/app/planning/${p.id}`);
 }
 
-/** Copia una planificación completa (estructura y, si se pide, sus sesiones con ejercicios) a otro deportista, corrida a una nueva fecha de inicio. */
+/** Copia una planificación completa (estructura y, si se pide, sus sesiones con ejercicios) a otro alumno, corrida a una nueva fecha de inicio. */
 export async function copyPlan(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const p = await ownPlan(u, String(fd.get("id")));

@@ -29,7 +29,7 @@ export default async function PlanDetail({ params, searchParams }: { params: Pro
   const months: Date[] = [];
   for (let d = new Date(p.startDate.getFullYear(), p.startDate.getMonth() + 1, 1); d < p.endDate; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) months.push(d);
 
-  // Plan vs ejecutado: carga sRPE real promedio por deportista en cada microciclo
+  // Plan vs ejecutado: carga sRPE real promedio por alumno en cada microciclo
   const athleteIds = p.athleteId ? [p.athleteId] : p.group?.members.map((m) => m.athleteId) ?? [];
   const logs = athleteIds.length ? await db.workoutLog.findMany({ where: { athleteId: { in: athleteIds }, completedAt: { gte: p.startDate, lte: p.endDate }, load: { not: null } }, select: { completedAt: true, load: true } }) : [];
   const versus = micros.filter((m) => m.startDate <= now).slice(-16).map((m) => {
@@ -120,7 +120,7 @@ export default async function PlanDetail({ params, searchParams }: { params: Pro
         <Card title="Dinámica de volumen e intensidad" action={<span className="label">Escala 1-10</span>}>
           {dyn.length ? <PlanDynamics data={dyn} /> : <Empty title="Agregá microciclos para ver la dinámica" />}
         </Card>
-        <Card title="Plan vs. ejecutado" action={<span className="label">UA por deportista / semana</span>}>
+        <Card title="Plan vs. ejecutado" action={<span className="label">UA por alumno / semana</span>}>
           {versus.length ? <TrendChart data={versus} series={[{ key: "plan", name: "Planificada" }, { key: "real", name: "Ejecutada (sRPE)" }]} unit="UA" /> : <Empty title="Sin semanas transcurridas todavía" />}
         </Card>
       </div>
@@ -184,14 +184,14 @@ export default async function PlanDetail({ params, searchParams }: { params: Pro
               <textarea name="goal" defaultValue={p.goal ?? ""} className="input" placeholder="Objetivo" />
               <Submit className="btn-ghost w-full">Guardar</Submit>
             </form>
-            <form action={sharePlan} className="mt-2"><input type="hidden" name="id" value={p.id} /><Submit className="btn-ghost w-full" pendingText="Enviando…">Notificar a los deportistas</Submit></form>
+            <form action={sharePlan} className="mt-2"><input type="hidden" name="id" value={p.id} /><Submit className="btn-ghost w-full" pendingText="Enviando…">Notificar a los alumnos</Submit></form>
           </Card>
-          <Card title="Copiar a otro deportista">
+          <Card title="Copiar a otro alumno">
             <form action={copyPlan} className="space-y-3">
               <input type="hidden" name="id" value={p.id} />
-              <select name="athleteId" className="input" required defaultValue=""><option value="" disabled>Elegí el deportista…</option>{copyTargets.filter((a) => a.id !== p.athleteId).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+              <select name="athleteId" className="input" required defaultValue=""><option value="" disabled>Elegí el alumno…</option>{copyTargets.filter((a) => a.id !== p.athleteId).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
               <label className="block"><span className="label mb-1 block">Empieza el</span><input name="startDate" type="date" defaultValue={iso(p.startDate)} className="input" /></label>
-              <label className="block"><span className="label mb-1 block">Título de la copia</span><input name="name" placeholder={`${p.name} (nombre del deportista)`} className="input" /></label>
+              <label className="block"><span className="label mb-1 block">Título de la copia</span><input name="name" placeholder={`${p.name} (nombre del alumno)`} className="input" /></label>
               <label className="flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" name="withSessions" defaultChecked /> Incluir las {linkedSessions} sesiones con sus ejercicios</label>
               <Submit className="btn-primary w-full" pendingText="Copiando…">Copiar planificación</Submit>
             </form>

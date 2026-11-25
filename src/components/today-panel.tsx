@@ -6,7 +6,7 @@ import { Card, fmtDate, fmtTime } from "./ui";
 import { Submit } from "./forms";
 import { markRMSeen } from "@/app/app/rm/actions";
 
-/** «Hoy» del entrenador: quién entrenó, quién marcó dolor o molestia y los RM nuevos que cargaron los deportistas. */
+/** «Hoy» del entrenador: quién entrenó, quién marcó dolor o molestia y los RM nuevos que cargaron los alumnos. */
 export async function TodayPanel({ ids }: { ids: string[] }) {
   const today = startOfDay(new Date());
   const since = addDays(today, -1);
@@ -51,7 +51,7 @@ export async function TodayPanel({ ids }: { ids: string[] }) {
             ))}
           </ul>
         ) : <p className="text-sm muted">Nadie marcó dolor ni molestias.</p>}
-        <p className="mt-3 text-[11px] text-neutral-600">Se detecta por lo que escribe el deportista. Es un aviso para conversar, no un diagnóstico.</p>
+        <p className="mt-3 text-[11px] text-neutral-600">Se detecta por lo que escribe el alumno. Es un aviso para conversar, no un diagnóstico.</p>
       </Card>
       <Card title="RM nuevos" action={rms.length ? <form action={markRMSeen}>{rms.map((r) => <input key={r.id} type="hidden" name="id" value={r.id} />)}<Submit className="text-xs text-volt hover:underline" pendingText="…">Marcar todo visto</Submit></form> : undefined}>
         {rms.length ? (
@@ -70,7 +70,7 @@ export async function TodayPanel({ ids }: { ids: string[] }) {
   );
 }
 
-/** Sensaciones del deportista según lo que escribió en las sesiones (orientativo). */
+/** Sensaciones del alumno según lo que escribió en las sesiones (orientativo). */
 export async function SensationsCard({ athleteId, days = 60 }: { athleteId: string; days?: number }) {
   const logs = await db.workoutLog.findMany({ where: { athleteId, completedAt: { gte: addDays(new Date(), -days) } }, select: { feeling: true, itemNotes: { select: { note: true } } } });
   const counts: Record<string, number> = { BIEN: 0, ESFUERZO: 0, MOLESTIA: 0, NADA: 0 };
