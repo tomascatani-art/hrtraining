@@ -5,7 +5,7 @@ import { useState } from "react";
 import clsx from "clsx";
 import {
   LayoutDashboard, Users, UsersRound, CalendarRange, CalendarDays, Dumbbell, Gauge, Activity, LineChart,
-  Video, MessageSquare, FolderOpen, Trophy, Shapes, ShieldCheck, Settings, HeartPulse, Target, Menu, X, Bell, LogOut, Sparkles, Wallet, Wrench, ChevronDown, ClipboardList,
+  Video, MessageSquare, FolderOpen, Trophy, Shapes, ShieldCheck, Settings, HeartPulse, Target, Menu, X, Bell, LogOut, Sparkles, Wallet, Wrench, ChevronDown, ClipboardList, Search,
 } from "lucide-react";
 import { Logo, Avatar } from "./ui";
 import { logoutAction } from "@/app/(auth)/actions";
@@ -155,6 +155,9 @@ export function Shell({
           </div>
         )}
         <div className="flex-1" />
+        <Link href="/app/search" className="flex items-center gap-2 rounded-xl p-2 text-neutral-400 hover:bg-ink-800 hover:text-white lg:border lg:border-ink-700 lg:px-3 lg:py-1.5" aria-label="Buscar">
+          <Search size={19} /><span className="hidden text-sm lg:inline">Buscar alumnos, ejercicios, rutinas…</span>
+        </Link>
         <Link href="/app/notifications" className="relative rounded-xl p-2 text-neutral-400 hover:bg-ink-800 hover:text-white" aria-label="Notificaciones">
           <Bell size={19} />
           {unreadNotifications > 0 && <span className="num absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-volt px-1 text-[10px] font-bold text-black">{unreadNotifications}</span>}

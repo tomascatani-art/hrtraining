@@ -7,6 +7,7 @@ import { canSeeAthlete } from "@/lib/access";
 import { Avatar, DemoBadge, fmtDate } from "@/components/ui";
 import { Submit, ConfirmSubmit } from "@/components/forms";
 import { RoutineEditor } from "@/components/routine-editor";
+import { RoutinePdfButtons } from "@/components/routine-pdf-buttons";
 import { avatarSrc } from "@/lib/avatar";
 import { sportLabel } from "@/lib/catalog";
 import { withVideos, athleteOptions, libraryPicker, currentRoutine } from "@/lib/routine-server";
@@ -28,7 +29,7 @@ function Fold({ icon, title, count, children, open }: { icon: React.ReactNode; t
   );
 }
 
-export default async function RoutinePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ copiada?: string }> }) {
+export default async function RoutinePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ copiada?: string; restaurada?: string }> }) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const { id } = await params;
   const sp = await searchParams;
@@ -40,6 +41,7 @@ export default async function RoutinePage({ params, searchParams }: { params: Pr
     db.routine.findMany({ where: { orgId: u.orgId, template: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     r.athleteId ? db.routine.findMany({ where: { athleteId: r.athleteId }, orderBy: { updatedAt: "desc" } }) : Promise.resolve([]),
   ]);
+  const snapCount = await db.routineSnapshot.count({ where: { routineId: r.id } });
   const others = athletes.filter((a) => a.id !== r.athleteId);
   const versions = all.filter((v) => !v.extra && !v.active && !v.startsOn && v.id !== r.id);
   const extras = all.filter((v) => v.extra && v.id !== r.id);
@@ -49,8 +51,10 @@ export default async function RoutinePage({ params, searchParams }: { params: Pr
   const p = a?.athleteProfile;
   const kind = r.template ? "Plantilla" : r.extra ? "Rutina extra" : r.startsOn ? `Próximo plan · empieza ${fmtDate(r.startsOn, { day: "2-digit", month: "short" })}` : !r.active ? "Versión guardada (no es la actual)" : null;
 
+  const appUrl = process.env.APP_URL || "";
   const actions = (
     <div className="space-y-3">
+      <RoutinePdfButtons id={r.id} fileName={`${r.name}${a ? ` - ${a.name}` : ""}`.replace(/[^\p{L}\p{N} ._-]/gu, "")} phoneText={`${a ? `Hola ${a.name.split(" ")[0]}! ` : ""}Te paso tu rutina "${r.name}".${a && appUrl ? ` También la ves en la app: ${appUrl}/app/routine` : ""}`} />
       {a && !r.template && !r.extra && r.active && templates.length > 0 && (
         <form action={replaceWithTemplate} className="space-y-1.5">
           <input type="hidden" name="id" value={r.id} />
@@ -58,7 +62,7 @@ export default async function RoutinePage({ params, searchParams }: { params: Pr
             <select name="templateId" required defaultValue="" className="input flex-1"><option value="" disabled>Reemplazar todo por una plantilla…</option>{templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
             <Submit className="btn-ghost" pendingText="…">Usar</Submit>
           </div>
-          <p className="text-xs text-neutral-500">Si ya tenía algo cargado, se guarda solo antes de reemplazarlo; lo encontrás en Versiones guardadas.</p>
+          <p className="text-xs text-neutral-500">Si ya tenía algo cargado, se guarda solo antes de reemplazarlo; lo encontrás en Planes anteriores.</p>
         </form>
       )}
       {a && !r.template && !r.extra && r.active && (
@@ -84,7 +88,8 @@ export default async function RoutinePage({ params, searchParams }: { params: Pr
       </Fold>
       {a && (
         <>
-          <Fold icon={<History size={18} />} title="Versiones guardadas" count={versions.length}>
+          <Link href={`/app/routines/${r.id}/historial`} className="card flex items-center gap-2 px-4 py-3.5 font-semibold text-white hover:border-volt/50"><History size={18} className="text-volt" /><span className="flex-1">Historial de versiones del plan{snapCount ? ` (${snapCount})` : ""}</span><span className="text-sm text-volt">Ver</span></Link>
+          <Fold icon={<History size={18} />} title="Planes anteriores" count={versions.length}>
             {versions.length === 0 ? <p className="text-sm muted">Todavía no hay versiones anteriores. Se guardan solas cuando reemplazás el plan.</p> : (
               <div className="space-y-2">
                 {versions.map((v) => (
@@ -150,6 +155,7 @@ export default async function RoutinePage({ params, searchParams }: { params: Pr
         </>
       ) : <h1 className="mb-4 font-display text-2xl font-bold text-white">{r.name}</h1>}
       {(kind || r.isDemo) && <div className="mb-4 flex flex-wrap items-center gap-2">{kind && <span className="chip-volt">{kind}</span>}{r.isDemo && <DemoBadge />}</div>}
+      {sp.restaurada && <div className="mb-4 rounded-xl border border-volt/40 bg-volt/10 px-4 py-3 text-sm text-volt">Listo, el plan volvió a esa versión. La que había antes quedó guardada en el historial.</div>}
       {sp.copiada && <div className="mb-4 rounded-xl border border-volt/40 bg-volt/10 px-4 py-3 text-sm text-volt">Plan copiado. Esta es la copia; podés ajustarla para este alumno.</div>}
       <RoutineEditor id={r.id} initialName={r.name} initial={data} exercises={exercises} athletes={others} isTemplate={r.template} athleteName={r.extra ? null : a?.name}
         save={saveRoutine} copyDay={copyDay}>{actions}</RoutineEditor>

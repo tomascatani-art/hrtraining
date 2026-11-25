@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FileDown } from "lucide-react";
 import { Notice } from "@/components/routine-notice";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -23,6 +24,7 @@ export default async function MyRoutine({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader title={r.name} eyebrow={r.extra ? "Rutina extra" : "Mi rutina"}
+        actions={<a href={`/api/routines/${r.id}/pdf`} target="_blank" rel="noopener" className="btn-ghost"><FileDown size={16} />PDF</a>}
         subtitle={<>{coach ? `De ${coach.name} · ` : ""}actualizada {fmtDate(r.updatedAt)}{week != null ? ` · vas por la semana ${week + 1} de ${data.weeks}` : ""}</>} />
       {notice && !r.extra && <Notice text={notice} />}
       {extras.length > 0 && (
