@@ -1,48 +1,54 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Plus, Save, Trash2, Link2, Search, Send } from "lucide-react";
-import { type RoutineData, type RoutineRow, type RoutineDay, emptyDay, emptyBlock, emptyRow, cloneDay, newId, MAX_WEEKS, BLOCK_KINDS, FOCUS, type BlockKind } from "@/lib/routine";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Plus, Save, X, Search, Send, ClipboardCopy, ClipboardPaste, Link2, Repeat, Megaphone, Cloud } from "lucide-react";
+import { type RoutineData, type RoutineRow, type RoutineDay, emptyDay, emptyBlock, emptyRow, cloneDay, newId, MAX_WEEKS, BLOCK_KINDS, FOCUS, WEEKDAYS, type BlockKind } from "@/lib/routine";
 import { youtubeSearch } from "@/lib/video";
 import { VideoButton } from "@/components/video-player";
 
 type Ex = [id: string, name: string, video: string | null];
 type Athlete = { id: string; name: string };
+type Clip = { cells: string[]; rm: string[] } | null;
 
 const move = <T,>(a: T[], i: number, d: number) => { const j = i + d; if (j < 0 || j >= a.length) return a; const b = [...a]; [b[i], b[j]] = [b[j], b[i]]; return b; };
 const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+const hhmm = (d: Date) => d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-/** Planilla de la rutina: días → bloques → ejercicios, una columna por semana. Estilo hoja de cálculo, pensado para el celular también. */
-export function RoutineEditor({ id, initialName, initial, exercises, athletes, isTemplate, save, copyDay }: {
-  id: string; initialName: string; initial: RoutineData; exercises: Ex[]; athletes: Athlete[]; isTemplate: boolean;
+/** Planilla del plan del deportista. Se guarda sola mientras editás. */
+export function RoutineEditor({ id, initialName, initial, exercises, athletes, isTemplate, athleteName, save, copyDay, children }: {
+  id: string; initialName: string; initial: RoutineData; exercises: Ex[]; athletes: Athlete[]; isTemplate: boolean; athleteName?: string | null;
   save: (id: string, name: string, data: unknown) => Promise<{ ok: boolean; savedAt: string }>;
   copyDay: (fromId: string, dayId: string, toAthleteId: string) => Promise<{ ok: boolean; name: string }>;
+  children?: React.ReactNode;
 }) {
   const [data, setData] = useState<RoutineData>(initial);
   const [name, setName] = useState(initialName);
   const [dayIdx, setDayIdx] = useState(0);
-  // En el celular se edita una semana por vez (sin mover para los costados); en la compu se ven todas.
-  const [view, setView] = useState<number | null>(null);
-  useEffect(() => { if (window.innerWidth < 768) setView(0); }, []);
   const [dirty, setDirty] = useState(false);
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [status, setStatus] = useState<{ ok: boolean; text: string }>({ ok: true, text: "Todo guardado" });
   const [pending, start] = useTransition();
+  const [clip, setClip] = useState<Clip>(null);
   const byName = useMemo(() => new Map(exercises.map((e) => [norm(e[1]), e])), [exercises]);
   const first = useRef(true);
+  const latest = useRef({ data, name });
+  latest.current = { data, name };
   useEffect(() => { if (first.current) { first.current = false; return; } setDirty(true); }, [data, name]);
   useEffect(() => {
     const h = (e: BeforeUnloadEvent) => { if (dirty) e.preventDefault(); };
     window.addEventListener("beforeunload", h); return () => window.removeEventListener("beforeunload", h);
   }, [dirty]);
 
+  const doSave = () => start(async () => {
+    setStatus({ ok: true, text: "Guardando…" });
+    try { await save(id, latest.current.name, latest.current.data); setDirty(false); setStatus({ ok: true, text: `Guardado ${hhmm(new Date())}` }); }
+    catch (e) { setStatus({ ok: false, text: e instanceof Error ? e.message : "No se pudo guardar. Tocá Guardar planificación." }); }
+  });
+  // Se guarda solo: 1,5 s después del último cambio.
+  useEffect(() => { if (!dirty) return; const t = setTimeout(doSave, 1500); return () => clearTimeout(t); }, [data, name, dirty]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const day = data.days[Math.min(dayIdx, data.days.length - 1)];
   const di = data.days.indexOf(day);
-  const set = (f: (d: RoutineData) => RoutineData) => setData((d) => f(structuredClone(d)));
-  const setDay = (f: (d: RoutineDay) => void) => set((d) => { f(d.days[di]); return d; });
-
-  const doSave = () => start(async () => {
-    try { await save(id, name, data); setDirty(false); setMsg({ ok: true, text: "Guardado" }); }
-    catch (e) { setMsg({ ok: false, text: e instanceof Error ? e.message : "No se pudo guardar" }); }
-  });
+  const set = (f: (d: RoutineData) => RoutineData | void) => setData((d) => { const c = structuredClone(d); return f(c) ?? c; });
+  const setDay = (f: (d: RoutineDay) => void) => set((d) => { f(d.days[di]); });
 
   /** Si el nombre coincide con uno de la biblioteca, se vincula y trae su video. */
   const pickName = (row: { name: string; exerciseId?: string | null; video?: string | null }, value: string, picked?: Ex) => {
@@ -51,89 +57,100 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
     if (ex) { row.exerciseId = ex[0]; row.name = ex[1]; if (!row.video && ex[2]) row.video = ex[2]; }
     else if (row.exerciseId) { row.exerciseId = null; }
   };
-
-  const setWeeks = (n: number) => set((d) => {
-    const w = Math.max(1, Math.min(MAX_WEEKS, n));
-    for (const dd of d.days) for (const b of dd.blocks) for (const r of b.rows) r.cells = Array.from({ length: w }, (_, i) => r.cells[i] ?? r.cells[r.cells.length - 1] ?? "");
-    d.weeks = w; return d;
+  const allRows = (d: RoutineData) => d.days.flatMap((x) => x.blocks.flatMap((b) => b.rows));
+  const addWeek = () => set((d) => {
+    if (d.weeks >= MAX_WEEKS) return;
+    for (const r of allRows(d)) { r.cells.push(r.cells[r.cells.length - 1] ?? ""); r.rm = [...(r.rm ?? []), (r.rm ?? [])[d.weeks - 1] ?? ""]; }
+    d.weeks += 1;
+  });
+  const removeWeek = (w: number) => set((d) => {
+    if (d.weeks <= 1) return;
+    for (const r of allRows(d)) { r.cells.splice(w, 1); r.rm?.splice(w, 1); }
+    d.weeks -= 1;
   });
 
   return (
     <div className="space-y-4">
+      {athleteName && (
+        <div className="rounded-2xl border border-volt/60 bg-volt/[0.06] p-4">
+          <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-volt"><Megaphone size={16} />Aviso para {athleteName ?? "el deportista"}</div>
+          <p className="mt-1 text-xs text-neutral-400">Lo que escribas acá le aparece destacado en su Inicio, antes de entrenar. Si lo dejás vacío, no se muestra nada.</p>
+          <textarea value={data.meta.notice ?? ""} onChange={(e) => set((d) => { d.meta.notice = e.target.value; })} rows={2}
+            placeholder="Ej: Esta semana bajamos el volumen, priorizá la técnica. Cualquier molestia me avisás." className="input mt-2 w-full text-sm" />
+        </div>
+      )}
 
-      {/* Encabezado */}
-      <div className="card card-pad grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="sm:col-span-2"><span className="label">Nombre de la rutina</span><input value={name} onChange={(e) => setName(e.target.value)} className="input" /></label>
-        <label><span className="label">Objetivo</span><input value={data.meta.objective ?? ""} onChange={(e) => set((d) => { d.meta.objective = e.target.value; return d; })} placeholder="Ej: fuerza máxima pretemporada" className="input" /></label>
-        {!isTemplate ? <label><span className="label">Empieza el</span><input type="date" value={data.meta.start ?? ""} onChange={(e) => set((d) => { d.meta.start = e.target.value; return d; })} className="input" /></label> : <div />}
-        <label className="sm:col-span-2 lg:col-span-3"><span className="label">Indicaciones generales</span><input value={data.meta.notes ?? ""} onChange={(e) => set((d) => { d.meta.notes = e.target.value; return d; })} placeholder="Ej: RIR 2 en todo. Si duele, avisá antes de seguir." className="input" /></label>
-        <label><span className="label">Pausa entre series</span><input value={data.meta.rest ?? ""} onChange={(e) => set((d) => { d.meta.rest = e.target.value; return d; })} placeholder="Ej: 2-3 min" className="input" /></label>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className={`inline-flex items-center gap-1.5 text-xs ${status.ok ? "muted" : "text-red-400"}`}><Cloud size={14} />{dirty && !pending ? "Cambios sin guardar · se guarda solo" : `Se guarda solo · ${status.text}`}</span>
+        <button type="button" onClick={doSave} disabled={pending} className="btn-primary ml-auto"><Save size={15} />{pending ? "Guardando…" : "Guardar planificación"}</button>
       </div>
 
-      {/* Calentamiento */}
+      {children}
+
+      <div className="card card-pad grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="sm:col-span-2"><span className="label">Nombre del plan</span><input value={name} onChange={(e) => setName(e.target.value)} className="input" /></label>
+        <label><span className="label">Objetivo / mesociclo</span><input value={data.meta.objective ?? ""} onChange={(e) => set((d) => { d.meta.objective = e.target.value; })} placeholder="Ej: fuerza máxima pretemporada" className="input" /></label>
+        {!isTemplate ? <label><span className="label">Empieza el</span><input type="date" value={data.meta.start ?? ""} onChange={(e) => set((d) => { d.meta.start = e.target.value; })} className="input" /></label> : <div />}
+        <label className="sm:col-span-2 lg:col-span-4"><span className="label">Indicaciones generales</span><input value={data.meta.notes ?? ""} onChange={(e) => set((d) => { d.meta.notes = e.target.value; })} placeholder="Ej: RIR 2 en todo. Si duele, avisá antes de seguir." className="input" /></label>
+      </div>
+
       <div className="card card-pad">
-        <div className="mb-2 flex items-center justify-between gap-2"><div className="h2">Calentamiento</div><span className="text-xs muted">Igual para todos los días</span></div>
+        <div className="mb-2 flex items-center justify-between gap-2"><div className="h2">Entrada en calor</div><span className="text-xs muted">Igual para todos los días</span></div>
         <div className="space-y-2">
           {data.warmup.map((w, i) => (
-            <div key={w.id} className="flex flex-wrap items-center gap-2">
-              <div className="min-w-0 flex-[2] basis-48"><ExercisePicker value={w.name} exercises={exercises} placeholder="Ejercicio" onChange={(v, ex) => set((d) => { pickName(d.warmup[i], v, ex); return d; })} /></div>
-              <input value={w.detail ?? ""} onChange={(e) => set((d) => { d.warmup[i].detail = e.target.value; return d; })} placeholder="Ej: 2x10 / 5 min" className="input min-w-0 flex-1 basis-28 py-1.5 text-sm" />
-              <VideoField value={w.video} name={w.name} onChange={(v) => set((d) => { d.warmup[i].video = v; return d; })} />
-              <button type="button" onClick={() => set((d) => { d.warmup.splice(i, 1); return d; })} className="text-neutral-500 hover:text-red-400" aria-label="Quitar"><Trash2 size={15} /></button>
+            <div key={w.id} className="grid grid-cols-[1fr_auto] gap-2 sm:grid-cols-[2fr_1fr_auto]">
+              <div className="col-span-2 min-w-0 sm:col-span-1"><ExercisePicker value={w.name} exercises={exercises} placeholder="Ejercicio" onChange={(v, ex) => set((d) => { pickName(d.warmup[i], v, ex); })} /></div>
+              <input value={w.detail ?? ""} onChange={(e) => set((d) => { d.warmup[i].detail = e.target.value; })} placeholder="Ej: 2x10 / 5 min" className="input min-w-0 py-1.5 text-sm" />
+              <div className="flex items-center gap-2">
+                {w.video && <VideoButton url={w.video} name={w.name} compact />}
+                <button type="button" onClick={() => set((d) => { d.warmup.splice(i, 1); })} className="text-neutral-500 hover:text-red-400" aria-label="Quitar"><X size={16} /></button>
+              </div>
             </div>
           ))}
         </div>
-        <button type="button" onClick={() => set((d) => { d.warmup.push({ id: newId(), name: "", detail: "" }); return d; })} className="btn-ghost mt-2 px-3 py-1.5 text-sm"><Plus size={14} />Agregar al calentamiento</button>
+        <button type="button" onClick={() => set((d) => { d.warmup.push({ id: newId(), name: "", detail: "" }); })} className="btn-ghost mt-2 px-3 py-1.5 text-sm"><Plus size={14} />Agregar a la entrada en calor</button>
       </div>
 
-      {/* Días */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="-mx-1 flex flex-1 gap-1 overflow-x-auto px-1 pb-1">
           {data.days.map((d, i) => (
-            <button key={d.id} type="button" onClick={() => setDayIdx(i)} className={i === di ? "tab tab-active whitespace-nowrap" : "tab whitespace-nowrap"}>{d.name || `Día ${i + 1}`}</button>
+            <button key={d.id} type="button" onClick={() => setDayIdx(i)} className={i === di ? "tab tab-active whitespace-nowrap" : "tab whitespace-nowrap"}>{d.name || `Día ${i + 1}`}{d.weekday ? ` · ${d.weekday.slice(0, 3)}` : ""}</button>
           ))}
         </div>
-        <button type="button" onClick={() => { set((d) => { d.days.push(emptyDay(d.days.length + 1)); return d; }); setDayIdx(data.days.length); }} className="btn-ghost px-3 py-1.5 text-sm"><Plus size={14} />Día</button>
+        <button type="button" onClick={() => { set((d) => { d.days.push(emptyDay(d.days.length + 1)); }); setDayIdx(data.days.length); }} className="btn-ghost px-3 py-1.5 text-sm"><Plus size={14} />Día</button>
       </div>
 
       {day ? (
         <div className="card">
-          <div className="flex flex-wrap items-center gap-2 border-b border-ink-700 p-3">
-            <input value={day.name} onChange={(e) => setDay((d) => { d.name = e.target.value; })} className="input w-auto min-w-0 flex-1 basis-40 py-1.5 font-semibold" aria-label="Nombre del día" />
-            <div className="flex items-center gap-1">
-              <IconBtn label="Mover a la izquierda" onClick={() => { set((d) => { d.days = move(d.days, di, -1); return d; }); setDayIdx(Math.max(0, di - 1)); }}><ArrowLeft size={15} /></IconBtn>
-              <IconBtn label="Mover a la derecha" onClick={() => { set((d) => { d.days = move(d.days, di, 1); return d; }); setDayIdx(Math.min(data.days.length - 1, di + 1)); }}><ArrowRight size={15} /></IconBtn>
-              <IconBtn label="Duplicar día" onClick={() => { set((d) => { const c = cloneDay(d.days[di]); c.name = `${c.name} (copia)`; d.days.splice(di + 1, 0, c); return d; }); setDayIdx(di + 1); }}><Copy size={15} /></IconBtn>
-              <IconBtn label="Borrar día" danger onClick={() => { if (data.days.length > 0) { set((d) => { d.days.splice(di, 1); return d; }); setDayIdx(Math.max(0, di - 1)); } }}><Trash2 size={15} /></IconBtn>
+          <div className="space-y-3 border-b border-ink-700 p-3">
+            <div className="flex items-center gap-2">
+              <select value={day.weekday ?? ""} onChange={(e) => setDay((d) => { d.weekday = e.target.value; })} className="input w-auto py-1.5 text-sm" aria-label="Día de la semana">
+                <option value="">Sin día fijo</option>{WEEKDAYS.map((w) => <option key={w} value={w}>{w}</option>)}
+              </select>
+              <div className="ml-auto flex items-center">
+                <IconBtn label="Mover a la izquierda" onClick={() => { set((d) => { d.days = move(d.days, di, -1); }); setDayIdx(Math.max(0, di - 1)); }}><ArrowLeft size={15} /></IconBtn>
+                <IconBtn label="Mover a la derecha" onClick={() => { set((d) => { d.days = move(d.days, di, 1); }); setDayIdx(Math.min(data.days.length - 1, di + 1)); }}><ArrowRight size={15} /></IconBtn>
+                <IconBtn label="Duplicar día" onClick={() => { set((d) => { const c = cloneDay(d.days[di]); c.name = `${c.name} (copia)`; d.days.splice(di + 1, 0, c); }); setDayIdx(di + 1); }}><Copy size={15} /></IconBtn>
+                <button type="button" onClick={() => { set((d) => { d.days.splice(di, 1); }); setDayIdx(Math.max(0, di - 1)); }} className="ml-1 inline-flex items-center gap-1 whitespace-nowrap text-sm text-neutral-400 hover:text-red-400">Eliminar día <X size={14} /></button>
+              </div>
             </div>
+            <input value={day.name} onChange={(e) => setDay((d) => { d.name = e.target.value; })} className="input w-full py-1.5 font-display text-lg font-semibold" aria-label="Nombre del día" />
+            {!isTemplate && athletes.length > 0 && <CopyDay disabled={dirty} onCopy={(to) => copyDay(id, day.id, to)} athletes={athletes} dayName={day.name} />}
           </div>
 
-          <div className="space-y-2 border-b border-ink-700 px-3 py-3">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-xs muted">Ver semana:</span>
-              {Array.from({ length: data.weeks }, (_, w) => (
-                <button key={w} type="button" onClick={() => setView(w)} className={view === w ? "chip-volt px-3 py-1" : "chip-mute px-3 py-1 hover:text-white"}>{w + 1}</button>
-              ))}
-              <button type="button" onClick={() => setView(null)} className={view == null ? "chip-volt px-3 py-1" : "chip-mute px-3 py-1 hover:text-white"}>Todas</button>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs">
-              <button type="button" onClick={() => { setWeeks(data.weeks + 1); if (view != null) setView(data.weeks); }} disabled={data.weeks >= MAX_WEEKS} className="btn-ghost px-2 py-1 text-xs"><Plus size={12} />Agregar semana (copia la anterior)</button>
-              {view != null && view < data.weeks - 1 && <button type="button" onClick={() => setDay((d) => { for (const b of d.blocks) for (const r of b.rows) r.cells[view + 1] = r.cells[view]; })} className="btn-ghost px-2 py-1 text-xs"><Copy size={12} />Copiar semana {view + 1} a la {view + 2}</button>}
-              <button type="button" onClick={() => { setWeeks(data.weeks - 1); if (view != null && view >= data.weeks - 1) setView(data.weeks - 2); }} disabled={data.weeks <= 1} className="btn-ghost px-2 py-1 text-xs">Quitar la última</button>
-            </div>
-          </div>
-
-          <div className="space-y-5 p-3">
+          <div className="space-y-6 p-3">
             {day.blocks.map((b, bi) => (
               <div key={b.id}>
                 <div className="mb-2 flex items-center gap-2">
-                  <input value={b.name} onChange={(e) => setDay((d) => { d.blocks[bi].name = e.target.value; })} className="input min-w-0 flex-1 border-volt/30 py-1 text-sm font-semibold uppercase tracking-wide text-volt" aria-label="Nombre del bloque" />
-                  <IconBtn label="Subir bloque" onClick={() => setDay((d) => { d.blocks = move(d.blocks, bi, -1); })}><ArrowUp size={14} /></IconBtn>
-                  <IconBtn label="Bajar bloque" onClick={() => setDay((d) => { d.blocks = move(d.blocks, bi, 1); })}><ArrowDown size={14} /></IconBtn>
-                  <IconBtn label="Borrar bloque" danger onClick={() => setDay((d) => { d.blocks.splice(bi, 1); })}><Trash2 size={14} /></IconBtn>
+                  <div className="flex flex-col">
+                    <IconBtn label="Subir bloque" onClick={() => setDay((d) => { d.blocks = move(d.blocks, bi, -1); })}><ArrowUp size={14} /></IconBtn>
+                    <IconBtn label="Bajar bloque" onClick={() => setDay((d) => { d.blocks = move(d.blocks, bi, 1); })}><ArrowDown size={14} /></IconBtn>
+                  </div>
+                  <input value={b.name} onChange={(e) => setDay((d) => { d.blocks[bi].name = e.target.value; })} className="min-w-0 flex-1 border-b border-ink-600 bg-transparent py-1 font-display text-lg font-semibold text-volt outline-none focus:border-volt" aria-label="Nombre del bloque" />
+                  <button type="button" onClick={() => setDay((d) => { d.blocks.splice(bi, 1); })} className="inline-flex shrink-0 items-center gap-1 text-sm text-neutral-400 hover:text-red-400">Eliminar bloque <X size={14} /></button>
                 </div>
-                <div className="mb-2 flex flex-wrap items-end gap-2">
-                  <label><span className="mb-0.5 block text-[10px] uppercase tracking-wide text-neutral-500">Cómo se hace</span>
+                <div className="mb-2 flex flex-wrap items-end gap-2 pl-9">
+                  <label><span className="mb-0.5 block text-[10px] uppercase tracking-wide text-neutral-500">Cómo se hace el bloque</span>
                     <select value={b.kind ?? "normal"} onChange={(e) => setDay((d) => { d.blocks[bi].kind = e.target.value as BlockKind; })} className="input w-auto py-1.5 text-sm">
                       {Object.entries(BLOCK_KINDS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                     </select>
@@ -142,37 +159,38 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
                   {b.kind === "tabata" && <Mini label="Trabajo (seg)" value={b.work} ph="20" onChange={(v) => setDay((d) => { d.blocks[bi].work = v; })} />}
                   {(b.kind === "tabata" || b.kind === "circuito" || b.kind === "superserie") && <Mini label={b.kind === "tabata" ? "Descanso (seg)" : "Pausa"} value={b.rest} ph={b.kind === "tabata" ? "10" : "2 min"} onChange={(v) => setDay((d) => { d.blocks[bi].rest = v; })} />}
                   {(b.kind === "amrap" || b.kind === "emom") && <Mini label="Minutos" value={b.minutes} ph="10" onChange={(v) => setDay((d) => { d.blocks[bi].minutes = v; })} />}
-                  {b.kind && b.kind !== "normal" && <span className="pb-2 text-xs muted">{BLOCK_KINDS[b.kind].hint}</span>}
                 </div>
-                <div className="space-y-2">
-                  {b.rows.map((r, ri) => (
-                    <Row key={r.id} n={ri + 1} r={r} weeks={data.weeks} view={view} exercises={exercises}
-                      onName={(v, ex) => setDay((d) => pickName(d.blocks[bi].rows[ri], v, ex))}
-                      onCell={(w, v) => setDay((d) => { d.blocks[bi].rows[ri].cells[w] = v; })}
-                      onNote={(v) => setDay((d) => { d.blocks[bi].rows[ri].note = v; })}
-                      onFocus={(v) => setDay((d) => { d.blocks[bi].rows[ri].focus = v; })}
-                      onVideo={(v) => setDay((d) => { d.blocks[bi].rows[ri].video = v; })}
-                      onUp={() => setDay((d) => { d.blocks[bi].rows = move(d.blocks[bi].rows, ri, -1); })}
-                      onDown={() => setDay((d) => { d.blocks[bi].rows = move(d.blocks[bi].rows, ri, 1); })}
-                      onDel={() => setDay((d) => { d.blocks[bi].rows.splice(ri, 1); })}
-                    />
-                  ))}
+                <div className="space-y-0">
+                  {b.rows.map((r, ri) => {
+                    const prevLink = ri > 0 ? b.rows[ri - 1].link : "";
+                    const upd = (f: (row: RoutineRow) => void) => setDay((d) => { f(d.blocks[bi].rows[ri]); });
+                    return (
+                      <div key={r.id}>
+                        <div className={`${r.link || prevLink ? "border-l-2 border-volt/70 pl-2" : ""}`}>
+                          <Row n={ri + 1} r={r} weeks={data.weeks} exercises={exercises} clip={clip} isLast={ri === b.rows.length - 1}
+                            upd={upd} onPick={(v, ex) => upd((row) => pickName(row, v, ex))}
+                            onCopy={() => setClip({ cells: [...r.cells], rm: [...(r.rm ?? [])] })}
+                            onAddWeek={addWeek} onRemoveWeek={removeWeek}
+                            onUp={() => setDay((d) => { d.blocks[bi].rows = move(d.blocks[bi].rows, ri, -1); })}
+                            onDown={() => setDay((d) => { d.blocks[bi].rows = move(d.blocks[bi].rows, ri, 1); })}
+                            onDel={() => setDay((d) => { d.blocks[bi].rows.splice(ri, 1); })} />
+                        </div>
+                        {r.link && ri < b.rows.length - 1 ? (
+                          <div className="flex items-center gap-1.5 border-l-2 border-volt/70 py-1.5 pl-3 text-xs font-bold uppercase tracking-wide text-volt">
+                            {r.link === "circuito" ? <><Repeat size={13} />Circuito — con el siguiente</> : <><Link2 size={13} />Sin descanso — con el siguiente</>}
+                          </div>
+                        ) : <div className="h-3" />}
+                      </div>
+                    );
+                  })}
                 </div>
-                <button type="button" onClick={() => setDay((d) => { d.blocks[bi].rows.push(emptyRow(data.weeks)); })} className="btn-ghost mt-2 px-3 py-1.5 text-sm"><Plus size={14} />Ejercicio</button>
+                <button type="button" onClick={() => setDay((d) => { d.blocks[bi].rows.push(emptyRow(data.weeks)); })} className="btn-ghost px-3 py-1.5 text-sm"><Plus size={14} />Ejercicio</button>
               </div>
             ))}
-            <button type="button" onClick={() => setDay((d) => { d.blocks.push(emptyBlock(`BLOQUE ${d.blocks.length + 1}`)); })} className="btn-ghost w-full border-dashed py-2 text-sm"><Plus size={14} />Agregar bloque</button>
+            <button type="button" onClick={() => setDay((d) => { d.blocks.push(emptyBlock(`Bloque ${d.blocks.length + 1}`)); })} className="btn-ghost w-full border-dashed py-2 text-sm"><Plus size={14} />Agregar bloque</button>
           </div>
-
-          {!isTemplate && athletes.length > 0 && <CopyDay disabled={dirty} onCopy={(to) => copyDay(id, day.id, to)} athletes={athletes} dayName={day.name} />}
         </div>
       ) : <div className="card card-pad text-sm muted">Sin días todavía. Tocá “+ Día” para empezar.</div>}
-
-      {/* Barra de guardado */}
-      <div className="sticky bottom-[84px] lg:bottom-3 z-20 flex items-center justify-end gap-3 rounded-2xl border border-ink-700 bg-ink-950/95 p-3 shadow-xl backdrop-blur" style={{ marginBottom: "env(safe-area-inset-bottom, 0px)" }}>
-        <span className={`text-sm ${msg && !msg.ok ? "text-red-400" : "muted"}`}>{dirty ? "Cambios sin guardar" : msg?.text ?? "Todo guardado"}</span>
-        <button type="button" onClick={doSave} disabled={pending || !dirty} className="btn-primary"><Save size={15} />{pending ? "Guardando…" : "Guardar"}</button>
-      </div>
     </div>
   );
 }
@@ -185,51 +203,111 @@ function IconBtn({ label, onClick, children, danger }: { label: string; onClick:
   return <button type="button" title={label} aria-label={label} onClick={onClick} className={`rounded-lg p-1.5 text-neutral-400 hover:bg-ink-800 ${danger ? "hover:text-red-400" : "hover:text-white"}`}>{children}</button>;
 }
 
-function Row({ n, r, weeks, view, exercises, onName, onCell, onNote, onFocus, onVideo, onUp, onDown, onDel }: {
-  n: number; r: RoutineRow; weeks: number; view: number | null; exercises: Ex[]; onName: (v: string, ex?: Ex) => void; onCell: (w: number, v: string) => void;
-  onNote: (v: string) => void; onFocus: (v: string) => void; onVideo: (v: string | null) => void; onUp: () => void; onDown: () => void; onDel: () => void;
+const cap = "mb-0.5 block text-[10px] uppercase tracking-wide text-neutral-500";
+
+function Row({ n, r, weeks, exercises, clip, isLast, upd, onPick, onCopy, onAddWeek, onRemoveWeek, onUp, onDown, onDel }: {
+  n: number; r: RoutineRow; weeks: number; exercises: Ex[]; clip: Clip; isLast: boolean;
+  upd: (f: (row: RoutineRow) => void) => void; onPick: (v: string, ex?: Ex) => void; onCopy: () => void;
+  onAddWeek: () => void; onRemoveWeek: (w: number) => void; onUp: () => void; onDown: () => void; onDel: () => void;
 }) {
-  const cols = view == null ? Array.from({ length: weeks }, (_, i) => i) : [view];
+  const [changing, setChanging] = useState(!r.name);
+  const [copied, setCopied] = useState(false);
+  const tabata = r.mode === "tabata";
+  const ok = !r.video || /^https:\/\/\S+\.\S{2,}/.test(r.video);
   return (
-    <div className="rounded-xl border border-ink-700 bg-ink-900/40 p-3">
-      <div className="flex items-start gap-2">
-        <span className="mt-2 w-5 shrink-0 text-xs text-neutral-500">{n}</span>
-        <div className="min-w-0 flex-1">
-          <ExercisePicker value={r.name} exercises={exercises} onChange={onName} />
-          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-            {r.exerciseId ? <span className="text-[10px] uppercase tracking-wide text-neutral-500">De la biblioteca</span> : r.name ? <span className="text-[10px] uppercase tracking-wide text-neutral-600">Escrito a mano</span> : null}
-            <VideoField value={r.video} name={r.name} onChange={onVideo} />
+    <div className="flex gap-2">
+      <div className="flex flex-col pt-2">
+        <IconBtn label="Subir" onClick={onUp}><ArrowUp size={14} /></IconBtn>
+        <IconBtn label="Bajar" onClick={onDown}><ArrowDown size={14} /></IconBtn>
+      </div>
+      <div className="min-w-0 flex-1 rounded-2xl border border-ink-600 bg-ink-900 p-3 sm:p-4">
+        <div className="flex items-start gap-2">
+          <span className="mt-1 text-xs text-neutral-500">{n}</span>
+          <div className="min-w-0 flex-1">
+            {changing ? <ExercisePicker value={r.name} exercises={exercises} onChange={(v, ex) => { onPick(v, ex); if (ex) setChanging(false); }} />
+              : <div className="font-display text-lg font-semibold leading-tight text-white">{r.name}</div>}
+            {!changing && <div className="mt-0.5 text-[10px] uppercase tracking-wide text-neutral-500">{r.exerciseId ? "De la biblioteca" : "Escrito a mano"}</div>}
           </div>
-          <div className="mt-1.5 flex flex-wrap gap-1">
+          {!changing && <button type="button" onClick={() => setChanging(true)} className="btn-ghost shrink-0 px-2.5 py-1 text-xs"><Search size={13} />Cambiar</button>}
+          {changing && r.name && <button type="button" onClick={() => setChanging(false)} className="btn-ghost shrink-0 px-2.5 py-1 text-xs">Listo</button>}
+          <IconBtn label="Quitar ejercicio" danger onClick={onDel}><X size={16} /></IconBtn>
+        </div>
+
+        <div className="mt-3"><span className={cap}>Rol en la sesión</span>
+          <div className="flex flex-wrap gap-1.5">
             {Object.entries(FOCUS).map(([k, f]) => (
-              <button key={k} type="button" onClick={() => onFocus(r.focus === k ? "" : k)}
-                className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold transition ${r.focus === k ? f.cls : "border-ink-600 text-neutral-500 hover:text-neutral-200"}`}>{f.label}</button>
+              <button key={k} type="button" onClick={() => upd((x) => { x.focus = x.focus === k ? "" : k; })}
+                className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition ${r.focus === k ? f.cls : "border-ink-600 text-neutral-500 hover:text-neutral-200"}`}>{f.label}</button>
             ))}
           </div>
         </div>
-        <div className="flex shrink-0 items-center">
-          <IconBtn label="Subir" onClick={onUp}><ArrowUp size={14} /></IconBtn>
-          <IconBtn label="Bajar" onClick={onDown}><ArrowDown size={14} /></IconBtn>
-          <IconBtn label="Quitar" danger onClick={onDel}><Trash2 size={14} /></IconBtn>
+
+        {!isLast && (
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <button type="button" onClick={() => upd((x) => { x.link = x.link === "superserie" ? "" : "superserie"; })} className={`rounded-xl border px-3 py-2 text-sm font-semibold ${r.link === "superserie" ? "border-volt bg-volt/10 text-volt" : "border-ink-600 text-neutral-300 hover:border-ink-500"}`}>
+              <Link2 size={14} className="mr-1.5 inline" />Unir con el siguiente, sin descanso{r.link === "superserie" ? " (activado)" : ""}
+            </button>
+            <button type="button" onClick={() => upd((x) => { x.link = x.link === "circuito" ? "" : "circuito"; })} className={`rounded-xl border px-3 py-2 text-sm font-semibold ${r.link === "circuito" ? "border-volt bg-volt/10 text-volt" : "border-ink-600 text-neutral-300 hover:border-ink-500"}`}>
+              <Repeat size={14} className="mr-1.5 inline" />Circuito con el siguiente{r.link === "circuito" ? " (activado)" : ""}
+            </button>
+          </div>
+        )}
+
+        <div className="mt-3">
+          <div className="mb-1 flex items-center justify-between gap-2"><span className="text-xs text-neutral-400">Link de YouTube</span>
+            <a href={youtubeSearch(r.name || "ejercicio")} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-volt hover:underline"><Search size={12} />Buscar en YouTube</a></div>
+          <div className="flex items-center gap-2">
+            <input value={r.video ?? ""} onChange={(e) => upd((x) => { x.video = e.target.value.trim() || null; })} placeholder="https://youtu.be/…" className={`input min-w-0 flex-1 py-1.5 text-sm ${ok ? "" : "border-red-500/60"}`} />
+            {r.video && ok && <VideoButton url={r.video} name={r.name || "Video"} />}
+            {r.video && <button type="button" onClick={() => upd((x) => { x.video = null; })} className="rounded-lg border border-ink-600 p-2 text-red-400 hover:bg-ink-800" aria-label="Sacar link"><X size={14} /></button>}
+          </div>
         </div>
-      </div>
-      <div className="mt-2 grid grid-cols-2 gap-2 pl-7 sm:grid-cols-4 lg:grid-cols-6">
-        {cols.map((w) => (
-          <label key={w} className={view != null ? "col-span-2 sm:col-span-2" : ""}>
-            <span className="mb-0.5 block text-[10px] uppercase tracking-wide text-neutral-500">Semana {w + 1}</span>
-            <input value={r.cells[w] ?? ""} onChange={(e) => onCell(w, e.target.value)} placeholder="3x8 · 70%" className="input w-full px-2 py-1.5 text-center text-sm" />
-          </label>
-        ))}
-        <label className={view != null ? "col-span-2" : "col-span-2 sm:col-span-4 lg:col-span-6"}>
-          <span className="mb-0.5 block text-[10px] uppercase tracking-wide text-neutral-500">Nota</span>
-          <input value={r.note ?? ""} onChange={(e) => onNote(e.target.value)} placeholder="Pausa, tempo, RIR…" className="input w-full py-1.5 text-sm" />
-        </label>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="inline-flex rounded-full border border-ink-600 p-0.5">
+            <button type="button" onClick={() => upd((x) => { x.mode = "normal"; })} className={`rounded-full px-4 py-1.5 text-sm font-semibold ${!tabata ? "bg-volt text-ink-950" : "text-neutral-400"}`}>Normal</button>
+            <button type="button" onClick={() => upd((x) => { x.mode = "tabata"; })} className={`rounded-full px-4 py-1.5 text-sm font-semibold ${tabata ? "bg-volt text-ink-950" : "text-neutral-400"}`}>Tabata</button>
+          </div>
+          {!tabata && <>
+            <button type="button" onClick={() => { onCopy(); setCopied(true); setTimeout(() => setCopied(false), 1500); }} className="btn-ghost px-3 py-1.5 text-sm"><ClipboardCopy size={14} />{copied ? "Copiadas" : "Copiar semanas"}</button>
+            <button type="button" disabled={!clip} onClick={() => clip && upd((x) => { x.cells = x.cells.map((c, i) => clip.cells[i] ?? c); x.rm = (x.rm ?? []).map((c, i) => clip.rm[i] ?? c); })} className="btn-ghost px-3 py-1.5 text-sm"><ClipboardPaste size={14} />Pegar</button>
+          </>}
+        </div>
+
+        {tabata ? (
+          <div className="mt-3 grid grid-cols-3 gap-2 sm:w-96">
+            {([["work", "Trabajo (seg)"], ["rest", "Descanso (seg)"], ["rounds", "Rounds"]] as const).map(([k, l]) => (
+              <label key={k}><span className={cap}>{l}</span><input inputMode="numeric" value={r.tabata?.[k] ?? ""} onChange={(e) => upd((x) => { x.tabata = { work: "20", rest: "10", rounds: "8", ...x.tabata, [k]: e.target.value }; })} className="input w-full py-1.5 text-center text-sm" /></label>
+            ))}
+          </div>
+        ) : (
+          <>
+            <p className="mt-3 text-xs text-neutral-500">Series/reps y RM/RIR de cada semana (el % puede cambiar en cada una):</p>
+            <div className="mt-2 grid grid-cols-4 gap-x-2 gap-y-1 sm:grid-cols-6 lg:grid-cols-8">
+              {Array.from({ length: weeks }, (_, w) => (
+                <div key={w} className="min-w-0">
+                  <div className="mb-0.5 flex items-center justify-between"><span className="text-[11px] text-neutral-400">Sem.{w + 1}</span>
+                    {weeks > 1 && <button type="button" onClick={() => onRemoveWeek(w)} title={`Quitar la semana ${w + 1} de todo el plan`} className="rounded-full bg-red-500/80 p-0.5 text-white hover:bg-red-500"><X size={9} /></button>}</div>
+                  <input value={r.cells[w] ?? ""} onChange={(e) => upd((x) => { x.cells[w] = e.target.value; })} placeholder="3x8" className="input w-full px-1 py-1.5 text-center text-sm" />
+                  <span className="mt-1 block text-[10px] text-neutral-500">RM Sem.{w + 1}</span>
+                  <input value={r.rm?.[w] ?? ""} onChange={(e) => upd((x) => { const a = x.rm ?? Array(weeks).fill(""); a[w] = e.target.value; x.rm = a; })} placeholder="—" className="input w-full px-1 py-1.5 text-center text-sm" />
+                </div>
+              ))}
+              {weeks < MAX_WEEKS && <button type="button" onClick={onAddWeek} title="Agregar semana (copia la anterior)" className="mt-4 grid place-items-center rounded-xl border border-dashed border-ink-500 text-volt hover:border-volt"><Plus size={18} /></button>}
+            </div>
+          </>
+        )}
+
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <label className="col-span-2"><span className={cap}>Nota</span><input value={r.note ?? ""} onChange={(e) => upd((x) => { x.note = e.target.value; })} placeholder="Tempo, técnica, molestias…" className="input w-full py-1.5 text-sm" /></label>
+          {!tabata && <label><span className={cap}>RM / RIR (respaldo)</span><input value={r.rmBase ?? ""} onChange={(e) => upd((x) => { x.rmBase = e.target.value; })} placeholder="Ej: RIR 2" className="input w-full py-1.5 text-center text-sm" /></label>}
+          <label><span className={cap}>Descanso (seg)</span><input inputMode="numeric" value={r.rest ?? ""} onChange={(e) => upd((x) => { x.rest = e.target.value; })} placeholder="90" className="input w-full py-1.5 text-center text-sm" /></label>
+        </div>
       </div>
     </div>
   );
 }
 
-/** Buscador de ejercicios: al escribir aparece la lista de la biblioteca (funciona igual en celular). */
 function ExercisePicker({ value, exercises, onChange, placeholder = "Escribí y elegí de la biblioteca" }: { value: string; exercises: Ex[]; onChange: (v: string, ex?: Ex) => void; placeholder?: string }) {
   const [open, setOpen] = useState(false);
   const [hi, setHi] = useState(0);
@@ -275,40 +353,22 @@ function ExercisePicker({ value, exercises, onChange, placeholder = "Escribí y 
   );
 }
 
-/** Ver el video o pegar el link de YouTube de esa fila. */
-function VideoField({ value, name, onChange }: { value?: string | null; name: string; onChange: (v: string | null) => void }) {
-  const [open, setOpen] = useState(false);
-  const [val, setVal] = useState(value ?? "");
-  useEffect(() => setVal(value ?? ""), [value]);
-  const ok = !val.trim() || /^https:\/\/\S+\.\S{2,}/.test(val.trim());
-  return (
-    <span className="inline-flex flex-wrap items-center gap-2">
-      {value && <VideoButton url={value} name={name || "Video"} />}
-      <button type="button" onClick={() => setOpen((o) => !o)} className="inline-flex items-center gap-1 text-xs text-neutral-400 hover:text-volt"><Link2 size={12} />{value ? "Cambiar link" : "Link de YouTube"}</button>
-      {open && (
-        <span className="flex basis-full items-center gap-1.5">
-          <input autoFocus value={val} onChange={(e) => setVal(e.target.value)} placeholder="https://youtu.be/…" className="input min-w-0 flex-1 py-1 text-xs" />
-          <button type="button" disabled={!ok} onClick={() => { onChange(val.trim() || null); setOpen(false); }} className="btn-primary px-2 py-1 text-xs">OK</button>
-          {name && <a href={youtubeSearch(name)} target="_blank" rel="noopener noreferrer" title="Buscar en YouTube" className="text-neutral-400 hover:text-volt"><Search size={13} /></a>}
-        </span>
-      )}
-    </span>
-  );
-}
-
 function CopyDay({ athletes, dayName, disabled, onCopy }: { athletes: Athlete[]; dayName: string; disabled: boolean; onCopy: (to: string) => Promise<{ ok: boolean; name: string }> }) {
+  const [open, setOpen] = useState(false);
   const [to, setTo] = useState("");
   const [msg, setMsg] = useState("");
   const [pending, start] = useTransition();
+  if (!open) return <button type="button" onClick={() => setOpen(true)} className="btn-ghost px-3 py-1.5 text-sm"><Send size={14} />Copiar este día a otro alumno</button>;
   return (
-    <div className="flex flex-wrap items-center gap-2 border-t border-ink-700 p-3 text-sm">
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-ink-600 p-2 text-sm">
       <span className="text-neutral-300">Pasar “{dayName}” a</span>
       <select value={to} onChange={(e) => setTo(e.target.value)} className="input w-auto min-w-0 flex-1 basis-40 py-1.5 text-sm">
-        <option value="">Elegí un deportista…</option>
+        <option value="">Elegí un alumno…</option>
         {athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
       </select>
-      <button type="button" disabled={!to || pending || disabled} onClick={() => start(async () => { try { const r = await onCopy(to); setMsg(`Listo: se agregó al final de la rutina de ${r.name}.`); setTo(""); } catch (e) { setMsg(e instanceof Error ? e.message : "No se pudo copiar"); } })} className="btn-ghost px-3 py-1.5 text-sm"><Send size={14} />{pending ? "Copiando…" : "Copiar día"}</button>
-      {disabled && <span className="basis-full text-xs muted">Guardá los cambios antes de copiar.</span>}
+      <button type="button" disabled={!to || pending || disabled} onClick={() => start(async () => { try { const r = await onCopy(to); setMsg(`Listo: se agregó al final del plan de ${r.name}.`); setTo(""); } catch (e) { setMsg(e instanceof Error ? e.message : "No se pudo copiar"); } })} className="btn-primary px-3 py-1.5 text-sm">{pending ? "Copiando…" : "Copiar día"}</button>
+      <button type="button" onClick={() => setOpen(false)} className="text-neutral-400 hover:text-white" aria-label="Cerrar"><X size={16} /></button>
+      {disabled && <span className="basis-full text-xs muted">Esperá a que se guarde y copialo.</span>}
       {msg && <span className="basis-full text-xs text-volt">{msg}</span>}
     </div>
   );

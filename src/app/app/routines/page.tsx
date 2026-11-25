@@ -17,7 +17,7 @@ export default async function RoutinesPage({ searchParams }: { searchParams: Pro
   const opts = await athleteOptions(u);
   const athletes = await db.user.findMany({
     where: { id: { in: opts.map((a) => a.id) }, ...(sp.q ? { name: { contains: sp.q, mode: "insensitive" as const } } : {}) },
-    select: { id: true, name: true, avatarKey: true, avatarAt: true, routines: { where: { active: true }, orderBy: { updatedAt: "desc" }, take: 1 } },
+    select: { id: true, name: true, avatarKey: true, avatarAt: true, routines: { where: { active: true, extra: false }, orderBy: { updatedAt: "desc" }, take: 1 } },
     orderBy: { name: "asc" },
   });
   const templates = await db.routine.findMany({ where: { orgId: u.orgId, template: true }, orderBy: { name: "asc" } });

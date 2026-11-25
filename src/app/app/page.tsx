@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { Notice } from "@/components/routine-notice";
+import { currentRoutine } from "@/lib/routine-server";
+import { sanitizeRoutine } from "@/lib/routine";
 import { avatarSrc } from "@/lib/avatar";
 import { Users, CalendarCheck, Percent, AlertTriangle, ClipboardList, Trophy, ArrowRight, Flame, HeartPulse } from "lucide-react";
 import { requireUser } from "@/lib/auth";
@@ -181,6 +184,8 @@ async function AthleteHome({ userId, name }: { userId: string; name: string }) {
     db.exerciseRM.findMany({ where: { athleteId: userId, seen: false, source: { not: "DEPORTISTA" } }, include: { exercise: { select: { name: true } } }, orderBy: { date: "desc" } }),
     feeStatusFor(userId),
   ]);
+  const mainRoutine = await currentRoutine(userId);
+  const notice = mainRoutine ? sanitizeRoutine(mainRoutine.data).meta.notice?.trim() : "";
   const feeDue = fee.status === "PENDIENTE" && fee.amount != null && fee.org && now.getDate() >= fee.org.feeDueDay - 3;
   const prevRM = rmNews.length ? await db.exerciseRM.findMany({ where: { athleteId: userId, exerciseId: { in: rmNews.map((r) => r.exerciseId) } }, orderBy: { date: "desc" } }) : [];
   const done = weekSessions.filter((s) => s.logs.some((l) => l.status === "COMPLETADO" || l.status === "PARCIAL")).length;
@@ -198,6 +203,8 @@ async function AthleteHome({ userId, name }: { userId: string; name: string }) {
     <>
       <PageHeader eyebrow={fmtDateLong(now)} title={`¡Vamos, ${name.split(" ")[0]}!`} subtitle="Tu entrenamiento de hoy, objetivos y progreso."
         actions={streak > 0 ? <div className="flex items-center gap-2 rounded-xl border border-volt/40 bg-volt/10 px-4 py-2"><Flame size={18} className="text-volt" /><span className="num text-2xl font-bold text-white">{streak}</span><span className="text-xs leading-tight text-neutral-300">{streak === 1 ? "sesión" : "sesiones"}<br />seguidas</span></div> : undefined} />
+      {notice && <Notice text={notice} />}
+      {mainRoutine && <Link href="/app/routine" className="card card-pad card-hover mb-6 flex items-center justify-between gap-3 border-volt/40"><span><span className="label block">Tu plan</span><b className="text-white">{mainRoutine.name}</b></span><span className="btn-primary whitespace-nowrap">Ver mi rutina</span></Link>}
       {feeDue && (
         <Link href="/app/paused" className="card card-pad mb-6 flex items-center gap-3 border-red-500/40 card-hover">
           <div className="flex-1 text-sm"><b className="text-white">Cuota de {monthLabel(monthKey()).toLowerCase()} pendiente</b><div className="muted">Vence el día {fee.org!.feeDueDay}. Tocá para pagarla o ver cómo regularizarla.</div></div>
