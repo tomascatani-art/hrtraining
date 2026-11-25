@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Shell } from "@/components/shell";
 import { accentVars, logoUrl } from "@/lib/brand";
+import { startOfDay } from "@/lib/metrics";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (u.role === "ATHLETE" && u.athleteProfile?.paused) {
     const path = (await headers()).get("x-pathname") ?? "";
     if (!/^\/app\/(paused|pay|messages|notifications)/.test(path)) redirect("/app/paused");
+  }
+  // Última conexión (para el panel del entrenador). Se anota como mucho cada 3 minutos.
+  const now = new Date();
+  if (!u.lastSeenAt || +now - +u.lastSeenAt > 3 * 60_000) {
+    const newDay = !u.lastSeenAt || u.lastSeenAt < startOfDay(now);
+    await db.user.update({ where: { id: u.id }, data: { lastSeenAt: now, ...(newDay ? { firstSeenAt: now } : {}) } }).catch(() => {});
   }
   // Una sola consulta para los mensajes sin leer (antes era una por conversación y frenaba cada pantalla).
   const [[unread], unreadNotifications] = await Promise.all([

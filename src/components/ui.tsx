@@ -17,10 +17,8 @@ export function Logo({ size = 32, withText = true, brand }: { size?: number; wit
   }
   return (
     <span className="inline-flex items-center gap-2.5">
-      <svg width={size} height={size} viewBox="0 0 40 40" aria-hidden>
-        <rect width="40" height="40" rx="10" fill="#ffd60a" />
-        <path d="M5 22h7l3-8 5 15 4-11 2 4h9" fill="none" stroke="#050505" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={size > 64 ? "/brand/hr-logo.png" : "/brand/hr-logo-128.png"} alt="HR Rendimiento & Disciplina" width={size} height={size} className="shrink-0 rounded-full" style={{ width: size, height: size }} />
       {withText && (
         <span className="font-display text-[17px] font-bold tracking-tight text-white">
           hrtraining<span className="text-volt">.co</span>

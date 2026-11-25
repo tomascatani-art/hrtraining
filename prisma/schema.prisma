@@ -63,6 +63,8 @@ model User {
   isDemo           Boolean      @default(false)
   createdAt        DateTime     @default(now())
   lastLoginAt      DateTime?
+  lastSeenAt       DateTime? // última vez que abrió la app (se actualiza cada pocos minutos)
+  firstSeenAt      DateTime? // primera vez que abrió la app ese día
 
   athleteProfile      AthleteProfile?      @relation("profile")
   coachedAthletes     AthleteProfile[]     @relation("coach")

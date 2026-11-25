@@ -383,3 +383,64 @@ export async function ensureDemoRoutines(db: PrismaClient) {
   if (athlete) await db.routine.create({ data: { orgId: org.id, athleteId: athlete.id, coachId: coach?.id, name: "Rutina pretemporada (ejemplo)", data, isDemo: true } });
   await db.routine.create({ data: { orgId: org.id, coachId: coach?.id, template: true, name: "Fuerza 2 días (ejemplo)", data: { ...data, meta: { ...data.meta, start: "" } }, isDemo: true } });
 }
+
+/** Conexiones de ejemplo (DEMO) para el panel del entrenador. Se refrescan en cada despliegue; solo toca usuarios DEMO. */
+export async function ensureDemoPresence(db: PrismaClient) {
+  const athletes = await db.user.findMany({ where: { isDemo: true, role: "ATHLETE", org: { isDemo: true } }, orderBy: { name: "asc" } });
+  const now = Date.now();
+  const H = 3600_000;
+  // horas desde la última entrada y minutos entre la primera y la última de ese día (null = nunca entró)
+  const plan: ([number, number] | null)[] = [[0.4, 54], [15, 0], [16.5, 50], [22, 39], [26, 0], [40, 20], [70, 0], null, null];
+  await Promise.all(athletes.map((a, i) => {
+    const p = plan[i % plan.length];
+    if (!p) return db.user.update({ where: { id: a.id }, data: { lastSeenAt: null, firstSeenAt: null } });
+    const last = new Date(now - p[0] * H);
+    const first = new Date(+last - p[1] * 60_000);
+    return db.user.update({ where: { id: a.id }, data: { lastSeenAt: last, firstSeenAt: first } });
+  }));
+}
+
+/** Para que el panel DEMO muestre "Planes por vencer": dos rutinas DEMO terminan en pocos días. */
+export async function ensureDemoExpiring(db: PrismaClient) {
+  const rs = await db.routine.findMany({ where: { isDemo: true, active: true, template: false, athleteId: { not: null }, org: { isDemo: true } }, orderBy: { createdAt: "asc" }, take: 2 });
+  const offsets = [3, -2]; // días que faltan (negativo = ya venció)
+  await Promise.all(rs.map((r, i) => {
+    const d = r.data as { weeks?: number; meta?: Record<string, unknown> };
+    const weeks = d.weeks ?? 4;
+    const start = new Date(Date.now() - (weeks * 7 - offsets[i]) * 86400000);
+    const ymd = start.toLocaleDateString("en-CA", { timeZone: "America/Argentina/Buenos_Aires" });
+    return db.routine.update({ where: { id: r.id }, data: { data: { ...d, meta: { ...(d.meta ?? {}), start: ymd } } as object } });
+  }));
+}
+
+/**
+ * Club DEMO reducido (pedido de Diego): queda el entrenador demo y una sola deportista de referencia (Sofía Demo).
+ * Borra solo usuarios DEMO del club DEMO; nunca toca datos reales.
+ */
+export async function trimDemo(db: PrismaClient) {
+  const org = await db.organization.findFirst({ where: { isDemo: true } });
+  if (!org) return;
+  const keepEmails = ["entrenador.demo@hrtraining.co", "deportista.demo@hrtraining.co"];
+  const coach = await db.user.findFirst({ where: { orgId: org.id, email: keepEmails[0] } });
+  if (!coach) return;
+  const extra = await db.user.findMany({ where: { orgId: org.id, isDemo: true, email: { notIn: keepEmails } }, select: { id: true } });
+  if (!extra.length) return;
+  const ids = extra.map((u) => u.id);
+  // Lo que armó otro entrenador demo pasa al entrenador que queda
+  await db.group.updateMany({ where: { coachId: { in: ids } }, data: { coachId: coach.id } });
+  await db.session.updateMany({ where: { coachId: { in: ids } }, data: { coachId: coach.id } });
+  await db.plan.updateMany({ where: { coachId: { in: ids } }, data: { coachId: coach.id } });
+  await db.evaluation.updateMany({ where: { coachId: { in: ids } }, data: { coachId: coach.id } });
+  await db.routine.updateMany({ where: { coachId: { in: ids } }, data: { coachId: coach.id } });
+  await db.athleteProfile.updateMany({ where: { coachId: { in: ids } }, data: { coachId: coach.id } });
+  // Planes, sesiones y competencias individuales de los que se van
+  await db.plan.deleteMany({ where: { orgId: org.id, athleteId: { in: ids } } });
+  await db.session.deleteMany({ where: { orgId: org.id, athleteId: { in: ids } } });
+  await db.competition.deleteMany({ where: { orgId: org.id, athleteId: { in: ids } } });
+  await db.user.deleteMany({ where: { id: { in: ids } } });
+  // Conversaciones que quedaron con una sola persona
+  const convs = await db.conversation.findMany({ where: { orgId: org.id }, select: { id: true, _count: { select: { members: true } } } });
+  const empty = convs.filter((c) => c._count.members < 2).map((c) => c.id);
+  if (empty.length) await db.conversation.deleteMany({ where: { id: { in: empty } } });
+  console.log(`Demo reducida: se quitaron ${ids.length} usuarios de ejemplo.`);
+}
