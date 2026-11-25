@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Plus, Save, X, Search, Send, ClipboardCopy, ClipboardPaste, Link2, Repeat, Megaphone, Cloud } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Plus, Save, X, Search, Send, ClipboardCopy, ClipboardPaste, Link2, Repeat, Megaphone, Cloud, CheckCircle2 } from "lucide-react";
 import { type RoutineData, type RoutineRow, type RoutineDay, emptyDay, emptyBlock, emptyRow, cloneDay, newId, MAX_WEEKS, BLOCK_KINDS, FOCUS, WEEKDAYS, type BlockKind } from "@/lib/routine";
 import { youtubeSearch } from "@/lib/video";
 import { VideoButton } from "@/components/video-player";
@@ -37,9 +37,13 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
     window.addEventListener("beforeunload", h); return () => window.removeEventListener("beforeunload", h);
   }, [dirty]);
 
-  const doSave = () => start(async () => {
+  const [savedMsg, setSavedMsg] = useState(false);
+  const doSave = (explicit?: unknown) => start(async () => {
     setStatus({ ok: true, text: "Guardando…" });
-    try { await save(id, latest.current.name, latest.current.data); setDirty(false); setStatus({ ok: true, text: `Guardado ${hhmm(new Date())}` }); }
+    try {
+      await save(id, latest.current.name, latest.current.data); setDirty(false); setStatus({ ok: true, text: `Guardado ${hhmm(new Date())}` });
+      if (explicit) { setSavedMsg(true); setTimeout(() => setSavedMsg(false), 3500); }
+    }
     catch (e) { setStatus({ ok: false, text: e instanceof Error ? e.message : "No se pudo guardar. Tocá Guardar planificación." }); }
   });
   // Se guarda solo: 1,5 s después del último cambio.
@@ -82,7 +86,7 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
 
       <div className="flex flex-wrap items-center gap-3">
         <span className={`inline-flex items-center gap-1.5 text-xs ${status.ok ? "muted" : "text-red-400"}`}><Cloud size={14} />{dirty && !pending ? "Cambios sin guardar · se guarda solo" : `Se guarda solo · ${status.text}`}</span>
-        <button type="button" onClick={doSave} disabled={pending} className="btn-primary ml-auto"><Save size={15} />{pending ? "Guardando…" : "Guardar planificación"}</button>
+        <button type="button" onClick={() => doSave(true)} disabled={pending} className="btn-primary ml-auto"><Save size={15} />{pending ? "Guardando…" : "Guardar planificación"}</button>
       </div>
 
       {children}
@@ -191,6 +195,17 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
           </div>
         </div>
       ) : <div className="card card-pad text-sm muted">Sin días todavía. Tocá “+ Día” para empezar.</div>}
+
+      {/* Botón Guardar siempre a mano, abajo de la pantalla (Diego) */}
+      <div className="sticky bottom-20 z-20 lg:bottom-4">
+        <div className="flex items-center gap-3 rounded-2xl border border-ink-600 bg-ink-900/95 p-2.5 pl-4 shadow-2xl backdrop-blur">
+          <span className="min-w-0 flex-1 truncate text-sm">
+            {savedMsg ? <span className="inline-flex items-center gap-1.5 font-semibold text-volt"><CheckCircle2 size={16} />{isTemplate ? "Plantilla guardada" : "Guardada. Tu alumno ya la ve."}</span>
+              : <span className={status.ok ? "muted" : "text-volt"}>{dirty ? "Tenés cambios sin guardar" : status.text}</span>}
+          </span>
+          <button type="button" onClick={() => doSave(true)} disabled={pending} className="btn-primary shrink-0 px-6"><Save size={16} />{pending ? "Guardando…" : "Guardar"}</button>
+        </div>
+      </div>
     </div>
   );
 }

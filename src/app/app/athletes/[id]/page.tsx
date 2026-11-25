@@ -61,9 +61,10 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
       {(sp.invitado === "1" || a.inviteToken) && a.inviteToken && (
         <div className="card card-pad mb-6 border-volt/40">
           <div className="font-semibold text-white">Invitación pendiente</div>
-          <p className="mb-3 text-sm muted">{sp.mail === "1" ? `Le mandamos la invitación por mail a ${a.email}. ` : ""}También podés compartirle este enlace (por ejemplo por WhatsApp) para que elija su contraseña y active su cuenta.</p>
+          <p className="mb-3 text-sm muted">Mandale este link por WhatsApp. Con el link elige su contraseña, y después entra con su email ({a.email}) y esa contraseña.</p>
+          <div className="mb-3"><WhatsAppShare label="Mandar link por WhatsApp" text={`Hola ${a.name.split(" ")[0]}! Te sumé a hrtraining para que veas tu rutina. Entrá a este link y elegí tu contraseña: ${origin}/invite/${a.inviteToken}`} /></div>
           <CopyField value={`${origin}/invite/${a.inviteToken}`} />
-          <form action={regenerateInvite} className="mt-3"><input type="hidden" name="id" value={a.id} /><input type="hidden" name="sendMail" value="1" /><Submit className="btn-ghost btn-sm" pendingText="Enviando…">Reenviar invitación por mail</Submit></form>
+          <form action={regenerateInvite} className="mt-3"><input type="hidden" name="id" value={a.id} /><Submit className="btn-ghost btn-sm" pendingText="Generando…">Generar un link nuevo</Submit></form>
         </div>
       )}
       {sp.clave && (

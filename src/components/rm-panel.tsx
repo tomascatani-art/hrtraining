@@ -4,6 +4,7 @@ import { kgFromPercent, plateBreakdown, fmtKg } from "@/lib/plates";
 import { epley1RM } from "@/lib/metrics";
 import { Card, Empty, Field, fmtDate } from "./ui";
 import { Submit, ConfirmSubmit } from "./forms";
+import { ExerciseSearchSelect } from "./exercise-search-select";
 import { saveRM, deleteRM, markRMSeen } from "@/app/app/rm/actions";
 
 
@@ -86,7 +87,7 @@ export async function RMPanel({ athleteId, viewer }: { athleteId: string; viewer
         <Card title={viewer === "ATHLETE" ? "Cargar mi RM" : "Cargar RM"}>
           <form action={saveRM} className="space-y-3">
             <input type="hidden" name="athleteId" value={athleteId} />
-            <Field label="Ejercicio"><select name="exerciseId" className="input" required defaultValue=""><option value="" disabled>Elegir…</option>{exercises.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}</select></Field>
+            <Field label="Ejercicio"><ExerciseSearchSelect exercises={exercises.map((e) => ({ id: e.id, name: e.name }))} /></Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Kilos"><input name="kg" inputMode="decimal" className="input" required placeholder="100" /></Field>
               <Field label="Fecha"><input name="date" type="date" className="input" /></Field>

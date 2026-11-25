@@ -1,11 +1,12 @@
 "use client";
 import { useState, useTransition } from "react";
-import { Check } from "lucide-react";
+import { Check, HeartPulse, X } from "lucide-react";
+import Link from "next/link";
 import { type RoutineData, FOCUS, blockSummary, WEEKDAYS } from "@/lib/routine";
 import { VideoButton } from "@/components/video-player";
 import { toggleCheck } from "@/app/app/routine/actions";
 
-type Checks = { routineId: string; done: string[] };
+type Checks = { routineId: string; done: string[]; wellnessDone?: boolean };
 
 /** Lo que ve el alumno: un día por pestaña, la semana en curso resaltada y el video adentro de la app. */
 export function RoutineView({ data, week, checks }: { data: RoutineData; week: number | null; checks?: Checks }) {
@@ -17,12 +18,19 @@ export function RoutineView({ data, week, checks }: { data: RoutineData; week: n
     return i >= 0 ? i : 0;
   });
   const [done, setDone] = useState<Set<string>>(() => new Set(checks?.done ?? []));
+  const [askWellness, setAskWellness] = useState(false);
   const [, start] = useTransition();
   const toggle = (dayId: string, rowId: string) => {
     if (!checks) return;
     const on = !done.has(rowId);
     // Se marca al instante; si no se pudo guardar, vuelve atrás.
     setDone((s) => { const n = new Set(s); if (on) n.add(rowId); else n.delete(rowId); return n; });
+    // Terminó todo el día: le pedimos la encuesta de bienestar (si hoy no la hizo).
+    if (on && !checks.wellnessDone) {
+      const d = data.days.find((x) => x.id === dayId);
+      const rs = d ? rowsOf(d) : [];
+      if (rs.length && rs.every((r) => r.id === rowId || done.has(r.id))) setAskWellness(true);
+    }
     start(async () => {
       try { await toggleCheck(checks.routineId, dayId, rowId, on); }
       catch { setDone((s) => { const n = new Set(s); if (on) n.delete(rowId); else n.add(rowId); return n; }); }
@@ -77,9 +85,24 @@ export function RoutineView({ data, week, checks }: { data: RoutineData; week: n
               <span className="num shrink-0 font-bold text-volt">{n}/{rs.length}</span>
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink-700"><div className="h-full rounded-full bg-volt transition-all" style={{ width: `${pct}%` }} /></div>
+            {n === rs.length && !checks.wellnessDone && (
+              <Link href="/app/wellness?desde=rutina" className="btn-primary mt-3 w-full"><HeartPulse size={16} />Contanos cómo terminaste (encuesta de bienestar)</Link>
+            )}
           </div>
         );
       })()}
+      {askWellness && (
+        <div className="fixed inset-0 z-50 grid place-items-end bg-black/75 p-4 sm:place-items-center" onClick={() => setAskWellness(false)}>
+          <div className="card card-pad w-full max-w-sm border-volt/60 text-center animate-rise" onClick={(e) => e.stopPropagation()} style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
+            <button type="button" onClick={() => setAskWellness(false)} className="float-right -mr-2 -mt-2 p-2 text-neutral-500 hover:text-white" aria-label="Cerrar"><X size={18} /></button>
+            <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-volt text-black"><HeartPulse size={26} /></div>
+            <div className="font-display text-xl font-bold text-white">¡Terminaste el entrenamiento!</div>
+            <p className="mt-1 text-sm muted">Contale a tu preparador cómo te sentiste. Son 30 segundos.</p>
+            <Link href="/app/wellness?desde=rutina" className="btn-primary mt-4 w-full">Responder encuesta de bienestar</Link>
+            <button type="button" onClick={() => setAskWellness(false)} className="mt-2 w-full py-2 text-sm text-neutral-400 hover:text-white">Ahora no</button>
+          </div>
+        </div>
+      )}
 
       {day && day.blocks.map((b) => b.rows.some((r) => r.name) && (
         <div key={b.id} className="card overflow-hidden">

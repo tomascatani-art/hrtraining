@@ -25,6 +25,7 @@ export default async function MyRoutine({ searchParams }: { searchParams: Promis
   const notice = main ? sanitizeRoutine(main.data).meta.notice?.trim() : "";
   const comps = await db.competition.findMany({ where: { date: { gte: startOfDay(new Date()) }, OR: [{ athleteId: u.id }, { group: { members: { some: { athleteId: u.id } } } }] }, orderBy: { date: "asc" }, take: 1 });
   const todayChecks = await db.routineCheck.findMany({ where: { routineId: r.id, date: dateOnly(new Date()) }, select: { rowId: true } });
+  const wellnessToday = await db.wellness.findFirst({ where: { athleteId: u.id, date: dateOnly(new Date()) }, select: { id: true } });
   const coach = r.coachId ? await db.user.findUnique({ where: { id: r.coachId }, select: { name: true } }) : null;
   return (
     <>
@@ -39,7 +40,7 @@ export default async function MyRoutine({ searchParams }: { searchParams: Promis
           {extras.map((x) => <Link key={x.id} href={`/app/routine?r=${x.id}`} className={r.id === x.id ? "chip-volt whitespace-nowrap" : "chip-mute whitespace-nowrap hover:text-white"}>{x.name}</Link>)}
         </div>
       )}
-      <RoutineView data={data} week={week} checks={{ routineId: r.id, done: todayChecks.map((c) => c.rowId) }} />
+      <RoutineView data={data} week={week} checks={{ routineId: r.id, done: todayChecks.map((c) => c.rowId), wellnessDone: !!wellnessToday }} />
     </>
   );
 }

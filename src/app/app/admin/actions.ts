@@ -19,8 +19,7 @@ async function _inviteCoach(fd: FormData) {
   const role = fd.get("role") === "ADMIN" ? "ADMIN" : "COACH";
   const c = await db.user.create({ data: { orgId: u.orgId, email, name, role, inviteToken: randomBytes(24).toString("base64url") } });
   await audit(u, "CREAR", "Usuario", `Invitación a ${name} (${role === "ADMIN" ? "administrador" : "entrenador"})`, c.id);
-  const mail = await sendInviteMail({ ...c, org: u.org }, await appOrigin());
-  redirect(`/app/admin?invited=${c.id}${mail.sent ? "&mail=1" : ""}`);
+  redirect(`/app/admin?invited=${c.id}`);
 }
 
 async function _updateUser(fd: FormData) {

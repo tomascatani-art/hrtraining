@@ -9,7 +9,7 @@ import { sportLabel } from "@/lib/catalog";
 export function ImportWizard({ mailReady }: { mailReady: boolean }) {
   const [preview, previewAction] = useActionState(previewImport, undefined);
   const [result, commitAction] = useActionState(commitImport, undefined);
-  const [sendMail, setSendMail] = useState(true);
+  const sendMail = false; // Diego: las invitaciones van solo por WhatsApp
   const rows = preview?.rows ?? [];
   const ok = rows.filter((r) => !r.errors.length);
   const bad = rows.length - ok.length;
@@ -81,10 +81,7 @@ export function ImportWizard({ mailReady }: { mailReady: boolean }) {
           <form action={commitAction} className="flex flex-wrap items-center gap-4 border-t border-ink-700 p-4 sm:p-5">
             <input type="hidden" name="rows" value={JSON.stringify(ok)} />
             <input type="hidden" name="sendMail" value={sendMail ? "1" : "0"} />
-            <label className="flex flex-1 items-center gap-2 text-sm text-neutral-300">
-              <input type="checkbox" checked={sendMail} onChange={(e) => setSendMail(e.target.checked)} />
-              Mandarles la invitación por mail{!mailReady && " (el envío de mails todavía no está configurado: quedan los enlaces en cada perfil)"}
-            </label>
+            <p className="flex-1 text-sm muted">Después le mandás a cada uno su link por WhatsApp desde su perfil.</p>
             <Submit pendingText="Cargando…" disabled={!ok.length}>Cargar {ok.length} alumnos</Submit>
           </form>
           {result?.error && <p className="px-5 pb-4 text-sm text-red-300">{result.error}</p>}

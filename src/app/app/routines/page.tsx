@@ -54,7 +54,7 @@ export default async function RoutinesPage({ searchParams }: { searchParams: Pro
         </div>
         <div className="space-y-5">
           <Card title="Plantillas" action={<ClipboardList size={16} className="text-volt" />}>
-            <p className="mb-3 text-sm muted">Rutinas modelo para no empezar de cero. Al crear la rutina de un alumno elegís “Desde: …”.</p>
+            <p className="mb-3 text-sm muted">Rutinas modelo para no empezar de cero. Al crear la rutina de un alumno elegís “Desde: …”. <Link href="/app/templates" className="text-volt hover:underline">Ver y asignar plantillas</Link></p>
             <div className="space-y-2">
               {templates.map((t) => {
                 const d = sanitizeRoutine(t.data);

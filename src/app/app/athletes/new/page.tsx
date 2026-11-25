@@ -30,7 +30,6 @@ export default async function NewAthlete() {
           <Field label="Peso (kg)"><input name="weightKg" type="number" step="0.1" className="input" /></Field>
           <Field label="Nivel"><select name="level" className="input"><option>Iniciación</option><option>Intermedio</option><option>Avanzado</option><option>Élite</option></select></Field>
           <Field label="Objetivo principal" className="sm:col-span-2"><textarea name="objective" className="input" /></Field>
-          <label className="sm:col-span-2 flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" name="sendMail" defaultChecked />Mandarle la invitación por mail</label>
           <div className="sm:col-span-2 flex justify-end"><Submit>Crear y generar invitación</Submit></div>
         </form>
       </Card>

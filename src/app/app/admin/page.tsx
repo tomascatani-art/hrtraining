@@ -36,7 +36,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <div key={l as string} className="card card-pad"><div className="label">{l}</div><div className="num mt-1 text-2xl font-semibold text-white">{v}</div></div>
         ))}
       </div>
-      {invited?.inviteToken && <div className="card card-pad mb-6 border-volt/40"><div className="mb-2 font-semibold text-white">Enlace de invitación para {invited.name}</div>{sp.mail === "1" && <p className="mb-2 text-sm muted">También le mandamos la invitación por mail.</p>}<CopyField value={`${origin}/invite/${invited.inviteToken}`} /></div>}
+      {invited?.inviteToken && <div className="card card-pad mb-6 border-volt/40"><div className="mb-2 font-semibold text-white">Enlace de invitación para {invited.name}</div><div className="mb-3"><WhatsAppShare label="Mandar link por WhatsApp" text={`Hola ${invited.name.split(" ")[0]}! Te sumé a hrtraining. Entrá a este link y elegí tu contraseña: ${origin}/invite/${invited.inviteToken}`} /></div><CopyField value={`${origin}/invite/${invited.inviteToken}`} /></div>}
       {resetFor && sp.clave && (() => {
         const link = `${origin}/reset/${sp.clave}`;
         return (
