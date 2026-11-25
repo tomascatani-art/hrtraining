@@ -200,7 +200,7 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
       <div className="sticky bottom-20 z-20 lg:bottom-4">
         <div className="flex items-center gap-3 rounded-2xl border border-ink-600 bg-ink-900/95 p-2.5 pl-4 shadow-2xl backdrop-blur">
           <span className="min-w-0 flex-1 truncate text-sm">
-            {savedMsg ? <span className="inline-flex items-center gap-1.5 font-semibold text-volt"><CheckCircle2 size={16} />{isTemplate ? "Plantilla guardada" : "Guardada. Tu alumno ya la ve."}</span>
+            {savedMsg ? <span className="inline-flex items-center gap-1.5 font-semibold text-volt"><CheckCircle2 size={16} />{isTemplate ? "Plantilla guardada" : "Guardada"}</span>
               : <span className={status.ok ? "muted" : "text-volt"}>{dirty ? "Tenés cambios sin guardar" : status.text}</span>}
           </span>
           <button type="button" onClick={() => doSave(true)} disabled={pending} className="btn-primary shrink-0 px-6"><Save size={16} />{pending ? "Guardando…" : "Guardar"}</button>
