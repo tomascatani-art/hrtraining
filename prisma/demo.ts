@@ -412,3 +412,35 @@ export async function ensureDemoExpiring(db: PrismaClient) {
     return db.routine.update({ where: { id: r.id }, data: { data: { ...d, meta: { ...(d.meta ?? {}), start: ymd } } as object } });
   }));
 }
+
+/**
+ * Club DEMO reducido (pedido de Diego): queda el entrenador demo y una sola deportista de referencia (Sofía Demo).
+ * Borra solo usuarios DEMO del club DEMO; nunca toca datos reales.
+ */
+export async function trimDemo(db: PrismaClient) {
+  const org = await db.organization.findFirst({ where: { isDemo: true } });
+  if (!org) return;
+  const keepEmails = ["entrenador.demo@hrtraining.co", "deportista.demo@hrtraining.co"];
+  const coach = await db.user.findFirst({ where: { orgId: org.id, email: keepEmails[0] } });
+  if (!coach) return;
+  const extra = await db.user.findMany({ where: { orgId: org.id, isDemo: true, email: { notIn: keepEmails } }, select: { id: true } });
+  if (!extra.length) return;
+  const ids = extra.map((u) => u.id);
+  // Lo que armó otro entrenador demo pasa al entrenador que queda
+  await db.group.updateMany({ where: { coachId: { in: ids } }, data: { coachId: coach.id } });
+  await db.session.updateMany({ where: { coachId: { in: ids } }, data: { coachId: coach.id } });
+  await db.plan.updateMany({ where: { coachId: { in: ids } }, data: { coachId: coach.id } });
+  await db.evaluation.updateMany({ where: { coachId: { in: ids } }, data: { coachId: coach.id } });
+  await db.routine.updateMany({ where: { coachId: { in: ids } }, data: { coachId: coach.id } });
+  await db.athleteProfile.updateMany({ where: { coachId: { in: ids } }, data: { coachId: coach.id } });
+  // Planes, sesiones y competencias individuales de los que se van
+  await db.plan.deleteMany({ where: { orgId: org.id, athleteId: { in: ids } } });
+  await db.session.deleteMany({ where: { orgId: org.id, athleteId: { in: ids } } });
+  await db.competition.deleteMany({ where: { orgId: org.id, athleteId: { in: ids } } });
+  await db.user.deleteMany({ where: { id: { in: ids } } });
+  // Conversaciones que quedaron con una sola persona
+  const convs = await db.conversation.findMany({ where: { orgId: org.id }, select: { id: true, _count: { select: { members: true } } } });
+  const empty = convs.filter((c) => c._count.members < 2).map((c) => c.id);
+  if (empty.length) await db.conversation.deleteMany({ where: { id: { in: empty } } });
+  console.log(`Demo reducida: se quitaron ${ids.length} usuarios de ejemplo.`);
+}
