@@ -1,7 +1,12 @@
 // Rutina del deportista (estilo planilla): días → bloques → ejercicios, con una columna por semana.
 // Se guarda como JSON en Routine.data. Estas funciones sirven en servidor y navegador.
 
-export type RoutineRow = { id: string; exerciseId?: string | null; name: string; video?: string | null; note?: string; focus?: string; cells: string[] };
+export type RowLink = "" | "superserie" | "circuito";
+export type RoutineRow = {
+  id: string; exerciseId?: string | null; name: string; video?: string | null; note?: string; focus?: string; cells: string[];
+  rm?: string[]; rmBase?: string; rest?: string; mode?: "normal" | "tabata"; tabata?: { work: string; rest: string; rounds: string };
+  link?: RowLink; // se une con el ejercicio siguiente: sin descanso o en circuito
+};
 export type BlockKind = "normal" | "superserie" | "circuito" | "tabata" | "amrap" | "emom";
 export type RoutineBlock = { id: string; name: string; kind?: BlockKind; rounds?: string; work?: string; rest?: string; minutes?: string; rows: RoutineRow[] };
 
@@ -27,24 +32,31 @@ export function blockSummary(b: RoutineBlock) {
 
 /** Foco de cada ejercicio. Colores dentro de la identidad (negro, amarillo y blanco), siempre con su nombre escrito. */
 export const FOCUS: Record<string, { label: string; cls: string }> = {
+  activacion: { label: "Activación", cls: "border-dashed border-neutral-300 text-neutral-200" },
+  estructura: { label: "Estructura", cls: "bg-white/15 text-white border-white/40" },
   fuerza: { label: "Fuerza", cls: "bg-volt text-ink-950 border-volt" },
-  potencia: { label: "Potencia", cls: "border-volt text-volt" },
+  hipertrofia: { label: "Hipertrofia", cls: "bg-volt/20 text-volt border-volt/40" },
+  potencia: { label: "Explosivo / potencia", cls: "border-volt text-volt" },
   velocidad: { label: "Velocidad", cls: "bg-white text-ink-950 border-white" },
   resistencia: { label: "Resistencia", cls: "border-white text-white" },
-  hipertrofia: { label: "Hipertrofia", cls: "bg-volt/20 text-volt border-volt/30" },
-  core: { label: "Core / estabilidad", cls: "bg-neutral-600 text-white border-neutral-600" },
+  accesorio: { label: "Accesorio", cls: "bg-neutral-700 text-neutral-100 border-neutral-700" },
+  core: { label: "Core", cls: "bg-neutral-500 text-white border-neutral-500" },
+  estabilidad: { label: "Estabilidad", cls: "border-neutral-400 text-neutral-200" },
   movilidad: { label: "Movilidad", cls: "border-neutral-500 text-neutral-300" },
-  activacion: { label: "Activación / técnica", cls: "border-dashed border-neutral-400 text-neutral-300" },
+  tecnica: { label: "Técnica", cls: "border-dotted border-volt/70 text-volt" },
+  prevencion: { label: "Prevención", cls: "border-dotted border-white/70 text-white" },
+  enfriamiento: { label: "Enfriamiento", cls: "border-neutral-600 text-neutral-400" },
 };
-export type RoutineDay = { id: string; name: string; blocks: RoutineBlock[] };
+export type RoutineDay = { id: string; name: string; weekday?: string; blocks: RoutineBlock[] };
+export const WEEKDAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 export type WarmupItem = { id: string; exerciseId?: string | null; name: string; video?: string | null; detail?: string };
-export type RoutineMeta = { objective?: string; start?: string; notes?: string; rest?: string };
+export type RoutineMeta = { objective?: string; start?: string; notes?: string; rest?: string; notice?: string };
 export type RoutineData = { meta: RoutineMeta; weeks: number; warmup: WarmupItem[]; days: RoutineDay[] };
 
 export const MAX_WEEKS = 12;
 export const newId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
-export const emptyRow = (weeks: number, init?: Partial<RoutineRow>): RoutineRow => ({ id: newId(), name: "", note: "", cells: Array(weeks).fill(""), ...init });
+export const emptyRow = (weeks: number, init?: Partial<RoutineRow>): RoutineRow => ({ id: newId(), name: "", note: "", cells: Array(weeks).fill(""), rm: Array(weeks).fill(""), rest: "90", mode: "normal", link: "", ...init });
 export const emptyBlock = (name = "BLOQUE PRINCIPAL"): RoutineBlock => ({ id: newId(), name, rows: [] });
 export const emptyDay = (n: number): RoutineDay => ({ id: newId(), name: `DÍA ${n}`, blocks: [emptyBlock()] });
 export const emptyRoutine = (): RoutineData => ({ meta: { objective: "", start: "", notes: "", rest: "" }, weeks: 4, warmup: [], days: [emptyDay(1)] });
@@ -61,17 +73,26 @@ export function sanitizeRoutine(raw: unknown): RoutineData {
   const id = (v: unknown) => (typeof v === "string" && /^[\w-]{1,40}$/.test(v) ? v : newId());
   return {
     weeks,
-    meta: { objective: str(m.objective, 200), start: /^\d{4}-\d{2}-\d{2}$/.test(str(m.start)) ? str(m.start) : "", notes: str(m.notes, 1000), rest: str(m.rest, 100) },
+    meta: { objective: str(m.objective, 200), start: /^\d{4}-\d{2}-\d{2}$/.test(str(m.start)) ? str(m.start) : "", notes: str(m.notes, 1000), rest: str(m.rest, 100), notice: str(m.notice, 600) },
     warmup: arr<Record<string, unknown>>(r.warmup).slice(0, 40).map((w) => ({ id: id(w.id), exerciseId: typeof w.exerciseId === "string" ? w.exerciseId : null, name: str(w.name, 120), video: url(w.video), detail: str(w.detail, 120) })),
     days: arr<Record<string, unknown>>(r.days).slice(0, 14).map((d) => ({
-      id: id(d.id), name: str(d.name, 60) || "DÍA",
+      id: id(d.id), name: str(d.name, 60) || "DÍA", weekday: WEEKDAYS.includes(str(d.weekday)) ? str(d.weekday) : "",
       blocks: arr<Record<string, unknown>>(d.blocks).slice(0, 12).map((b) => ({
         id: id(b.id), name: str(b.name, 60),
         kind: (Object.keys(BLOCK_KINDS).includes(str(b.kind)) ? str(b.kind) : "normal") as BlockKind,
         rounds: str(b.rounds, 10), work: str(b.work, 10), rest: str(b.rest, 20), minutes: str(b.minutes, 10),
         rows: arr<Record<string, unknown>>(b.rows).slice(0, 40).map((x) => {
           const cells = arr<unknown>(x.cells).map((c) => str(c, 40));
-          return { id: id(x.id), exerciseId: typeof x.exerciseId === "string" ? x.exerciseId : null, name: str(x.name, 120), video: url(x.video), note: str(x.note, 200), focus: str(x.focus) in FOCUS ? str(x.focus) : "", cells: Array.from({ length: weeks }, (_, i) => cells[i] ?? "") };
+          const rm = arr<unknown>(x.rm).map((c) => str(c, 20));
+          const t = (x.tabata ?? {}) as Record<string, unknown>;
+          return {
+            id: id(x.id), exerciseId: typeof x.exerciseId === "string" ? x.exerciseId : null, name: str(x.name, 120), video: url(x.video), note: str(x.note, 200),
+            focus: str(x.focus) in FOCUS ? str(x.focus) : "",
+            cells: Array.from({ length: weeks }, (_, i) => cells[i] ?? ""), rm: Array.from({ length: weeks }, (_, i) => rm[i] ?? ""),
+            rmBase: str(x.rmBase, 20), rest: str(x.rest, 10), mode: x.mode === "tabata" ? "tabata" as const : "normal" as const,
+            tabata: { work: str(t.work, 6) || "20", rest: str(t.rest, 6) || "10", rounds: str(t.rounds, 6) || "8" },
+            link: (x.link === "superserie" || x.link === "circuito" ? x.link : "") as RowLink,
+          };
         }),
       })),
     })),
@@ -87,12 +108,13 @@ export function cloneRoutine(d: RoutineData): RoutineData {
   };
 }
 export function cloneDay(day: RoutineDay): RoutineDay {
-  return { ...day, id: newId(), blocks: day.blocks.map((b) => ({ ...b, id: newId(), rows: b.rows.map((r) => ({ ...r, id: newId(), cells: [...r.cells] })) })) };
+  return { ...day, id: newId(), blocks: day.blocks.map((b) => ({ ...b, id: newId(), rows: b.rows.map((r) => ({ ...r, id: newId(), cells: [...r.cells], rm: [...(r.rm ?? [])], tabata: r.tabata ? { ...r.tabata } : undefined })) })) };
 }
 
 /** Ajusta un día a otra cantidad de semanas (corta o completa columnas). */
 export function fitDay(day: RoutineDay, weeks: number): RoutineDay {
-  return { ...day, blocks: day.blocks.map((b) => ({ ...b, rows: b.rows.map((r) => ({ ...r, cells: Array.from({ length: weeks }, (_, i) => r.cells[i] ?? r.cells[r.cells.length - 1] ?? "") })) })) };
+  const fit = (a: string[] = []) => Array.from({ length: weeks }, (_, i) => a[i] ?? a[a.length - 1] ?? "");
+  return { ...day, blocks: day.blocks.map((b) => ({ ...b, rows: b.rows.map((r) => ({ ...r, cells: fit(r.cells), rm: fit(r.rm) })) })) };
 }
 
 /** Semana en curso (0 = primera) según la fecha de inicio. null si no hay fecha o ya terminó. */

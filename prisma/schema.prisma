@@ -595,6 +595,8 @@ model Routine {
   name      String
   active    Boolean      @default(true) // false = versión anterior guardada
   template  Boolean      @default(false)
+  extra     Boolean      @default(false) // rutina extra (además del plan principal)
+  startsOn  DateTime? // próximo plan: pasa a ser el actual en esta fecha
   data      Json // { meta, weeks, warmup[], days[{ name, blocks[{ name, rows[{ exerciseId?, name, video?, note, cells[] }] }] }] }
   isDemo    Boolean      @default(false)
   createdAt DateTime     @default(now())

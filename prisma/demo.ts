@@ -353,25 +353,25 @@ export async function ensureDemoRoutines(db: PrismaClient) {
   const find = (n: string) => exs.find((e) => e.name.toLowerCase() === n.toLowerCase())?.id ?? null;
   let k = 0;
   const id = () => `demo${(k++).toString(36)}`;
-  const row = (name: string, cells: string[], note = "") => ({ id: id(), exerciseId: find(name), name, note, video: null, cells });
+  const row = (name: string, cells: string[], note = "", extra: Record<string, unknown> = {}) => ({ id: id(), exerciseId: find(name), name, note, video: null, cells, rm: ["", "", "", ""], rest: "90", mode: "normal", link: "", ...extra });
   const data = {
     weeks: 4,
-    meta: { objective: "Fuerza y potencia de tren inferior (ejemplo)", start: new Date(Date.now() - 8 * 86400000).toISOString().slice(0, 10), notes: "Datos de ejemplo del club demo.", rest: "2-3 min" },
+    meta: { objective: "Fuerza y potencia de tren inferior (ejemplo)", start: new Date(Date.now() - 8 * 86400000).toISOString().slice(0, 10), notes: "Datos de ejemplo del club demo.", rest: "2-3 min", notice: "Ejemplo de aviso: esta semana bajamos el volumen, priorizá la técnica. Cualquier molestia me avisás." },
     warmup: [
       { id: id(), exerciseId: find("Movilidad de cadera"), name: "Movilidad de cadera", detail: "2x8 c/lado", video: null },
       { id: id(), exerciseId: find("Skipping alto"), name: "Skipping alto", detail: "3x20 m", video: null },
     ],
     days: [
-      { id: id(), name: "DÍA 1 · Inferior", blocks: [
-        { id: id(), name: "ACTIVACIÓN", rows: [row("Salto al cajón", ["3x5", "3x5", "4x4", "3x3"], "Caer suave, pausa arriba")] },
+      { id: id(), name: "DÍA 1 · Inferior", weekday: "Martes", blocks: [
+        { id: id(), name: "ACTIVACIÓN", rows: [row("Salto al cajón", ["3x5", "3x5", "4x4", "3x3"], "Caer suave, pausa arriba", { focus: "potencia", link: "superserie" }), row("Plancha lateral", ["2x20 s", "2x25 s", "2x30 s", "2x20 s"], "", { focus: "activacion" })] },
         { id: id(), name: "BLOQUE PRINCIPAL", rows: [
-          row("Sentadilla trasera con barra", ["4x6 · 70%", "4x5 · 75%", "5x4 · 80%", "3x5 · 65%"], "RIR 2"),
-          row("Peso muerto rumano", ["3x8", "3x8", "4x6", "2x8"]),
-          row("Zancada búlgara", ["3x8 c/lado", "3x8 c/lado", "3x10 c/lado", "2x8 c/lado"]),
+          row("Sentadilla trasera con barra", ["4x6", "4x5", "5x4", "3x5"], "", { focus: "fuerza", rm: ["70%", "75%", "80%", "65%"], rmBase: "RIR 2", rest: "150" }),
+          row("Peso muerto rumano", ["3x8", "3x8", "4x6", "2x8"], "", { focus: "estructura", link: "circuito" }),
+          row("Zancada búlgara", ["3x8 c/lado", "3x8 c/lado", "3x10 c/lado", "2x8 c/lado"], "", { focus: "hipertrofia" }),
         ] },
-        { id: id(), name: "CORE", rows: [row("Plancha lateral", ["3x30 s", "3x35 s", "3x40 s", "2x30 s"])] },
+        { id: id(), name: "METABÓLICO", rows: [row("Burpee", [], "", { focus: "resistencia", mode: "tabata", tabata: { work: "20", rest: "10", rounds: "8" } })] },
       ] },
-      { id: id(), name: "DÍA 2 · Superior", blocks: [
+      { id: id(), name: "DÍA 2 · Superior", weekday: "Jueves", blocks: [
         { id: id(), name: "BLOQUE PRINCIPAL", rows: [
           row("Press de banca", ["4x6", "4x5", "5x4", "3x5"], "Pausa de 1 s en el pecho"),
           row("Dominadas", ["4x5", "4x6", "4x6", "3x5"]),

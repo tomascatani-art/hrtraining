@@ -25,3 +25,18 @@ export async function libraryPicker(orgId: string) {
   const vids = await exerciseVideos(orgId, exs.map((e) => e.id));
   return exs.map((e) => [e.id, e.name, vids.get(e.id) ?? null] as [string, string, string | null]);
 }
+
+/** Plan actual del deportista. Si había un "próximo plan" con fecha ya cumplida, pasa a ser el actual (el anterior queda en versiones). */
+export async function currentRoutine(athleteId: string) {
+  const now = new Date();
+  const due = await db.routine.findFirst({ where: { athleteId, extra: false, active: false, startsOn: { lte: now } }, orderBy: { startsOn: "desc" } });
+  if (due) {
+    await db.routine.updateMany({ where: { athleteId, extra: false, active: true }, data: { active: false } });
+    await db.routine.update({ where: { id: due.id }, data: { active: true, startsOn: null } });
+  }
+  return db.routine.findFirst({ where: { athleteId, extra: false, active: true }, orderBy: { updatedAt: "desc" }, include: { coach: { select: { name: true } } } });
+}
+
+export async function extraRoutines(athleteId: string) {
+  return db.routine.findMany({ where: { athleteId, extra: true, active: true }, orderBy: { createdAt: "asc" } });
+}

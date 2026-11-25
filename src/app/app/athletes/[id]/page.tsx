@@ -18,7 +18,7 @@ import { AvatarUpload } from "@/components/avatar-upload";
 import { TrainingInsights } from "@/components/insights";
 import { updateAthlete, regenerateInvite, resetLinkForAthlete } from "../actions";
 import { RoutineView } from "@/components/routine-view";
-import { withVideos } from "@/lib/routine-server";
+import { withVideos, currentRoutine } from "@/lib/routine-server";
 import { currentWeek } from "@/lib/routine";
 import { createRoutine } from "../../routines/actions";
 
@@ -146,7 +146,7 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
 }
 
 async function RoutineTab({ athleteId, orgId }: { athleteId: string; orgId: string }) {
-  const r = await db.routine.findFirst({ where: { athleteId, active: true }, orderBy: { updatedAt: "desc" } });
+  const r = await currentRoutine(athleteId);
   const templates = await db.routine.findMany({ where: { orgId, template: true }, orderBy: { name: "asc" }, select: { id: true, name: true } });
   if (!r) return (
     <Card title="Rutina">

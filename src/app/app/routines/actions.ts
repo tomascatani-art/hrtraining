@@ -19,7 +19,7 @@ async function ownRoutine(u: SessionUser, id: string) {
 
 /** Deja la rutina activa del deportista como versión guardada (no se borra nada). */
 async function archiveActive(athleteId: string) {
-  await db.routine.updateMany({ where: { athleteId, active: true }, data: { active: false } });
+  await db.routine.updateMany({ where: { athleteId, active: true, extra: false }, data: { active: false } });
 }
 
 async function tellAthlete(athleteId: string, title: string) {
@@ -69,6 +69,7 @@ export async function saveRoutine(id: string, name: string, raw: unknown) {
   if (r.athleteId && r.active && Date.now() - +r.updatedAt > 6 * 3600_000) await tellAthlete(r.athleteId, "Tu entrenador actualizó tu rutina");
   revalidatePath(`/app/routines/${id}`);
   revalidatePath("/app/routine");
+  revalidatePath("/app");
   return { ok: true, savedAt: new Date().toISOString() };
 }
 
@@ -96,7 +97,7 @@ export async function copyDay(fromId: string, dayId: string, toAthleteId: string
   await assertAthlete(u, toAthleteId);
   const day = sanitizeRoutine(r.data).days.find((d) => d.id === dayId);
   if (!day) throw new Error("Guardá los cambios antes de copiar el día");
-  let target = await db.routine.findFirst({ where: { athleteId: toAthleteId, active: true }, orderBy: { updatedAt: "desc" } });
+  let target = await db.routine.findFirst({ where: { athleteId: toAthleteId, active: true, extra: false }, orderBy: { updatedAt: "desc" } });
   const a = await db.user.findUnique({ where: { id: toAthleteId }, select: { name: true } });
   if (!target) target = await db.routine.create({ data: { orgId: u.orgId, athleteId: toAthleteId, coachId: u.id, name: `Rutina de ${a?.name.split(" ")[0] ?? "deportista"}`, data: json({ ...emptyRoutine(), days: [], weeks: sanitizeRoutine(r.data).weeks }) } });
   const data = sanitizeRoutine(target.data);
@@ -124,15 +125,73 @@ export async function restoreVersion(fd: FormData) {
   const r = await ownRoutine(u, String(fd.get("id")));
   if (!r.athleteId) throw new Error("Solo las rutinas de un deportista tienen versiones");
   await archiveActive(r.athleteId);
-  await db.routine.update({ where: { id: r.id }, data: { active: true } });
+  await db.routine.update({ where: { id: r.id }, data: { active: true, startsOn: null } });
   await audit(u, "RESTAURAR", "Rutina", r.name, r.id);
   redirect(`/app/routines/${r.id}`);
+}
+
+/** Reemplaza todo el plan del deportista por una plantilla. Lo que tenía queda en versiones. */
+export async function replaceWithTemplate(fd: FormData) {
+  const u = await requireUser(["COACH", "ADMIN"]);
+  const r = await ownRoutine(u, String(fd.get("id")));
+  const t = await ownRoutine(u, String(fd.get("templateId")));
+  if (!r.athleteId || !t.template) throw new Error("Elegí una plantilla");
+  const data = cloneRoutine(sanitizeRoutine(t.data));
+  data.meta.start = sanitizeRoutine(r.data).meta.start;
+  data.meta.notice = sanitizeRoutine(r.data).meta.notice;
+  await archiveActive(r.athleteId);
+  const n = await db.routine.create({ data: { orgId: u.orgId, athleteId: r.athleteId, coachId: u.id, name: t.name, data: json(data) } });
+  await tellAthlete(r.athleteId, "Tenés una rutina nueva");
+  await audit(u, "REEMPLAZAR", "Rutina", `${r.name} → ${t.name}`, n.id);
+  redirect(`/app/routines/${n.id}`);
+}
+
+/** Empieza un plan en blanco. El actual queda en versiones. */
+export async function newPlan(fd: FormData) {
+  const u = await requireUser(["COACH", "ADMIN"]);
+  const r = await ownRoutine(u, String(fd.get("id")));
+  if (!r.athleteId) throw new Error("Sin deportista");
+  const data = emptyRoutine();
+  data.meta.notice = sanitizeRoutine(r.data).meta.notice;
+  await archiveActive(r.athleteId);
+  const n = await db.routine.create({ data: { orgId: u.orgId, athleteId: r.athleteId, coachId: u.id, name: String(fd.get("name") ?? "").trim() || "Plan nuevo", data: json(data) } });
+  redirect(`/app/routines/${n.id}`);
+}
+
+/** Rutina extra (además del plan principal): por ejemplo, una de vacaciones o de prevención. */
+export async function addExtra(fd: FormData) {
+  const u = await requireUser(["COACH", "ADMIN"]);
+  const athleteId = String(fd.get("athleteId"));
+  await assertAthlete(u, athleteId);
+  const templateId = String(fd.get("templateId") ?? "");
+  let data = emptyRoutine();
+  let name = String(fd.get("name") ?? "").trim();
+  if (templateId) { const t = await ownRoutine(u, templateId); data = cloneRoutine(sanitizeRoutine(t.data)); data.meta.start = ""; name ||= t.name; }
+  const n = await db.routine.create({ data: { orgId: u.orgId, athleteId, coachId: u.id, extra: true, name: name || "Rutina extra", data: json(data) } });
+  await tellAthlete(athleteId, `Tenés una rutina extra: ${n.name}`);
+  redirect(`/app/routines/${n.id}`);
+}
+
+/** Próximo plan: queda guardado y pasa a ser el actual en la fecha elegida. */
+export async function scheduleNext(fd: FormData) {
+  const u = await requireUser(["COACH", "ADMIN"]);
+  const athleteId = String(fd.get("athleteId"));
+  await assertAthlete(u, athleteId);
+  const start = String(fd.get("start") ?? "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start)) throw new Error("Elegí la fecha en que empieza");
+  const templateId = String(fd.get("templateId") ?? "");
+  let data = emptyRoutine();
+  let name = String(fd.get("name") ?? "").trim();
+  if (templateId) { const t = await ownRoutine(u, templateId); data = cloneRoutine(sanitizeRoutine(t.data)); name ||= t.name; }
+  data.meta.start = start;
+  const n = await db.routine.create({ data: { orgId: u.orgId, athleteId, coachId: u.id, active: false, startsOn: new Date(`${start}T00:00:00-03:00`), name: name || `Plan desde ${start.split("-").reverse().join("/")}`, data: json(data) } });
+  redirect(`/app/routines/${n.id}`);
 }
 
 export async function deleteRoutine(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const r = await ownRoutine(u, String(fd.get("id")));
-  if (r.athleteId && r.active) throw new Error("La rutina actual no se borra; pasale otra o restaurá una versión");
+  if (r.athleteId && r.active && !r.extra) throw new Error("La rutina actual no se borra; pasale otra o restaurá una versión");
   await db.routine.delete({ where: { id: r.id } });
   await audit(u, "ELIMINAR", "Rutina", r.name, r.id);
   redirect(r.athleteId ? `/app/athletes/${r.athleteId}?tab=rutina` : "/app/routines");
