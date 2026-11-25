@@ -30,7 +30,6 @@ export default async function GroupDetail({ params }: { params: Promise<{ id: st
       <PageHeader eyebrow={sportLabel(g.sport)} title={g.name} subtitle={g.description ?? undefined}
         actions={<>
           <Link href={`/app/calendar?new=1&group=${g.id}`} className="btn-primary">Asignar sesión grupal</Link>
-          {g.conversations[0] && <Link href={`/app/messages?c=${g.conversations[0].id}`} className="btn-ghost">Chat del grupo</Link>}
         </>} />
       <div className="grid gap-6 xl:grid-cols-3">
         <Card title={`Integrantes (${g.members.length})`} className="xl:col-span-2" pad={false}>

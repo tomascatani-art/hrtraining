@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Notice } from "@/components/routine-notice";
 import { currentRoutine } from "@/lib/routine-server";
-import { sanitizeRoutine } from "@/lib/routine";
+import { todayPlan, sanitizeRoutine } from "@/lib/routine";
 import { avatarSrc } from "@/lib/avatar";
 import { Users, CalendarCheck, Percent, AlertTriangle, ClipboardList, Trophy, ArrowRight, Flame, HeartPulse } from "lucide-react";
 import { requireUser } from "@/lib/auth";
@@ -51,6 +51,7 @@ async function AthleteHome({ userId, name }: { userId: string; name: string }) {
   ]);
   const mainRoutine = await currentRoutine(userId);
   const notice = mainRoutine ? sanitizeRoutine(mainRoutine.data).meta.notice?.trim() : "";
+  const plan = mainRoutine ? todayPlan(sanitizeRoutine(mainRoutine.data), mainRoutine.createdAt) : null;
   const feeDue = fee.status === "PENDIENTE" && fee.amount != null && fee.org && now.getDate() >= fee.org.feeDueDay - 3;
   const prevRM = rmNews.length ? await db.exerciseRM.findMany({ where: { athleteId: userId, exerciseId: { in: rmNews.map((r) => r.exerciseId) } }, orderBy: { date: "desc" } }) : [];
   const done = weekSessions.filter((s) => s.logs.some((l) => l.status === "COMPLETADO" || l.status === "PARCIAL")).length;
@@ -71,7 +72,21 @@ async function AthleteHome({ userId, name }: { userId: string; name: string }) {
         actions={streak > 0 ? <div className="flex items-center gap-2 rounded-xl border border-volt/40 bg-volt/10 px-4 py-2"><Flame size={18} className="text-volt" /><span className="num text-2xl font-bold text-white">{streak}</span><span className="text-xs leading-tight text-neutral-300">{streak === 1 ? "sesión" : "sesiones"}<br />seguidas</span></div> : undefined} />
       <CompCountdown comps={comps} />
       {notice && <Notice text={notice} />}
-      {mainRoutine && <Link href="/app/routine" className="card card-pad card-hover mb-6 flex items-center justify-between gap-3 border-volt/40"><span><span className="label block">Tu plan</span><b className="text-white">{mainRoutine.name}</b></span><span className="btn-primary whitespace-nowrap">Ver mi rutina</span></Link>}
+      {mainRoutine && plan && (
+        <Link href="/app/routine" className="card card-hover mb-6 block overflow-hidden border-volt/50">
+          <div className="flex items-center gap-4 p-4 sm:p-5">
+            <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl border-2 border-volt text-center leading-none"><div><div className="text-[10px] font-bold uppercase text-volt">Semana</div><div className="num mt-1 text-2xl font-bold text-white">{plan.week + 1}<span className="text-sm text-neutral-500">/{plan.weeks}</span></div></div></div>
+            <div className="min-w-0 flex-1">
+              <div className="label text-volt">Hoy te toca</div>
+              {plan.today ? <div className="font-display text-xl font-bold leading-tight text-white">{plan.today.name}</div>
+                : plan.hasWeekdays ? <div className="font-display text-lg font-bold leading-tight text-white">Día libre{plan.next ? <span className="block text-sm font-normal muted">Próximo: {plan.next.name} · {plan.next.weekday}</span> : null}</div>
+                : <div className="font-display text-lg font-bold leading-tight text-white">Elegí el día de tu rutina</div>}
+              <div className="truncate text-xs muted">{mainRoutine.name}</div>
+            </div>
+            <span className="btn-primary hidden whitespace-nowrap sm:inline-flex">Ver mi rutina</span>
+          </div>
+        </Link>
+      )}
       {feeDue && (
         <Link href="/app/paused" className="card card-pad mb-6 flex items-center gap-3 border-red-500/40 card-hover">
           <div className="flex-1 text-sm"><b className="text-white">Cuota de {monthLabel(monthKey()).toLowerCase()} pendiente</b><div className="muted">Vence el día {fee.org!.feeDueDay}. Tocá para pagarla o ver cómo regularizarla.</div></div>
@@ -155,31 +170,7 @@ async function AthleteHome({ userId, name }: { userId: string; name: string }) {
             </ul>
           ) : <Empty title="Sin objetivos" />}
         </Card>
-        <Card title="Progreso de fuerza y salto" className="xl:col-span-2">
-          {progress.length > 1 ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div><div className="label mb-1">1RM Sentadilla · kg</div><TrendChart data={progress} series={[{ key: "sq", name: "1RM Sentadilla" }]} unit="kg" height={200} /></div>
-              <div><div className="label mb-1">CMJ · cm</div><TrendChart data={progress} series={[{ key: "cmj", name: "CMJ" }]} unit="cm" height={200} /></div>
-            </div>
-          ) : <Empty title="Todavía no hay evaluaciones suficientes" />}
-        </Card>
       </div>
-      <Card title="Últimas evaluaciones" className="mt-6" action={<Link href="/app/evaluations" className="text-xs text-volt hover:underline">Ver todas</Link>}>
-        {latest.length ? (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-            {latest.map(({ key, last, prev }) => {
-              const t = TEST_MAP[key];
-              return (
-                <div key={key} className="rounded-xl border border-ink-700 bg-ink-900 p-3">
-                  <div className="truncate text-xs muted">{t?.name ?? key}</div>
-                  <div className="mt-1 flex items-baseline gap-1"><span className="num text-xl font-semibold text-white">{last.value}</span><span className="text-xs text-neutral-500">{last.unit}</span></div>
-                  <div className="mt-1 flex items-center justify-between"><Delta value={prev ? improvement(prev.value, last.value, t?.higherIsBetter ?? true) : null} /><span className="text-[10px] text-neutral-600">{fmtDate(last.date)}</span></div>
-                </div>
-              );
-            })}
-          </div>
-        ) : <Empty title="Sin evaluaciones" />}
-      </Card>
     </>
   );
 }

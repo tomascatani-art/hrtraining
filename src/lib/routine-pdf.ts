@@ -100,9 +100,15 @@ export async function routinePdf(o: { club: string; athlete?: string | null; coa
         const top = y - 2;
         text(String(i + 1), M + 4, top - 9, 8.5, f, GREY);
         let ly = top - 9;
-        nameLines.forEach((l) => { text(l, M + colNum, ly, 9.5, b, BLACK); ly -= 11.5; });
+        // Con video: el nombre queda en azul y subrayado, y tocándolo se abre el video (igual que en la app)
+        const BLUE = rgb(0.1, 0.3, 0.8);
+        nameLines.forEach((l) => {
+          text(l, M + colNum, ly, 9.5, b, r.video ? BLUE : BLACK);
+          if (r.video) { const w = b.widthOfTextAtSize(l, 9.5); page.drawLine({ start: { x: M + colNum, y: ly - 1.5 }, end: { x: M + colNum + w, y: ly - 1.5 }, thickness: 0.6, color: BLUE }); link(M + colNum, ly - 3, w, 12, r.video); }
+          ly -= 11.5;
+        });
         if (role) { text(role, M + colNum, ly, 7.5, b, rgb(0.55, 0.45, 0)); ly -= 11.5; }
-        if (r.video) { text("Ver video", M + colNum, ly, 8, f, rgb(0.1, 0.3, 0.8)); link(M + colNum, ly - 2, 40, 10, r.video); }
+        if (r.video) { text("> Ver video", M + colNum, ly, 8, b, BLUE); link(M + colNum, ly - 2, 50, 10, r.video); }
         let x = M + colNum + colEx;
         if (tab) { text(`Tabata ${r.tabata?.work || 20}s trabajo / ${r.tabata?.rest || 10}s descanso x ${r.tabata?.rounds || 8} rounds`, x + 4, top - 9, 9, b, BLACK); x += colW * weeks.length; }
         else weeks.forEach((w, k) => {

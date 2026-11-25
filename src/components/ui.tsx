@@ -84,7 +84,10 @@ export function Empty({ title, children, action }: { title: string; children?: R
   );
 }
 
-export function DemoBadge({ show = true }: { show?: boolean }) {
+export function DemoBadge(_: { show?: boolean }) {
+  return null; // Diego: no mostrar "DEMO" en ningún lado
+}
+function _OldDemoBadge({ show = true }: { show?: boolean }) {
   if (!show) return null;
   return <span className="chip border-volt/50 bg-volt text-black font-bold tracking-wider" title="Dato de demostración, no corresponde a una persona real">DEMO</span>;
 }

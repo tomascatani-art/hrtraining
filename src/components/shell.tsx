@@ -22,20 +22,17 @@ export function navFor(role: string, unread: number): { main: Item[]; mobile: It
       { href: "/app/routine", label: "Mi rutina", icon: ClipboardList },
       { href: "/app/calendar", label: "Calendario", icon: CalendarDays },
       { href: "/app/wellness", label: "Bienestar", icon: HeartPulse },
-      { href: "/app/evaluations", label: "Evaluaciones", icon: Gauge },
       { href: "/app/stats", label: "Mi progreso", icon: LineChart },
       { href: "/app/rm", label: "Mis RM", icon: Dumbbell },
       { href: "/app/folder", label: "Mi carpeta", icon: FolderOpen },
       { href: "/app/goals", label: "Objetivos", icon: Target },
       { href: "/app/history", label: "Historial", icon: Activity },
-      { href: "/app/videos", label: "Videos", icon: Video },
-      { href: "/app/messages", label: "Mensajes", icon: MessageSquare, badge: unread },
       { href: "/app/files", label: "Archivos", icon: FolderOpen },
       { href: "/app/library", label: "Ejercicios", icon: Dumbbell },
       { href: "/app/tools", label: "Herramientas", icon: Wrench },
       { href: "/app/settings", label: "Mi perfil", icon: Settings },
     ];
-    return { main, mobile: pick(main, ["/app", "/app/routine", "/app/calendar", "/app/wellness", "/app/messages"]) };
+    return { main, mobile: pick(main, ["/app", "/app/routine", "/app/calendar", "/app/wellness", "/app/stats"]) };
   }
   // Menú agrupado en 5 secciones para no abrumar (Diego, 24-11-2026)
   const main: Item[] = [
@@ -47,11 +44,8 @@ export function navFor(role: string, unread: number): { main: Item[]; mobile: It
     { href: "/app/calendar", label: "Calendario", icon: CalendarDays, group: "Entrenamiento" },
     { href: "/app/library", label: "Biblioteca", icon: Dumbbell, group: "Entrenamiento" },
     { href: "/app/competitions", label: "Competencias", icon: Trophy, group: "Entrenamiento" },
-    { href: "/app/evaluations", label: "Evaluaciones", icon: Gauge, group: "Rendimiento" },
     { href: "/app/load", label: "Cargas y fatiga", icon: HeartPulse, group: "Rendimiento" },
     { href: "/app/stats", label: "Estadísticas", icon: LineChart, group: "Rendimiento" },
-    { href: "/app/videos", label: "Video análisis", icon: Video, group: "Rendimiento" },
-    { href: "/app/messages", label: "Mensajes", icon: MessageSquare, badge: unread, group: "Comunicación" },
     { href: "/app/files", label: "Archivos", icon: FolderOpen, group: "Comunicación" },
     { href: "/app/sports", label: "Deportes", icon: Shapes, group: "Mi cuenta" },
     { href: "/app/assistant", label: "Asistente", icon: Sparkles, group: "Mi cuenta" },
@@ -59,7 +53,7 @@ export function navFor(role: string, unread: number): { main: Item[]; mobile: It
   ];
   if (role === "ADMIN") main.push({ href: "/app/admin", label: "Usuarios y respaldo", icon: ShieldCheck, group: "Mi cuenta" });
   main.push({ href: "/app/settings", label: "Ajustes", icon: Settings, group: "Mi cuenta" });
-  return { main, mobile: pick(main, ["/app", "/app/athletes", "/app/routines", "/app/library", "/app/messages"]) };
+  return { main, mobile: pick(main, ["/app", "/app/athletes", "/app/routines", "/app/library", "/app/fees"]) };
 }
 
 const pick = (items: Item[], hrefs: string[]) => hrefs.map((h) => items.find((i) => i.href === h)!).filter(Boolean);
@@ -84,7 +78,7 @@ export function Shell({
   const [open, setOpen] = useState(false);
   const nav = navFor(user.role, unreadMessages);
   // Cuenta pausada: solo cuota y chat
-  const pausedNav: Item[] = [{ href: "/app/paused", label: "Mi cuota", icon: Wallet }, ...nav.main.filter((i) => i.href === "/app/messages")];
+  const pausedNav: Item[] = [{ href: "/app/paused", label: "Mi cuota", icon: Wallet }];
   const { main, mobile } = paused ? { main: pausedNav, mobile: pausedNav } : nav;
   const roleLabel = user.role === "ADMIN" ? "Preparador físico" : user.role === "COACH" ? "Ayudante" : "Alumno";
 
@@ -163,11 +157,6 @@ export function Shell({
       <Suspense fallback={null}><NavProgress /></Suspense>
       <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-ink-700 bg-ink-950/85 px-4 backdrop-blur lg:h-16 lg:px-8">
         <div className="min-w-0 lg:hidden"><Link href="/app" className="min-w-0"><Logo size={28} brand={brand} /></Link></div>
-        {isDemo && (
-          <div className="hidden sm:flex items-center gap-2 rounded-full border border-volt/40 bg-volt/10 px-3 py-1 text-xs text-volt">
-            <span className="h-1.5 w-1.5 rounded-full bg-volt animate-pulse" /> Modo demostración: datos ficticios
-          </div>
-        )}
         <div className="flex-1" />
         <Link href="/app/search" className="flex items-center gap-2 rounded-xl p-2 text-neutral-400 hover:bg-ink-800 hover:text-white lg:border lg:border-ink-700 lg:px-3 lg:py-1.5" aria-label="Buscar">
           <Search size={19} /><span className="hidden text-sm lg:inline">Buscar alumnos, ejercicios, rutinas…</span>
@@ -178,7 +167,6 @@ export function Shell({
         </Link>
         <button className="rounded-xl p-2 text-neutral-400 hover:bg-ink-800 lg:hidden" onClick={() => setOpen(true)} aria-label="Menú"><Menu size={20} /></button>
       </header>
-      {isDemo && <div className="sm:hidden bg-volt px-4 py-1 text-center text-[11px] font-semibold text-black">Modo demostración: datos ficticios</div>}
 
       <main className="mx-auto max-w-[1400px] px-4 pb-28 pt-6 sm:px-6 lg:px-8 lg:pb-12">{children}</main>
 

@@ -68,21 +68,21 @@ export async function createDemo(db: PrismaClient) {
   await deleteDemo(db);
   const r = rng(42);
   const hash = await bcrypt.hash("demo1234", 10);
-  const org = await db.organization.create({ data: { slug: "club-demo", name: "Hrtraining Demo", isDemo: true, feeAmount: 25000, feeDueDay: 10 } });
+  const org = await db.organization.create({ data: { slug: "club-demo", name: "Hrtraining", isDemo: true, feeAmount: 25000, feeDueDay: 10 } });
 
-  const coach = await db.user.create({ data: { orgId: org.id, email: "entrenador.demo@hrtraining.co", name: "Martina Demo", role: "ADMIN", passwordHash: hash, isDemo: true } });
-  const coach2 = await db.user.create({ data: { orgId: org.id, email: "preparador.demo@hrtraining.co", name: "Joaquín Demo", role: "COACH", passwordHash: hash, isDemo: true } });
+  const coach = await db.user.create({ data: { orgId: org.id, email: "entrenador.demo@hrtraining.co", name: "Martina", role: "ADMIN", passwordHash: hash, isDemo: true } });
+  const coach2 = await db.user.create({ data: { orgId: org.id, email: "preparador.demo@hrtraining.co", name: "Joaquín", role: "COACH", passwordHash: hash, isDemo: true } });
 
   const athletesSpec = [
-    { name: "Sofía Demo", sport: "ATLETISMO", pos: "Velocista 100/200 m", sex: "F", h: 168, w: 58, email: "deportista.demo@hrtraining.co", lvl: "Avanzado", base: { cmj: 38, sq: 95, spr10: 1.85, spr30: 4.25 } },
-    { name: "Tomás Demo", sport: "ATLETISMO", pos: "Saltador de longitud", sex: "M", h: 182, w: 74, lvl: "Élite", base: { cmj: 52, sq: 150, spr10: 1.7, spr30: 3.95 } },
-    { name: "Camila Demo", sport: "ATLETISMO", pos: "Vallista 100 m", sex: "F", h: 171, w: 60, lvl: "Avanzado", base: { cmj: 40, sq: 100, spr10: 1.83, spr30: 4.2 } },
-    { name: "Mateo Demo", sport: "FUTBOL", pos: "Mediocampista", sex: "M", h: 176, w: 70, lvl: "Intermedio", base: { cmj: 42, sq: 120, spr10: 1.78, spr30: 4.15 } },
-    { name: "Lucas Demo", sport: "FUTBOL", pos: "Defensor central", sex: "M", h: 186, w: 80, lvl: "Intermedio", base: { cmj: 40, sq: 135, spr10: 1.82, spr30: 4.25 } },
-    { name: "Benjamín Demo", sport: "FUTBOL", pos: "Delantero", sex: "M", h: 178, w: 72, lvl: "Avanzado", base: { cmj: 46, sq: 125, spr10: 1.72, spr30: 4.05 } },
-    { name: "Julieta Demo", sport: "NATACION", pos: "Fondista 400/800 m", sex: "F", h: 172, w: 61, lvl: "Avanzado", base: { cmj: 33, sq: 80, spr10: 2.0, spr30: 4.7 } },
-    { name: "Nicolás Demo", sport: "NATACION", pos: "Medio fondo 200 m", sex: "M", h: 188, w: 79, lvl: "Avanzado", base: { cmj: 41, sq: 115, spr10: 1.9, spr30: 4.45 } },
-    { name: "Valentina Demo", sport: "GENERAL", pos: "Fuerza e hipertrofia", sex: "F", h: 164, w: 63, lvl: "Intermedio", base: { cmj: 28, sq: 85, spr10: 2.05, spr30: 4.9 } },
+    { name: "Sofía", sport: "ATLETISMO", pos: "Velocista 100/200 m", sex: "F", h: 168, w: 58, email: "deportista.demo@hrtraining.co", lvl: "Avanzado", base: { cmj: 38, sq: 95, spr10: 1.85, spr30: 4.25 } },
+    { name: "Tomás", sport: "ATLETISMO", pos: "Saltador de longitud", sex: "M", h: 182, w: 74, lvl: "Élite", base: { cmj: 52, sq: 150, spr10: 1.7, spr30: 3.95 } },
+    { name: "Camila", sport: "ATLETISMO", pos: "Vallista 100 m", sex: "F", h: 171, w: 60, lvl: "Avanzado", base: { cmj: 40, sq: 100, spr10: 1.83, spr30: 4.2 } },
+    { name: "Mateo", sport: "FUTBOL", pos: "Mediocampista", sex: "M", h: 176, w: 70, lvl: "Intermedio", base: { cmj: 42, sq: 120, spr10: 1.78, spr30: 4.15 } },
+    { name: "Lucas", sport: "FUTBOL", pos: "Defensor central", sex: "M", h: 186, w: 80, lvl: "Intermedio", base: { cmj: 40, sq: 135, spr10: 1.82, spr30: 4.25 } },
+    { name: "Benjamín", sport: "FUTBOL", pos: "Delantero", sex: "M", h: 178, w: 72, lvl: "Avanzado", base: { cmj: 46, sq: 125, spr10: 1.72, spr30: 4.05 } },
+    { name: "Julieta", sport: "NATACION", pos: "Fondista 400/800 m", sex: "F", h: 172, w: 61, lvl: "Avanzado", base: { cmj: 33, sq: 80, spr10: 2.0, spr30: 4.7 } },
+    { name: "Nicolás", sport: "NATACION", pos: "Medio fondo 200 m", sex: "M", h: 188, w: 79, lvl: "Avanzado", base: { cmj: 41, sq: 115, spr10: 1.9, spr30: 4.45 } },
+    { name: "Valentina", sport: "GENERAL", pos: "Fuerza e hipertrofia", sex: "F", h: 164, w: 63, lvl: "Intermedio", base: { cmj: 28, sq: 85, spr10: 2.05, spr30: 4.9 } },
   ];
 
   const athletes = [];
@@ -96,9 +96,9 @@ export async function createDemo(db: PrismaClient) {
     athletes.push({ ...a, id: u.id });
   }
 
-  const gVel = await db.group.create({ data: { orgId: org.id, coachId: coach.id, name: "Velocidad y saltos", sport: "ATLETISMO", color: "#ffd60a", description: "Grupo de pista (DEMO)", isDemo: true, members: { create: athletes.filter((a) => a.sport === "ATLETISMO").map((a) => ({ athleteId: a.id })) } } });
-  const gFut = await db.group.create({ data: { orgId: org.id, coachId: coach.id, name: "Fútbol Primera", sport: "FUTBOL", color: "#3a8fd6", description: "Plantel (DEMO)", isDemo: true, members: { create: athletes.filter((a) => a.sport === "FUTBOL").map((a) => ({ athleteId: a.id })) } } });
-  const gNat = await db.group.create({ data: { orgId: org.id, coachId: coach2.id, name: "Natación fondo", sport: "NATACION", color: "#8f78e0", description: "Fuerza en seco (DEMO)", isDemo: true, members: { create: athletes.filter((a) => a.sport === "NATACION").map((a) => ({ athleteId: a.id })) } } });
+  const gVel = await db.group.create({ data: { orgId: org.id, coachId: coach.id, name: "Velocidad y saltos", sport: "ATLETISMO", color: "#ffd60a", description: "Grupo de pista ", isDemo: true, members: { create: athletes.filter((a) => a.sport === "ATLETISMO").map((a) => ({ athleteId: a.id })) } } });
+  const gFut = await db.group.create({ data: { orgId: org.id, coachId: coach.id, name: "Fútbol Primera", sport: "FUTBOL", color: "#3a8fd6", description: "Plantel ", isDemo: true, members: { create: athletes.filter((a) => a.sport === "FUTBOL").map((a) => ({ athleteId: a.id })) } } });
+  const gNat = await db.group.create({ data: { orgId: org.id, coachId: coach2.id, name: "Natación fondo", sport: "NATACION", color: "#8f78e0", description: "Fuerza en seco ", isDemo: true, members: { create: athletes.filter((a) => a.sport === "NATACION").map((a) => ({ athleteId: a.id })) } } });
 
   // ---- Planificación anual del grupo de velocidad ----
   const pStart = day0(-70);
@@ -245,12 +245,12 @@ export async function createDemo(db: PrismaClient) {
   // ---- Competencias ----
   await db.competition.createMany({
     data: [
-      { orgId: org.id, groupId: gVel.id, name: "Torneo regional de pista (DEMO)", date: day0(12), location: "Estadio provincial", sport: "ATLETISMO", priority: "B", isDemo: true },
-      { orgId: org.id, groupId: gVel.id, name: "Campeonato nacional (DEMO)", date: day0(150), location: "CeNARD", sport: "ATLETISMO", priority: "A", isDemo: true },
-      { orgId: org.id, groupId: gFut.id, name: "Fecha 12 — Liga (DEMO)", date: day0(4), location: "Local", sport: "FUTBOL", priority: "B", isDemo: true },
-      { orgId: org.id, groupId: gNat.id, name: "Copa de invierno (DEMO)", date: day0(20), location: "Natatorio municipal", sport: "NATACION", priority: "A", isDemo: true },
-      { orgId: org.id, athleteId: athletes[0].id, name: "Meeting de apertura (DEMO)", date: day0(-20), location: "Pista municipal", sport: "ATLETISMO", priority: "C", result: "100 m: 12.31 s (viento +0.8)", mark: "12.31", position: 2, isDemo: true },
-      { orgId: org.id, athleteId: athletes[1].id, name: "Meeting de apertura (DEMO)", date: day0(-20), location: "Pista municipal", sport: "ATLETISMO", priority: "C", result: "Longitud: 7.12 m", mark: "7.12", position: 1, isDemo: true },
+      { orgId: org.id, groupId: gVel.id, name: "Torneo regional de pista ", date: day0(12), location: "Estadio provincial", sport: "ATLETISMO", priority: "B", isDemo: true },
+      { orgId: org.id, groupId: gVel.id, name: "Campeonato nacional ", date: day0(150), location: "CeNARD", sport: "ATLETISMO", priority: "A", isDemo: true },
+      { orgId: org.id, groupId: gFut.id, name: "Fecha 12 — Liga ", date: day0(4), location: "Local", sport: "FUTBOL", priority: "B", isDemo: true },
+      { orgId: org.id, groupId: gNat.id, name: "Copa de invierno ", date: day0(20), location: "Natatorio municipal", sport: "NATACION", priority: "A", isDemo: true },
+      { orgId: org.id, athleteId: athletes[0].id, name: "Meeting de apertura ", date: day0(-20), location: "Pista municipal", sport: "ATLETISMO", priority: "C", result: "100 m: 12.31 s (viento +0.8)", mark: "12.31", position: 2, isDemo: true },
+      { orgId: org.id, athleteId: athletes[1].id, name: "Meeting de apertura ", date: day0(-20), location: "Pista municipal", sport: "ATLETISMO", priority: "C", result: "Longitud: 7.12 m", mark: "7.12", position: 1, isDemo: true },
     ],
   });
 
@@ -290,7 +290,7 @@ export async function createDemo(db: PrismaClient) {
     const pending = a.name.startsWith("Nicolás") || a.name.startsWith("Lucas");
     if (!pending) await db.fee.create({ data: { orgId: org.id, athleteId: a.id, period: cur, amount: a.name.startsWith("Valentina") ? 0 : 25000, status: a.name.startsWith("Valentina") ? "BONIFICADO" : "PAGADO", paidAt: new Date(now0.getFullYear(), now0.getMonth(), Math.min(now0.getDate(), 2 + i)), isDemo: true } });
   }
-  await db.athleteProfile.updateMany({ where: { user: { name: "Nicolás Demo", orgId: org.id } }, data: { paused: true } });
+  await db.athleteProfile.updateMany({ where: { user: { name: "Nicolás", orgId: org.id } }, data: { paused: true } });
 
   // ---- Antropometría (DEMO, valores ficticios) ----
   {
@@ -304,7 +304,7 @@ export async function createDemo(db: PrismaClient) {
     for (const [i, [ai, w, sk, pe]] of series.entries()) {
       const [triceps, subscapular, supraspinale, abdominal, thigh, calf] = sk;
       const [armRelaxedCm, armFlexedCm, waistCm, hipCm, thighMidCm, calfGirthCm] = pe;
-      await db.anthropometry.create({ data: { athleteId: athletes[ai].id, measuredById: coach.id, date: day0(-42 * (series.length - 1 - i) - 3), weightKg: w, heightCm: 168, sittingHeightCm: 88, armSpanCm: 171, triceps, subscapular, supraspinale, abdominal, thigh, calf, armRelaxedCm, armFlexedCm, waistCm, hipCm, thighMidCm, calfGirthCm, note: i === 0 ? "Medición inicial (DEMO)" : null, isDemo: true } });
+      await db.anthropometry.create({ data: { athleteId: athletes[ai].id, measuredById: coach.id, date: day0(-42 * (series.length - 1 - i) - 3), weightKg: w, heightCm: 168, sittingHeightCm: 88, armSpanCm: 171, triceps, subscapular, supraspinale, abdominal, thigh, calf, armRelaxedCm, armFlexedCm, waistCm, hipCm, thighMidCm, calfGirthCm, note: i === 0 ? "Medición inicial " : null, isDemo: true } });
     }
     const mateo = athletes.find((a) => a.name.startsWith("Mateo"));
     if (mateo) for (const [i, w] of [78.5, 79.2, 79.6].entries()) {
@@ -317,7 +317,7 @@ export async function createDemo(db: PrismaClient) {
     const buf = await readFile(path.resolve(process.cwd(), "prisma/demo-assets/antropometria-demo.pdf"));
     const key = "demo-antropometria-sofia.pdf";
     await putBuffer(key, buf, "application/pdf");
-    await db.fileAsset.create({ data: { orgId: org.id, ownerId: coach.id, athleteId: athletes[0].id, name: "Antropometría DEMO (valores ficticios).pdf", mime: "application/pdf", size: buf.length, storageKey: key, kind: "DOCUMENTO", folder: "ANTROPOMETRIA", note: "Medición de ejemplo · DEMO" } });
+    await db.fileAsset.create({ data: { orgId: org.id, ownerId: coach.id, athleteId: athletes[0].id, name: "Antropometría (ejemplo).pdf", mime: "application/pdf", size: buf.length, storageKey: key, kind: "DOCUMENTO", folder: "ANTROPOMETRIA", note: "Medición de ejemplo" } });
   }
 
   // ---- Comunicación ----
@@ -334,7 +334,7 @@ export async function createDemo(db: PrismaClient) {
 
   await db.notification.createMany({
     data: [
-      { userId: coach.id, kind: "ALERTA", title: "Mateo Demo reportó una molestia", body: "Isquiotibial derecho (molestia leve)", link: "/app/load" },
+      { userId: coach.id, kind: "ALERTA", title: "Mateo reportó una molestia", body: "Isquiotibial derecho (molestia leve)", link: "/app/load" },
       { userId: coach.id, kind: "COMPETENCIA", title: "Fecha 12 — Liga en 4 días", link: "/app/competitions" },
       { userId: sofia.id, kind: "SESION", title: "Nueva sesión asignada: Velocidad y pliometría", link: "/app/calendar" },
     ],
@@ -414,14 +414,29 @@ export async function ensureDemoExpiring(db: PrismaClient) {
 }
 
 /**
- * Club DEMO reducido (pedido de Diego): queda el entrenador demo y una sola deportista de referencia (Sofía Demo).
+ * Club DEMO reducido (pedido de Diego): queda el entrenador demo y una sola deportista de referencia (Sofía).
  * Borra solo usuarios DEMO del club DEMO; nunca toca datos reales.
  */
 export async function trimDemo(db: PrismaClient) {
   const org = await db.organization.findFirst({ where: { isDemo: true } });
   if (!org) return;
   // Ya no es "club": la cuenta demo es de un preparador físico
-  if (org.name.startsWith("Club")) await db.organization.update({ where: { id: org.id }, data: { name: "Hrtraining Demo" } });
+  if (org.name !== "Hrtraining") await db.organization.update({ where: { id: org.id }, data: { name: "Hrtraining" } });
+  // Diego (25-11-2026): ya es una plataforma en serio, no se muestra la palabra "Demo" en ningún lado.
+  for (const x of await db.user.findMany({ where: { orgId: org.id, name: { endsWith: " Demo" } }, select: { id: true, name: true } }))
+    await db.user.update({ where: { id: x.id }, data: { name: x.name.replace(/ Demo$/, "") } });
+  for (const g of await db.group.findMany({ where: { orgId: org.id, description: { contains: "DEMO" } } }))
+    await db.group.update({ where: { id: g.id }, data: { description: g.description!.replace(/\s*\(DEMO\)/, "") } });
+  for (const c of await db.competition.findMany({ where: { orgId: org.id, name: { contains: "(DEMO)" } } }))
+    await db.competition.update({ where: { id: c.id }, data: { name: c.name.replace(/\s*\(DEMO\)/, "") } });
+  for (const n of await db.notification.findMany({ where: { user: { orgId: org.id }, title: { contains: " Demo" } } }))
+    await db.notification.update({ where: { id: n.id }, data: { title: n.title.replace(/ Demo\b/g, "") } });
+  for (const r of await db.routine.findMany({ where: { orgId: org.id } })) {
+    const d = r.data as { meta?: { notes?: string } };
+    if (d?.meta?.notes && /demo/i.test(d.meta.notes)) await db.routine.update({ where: { id: r.id }, data: { data: { ...d, meta: { ...d.meta, notes: "" } } as object } });
+  }
+  for (const f of await db.fileAsset.findMany({ where: { orgId: org.id, OR: [{ name: { contains: "DEMO" } }, { note: { contains: "DEMO" } }] } }))
+    await db.fileAsset.update({ where: { id: f.id }, data: { name: f.name.replace(/\s*DEMO/g, ""), note: f.note?.replace(/\s*·\s*DEMO/g, "") ?? null } });
   const keepEmails = ["entrenador.demo@hrtraining.co", "deportista.demo@hrtraining.co"];
   const coach = await db.user.findFirst({ where: { orgId: org.id, email: keepEmails[0] } });
   if (!coach) return;

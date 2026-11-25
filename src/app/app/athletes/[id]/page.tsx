@@ -54,7 +54,6 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
           </div>
         </div>
         <div className="flex gap-2">
-          <Link href={`/app/messages?to=${a.id}`} className="btn-ghost"><MessageSquare size={16} />Mensaje</Link>
           <Link href={`/report/${a.id}`} target="_blank" className="btn-ghost"><FileText size={16} />Informe PDF</Link>
         </div>
       </div>
@@ -87,7 +86,6 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
         { key: "rutina", label: "Rutina", href: `${base}?tab=rutina` },
         { key: "carga", label: "Carga y bienestar", href: `${base}?tab=carga` },
         { key: "rm", label: "RM", href: `${base}?tab=rm` },
-        { key: "evaluaciones", label: "Evaluaciones", href: `${base}?tab=evaluaciones` },
         { key: "historial", label: "Historial", href: `${base}?tab=historial` },
         { key: "objetivos", label: "Objetivos", href: `${base}?tab=objetivos` },
         { key: "antropometria", label: "Antropometría", href: `${base}?tab=antropometria` },
@@ -133,8 +131,6 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
             <Card title="Atajos">
               <div className="grid gap-2">
                 <Link href={`/app/calendar?new=1&athlete=${a.id}`} className="btn-ghost justify-start">Asignar sesión individual</Link>
-                <Link href={`/app/evaluations/new?athlete=${a.id}`} className="btn-ghost justify-start">Cargar evaluación</Link>
-                <Link href={`/app/videos?athlete=${a.id}`} className="btn-ghost justify-start">Videos y análisis</Link>
               </div>
             </Card>
           </div>

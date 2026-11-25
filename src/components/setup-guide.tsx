@@ -19,7 +19,6 @@ export async function SetupGuide({ u }: { u: SessionUser }) {
     ...(admin ? [{ done: !!(org.brandName || org.logoKey), label: "Tu marca", hint: "Nombre, logo y enlace de ingreso propio", href: "/app/settings" }] : []),
     { done: athletes > 0, label: "Sumar alumnos", hint: "De a uno o toda la lista desde Excel", href: "/app/athletes/import" },
     { done: sessions > 0, label: "Primera sesión", hint: "Armala desde la biblioteca de ejercicios", href: "/app/sessions/new" },
-    { done: evals > 0, label: "Primera evaluación", hint: "Saltos, velocidad, fuerza y más", href: "/app/evaluations/new" },
     ...(admin ? [{ done: !!org.mpToken, label: "Cobrar con Mercado Pago", hint: "Opcional: las cuotas se marcan solas", href: "/app/settings" }] : []),
   ];
   const done = steps.filter((s) => s.done).length;

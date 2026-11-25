@@ -126,3 +126,15 @@ export function currentWeek(d: RoutineData, now = new Date()) {
 }
 
 export const countExercises = (d: RoutineData) => d.days.reduce((n, day) => n + day.blocks.reduce((m, b) => m + b.rows.filter((r) => r.name).length, 0), 0);
+
+/** Qué semana va el alumno y qué día de la rutina le toca hoy (según el día de la semana que puso el entrenador). */
+export function todayPlan(d: RoutineData, fallbackStart: Date, now = new Date()) {
+  let week = currentWeek(d, now);
+  if (week == null) week = Math.min(d.weeks - 1, Math.max(0, Math.floor((+now - +fallbackStart) / (7 * 86400000))));
+  const wd = (now.getDay() + 6) % 7; // 0 = lunes
+  const withDay = d.days.filter((x) => x.weekday && WEEKDAYS.includes(x.weekday));
+  const today = withDay.find((x) => x.weekday === WEEKDAYS[wd]) ?? null;
+  let next: RoutineDay | null = null;
+  for (let k = 1; k <= 7 && !next; k++) next = withDay.find((x) => x.weekday === WEEKDAYS[(wd + k) % 7]) ?? null;
+  return { week, weeks: d.weeks, today, next, hasWeekdays: withDay.length > 0 };
+}

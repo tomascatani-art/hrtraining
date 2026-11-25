@@ -38,7 +38,6 @@ export default async function Report({ params }: { params: Promise<{ id: string 
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-500">Informe de evolución</div>
             <h1 className="mt-1 font-display text-3xl font-bold">{a.name}</h1>
             <div className="mt-1 text-sm text-neutral-600">{sportLabel(a.athleteProfile?.sport)}{a.athleteProfile?.position ? ` · ${a.athleteProfile.position}` : ""} · {a.org.name}</div>
-            {a.isDemo && <div className="mt-2 inline-block bg-[#ffd60a] px-2 py-0.5 text-xs font-bold">DATOS DE DEMOSTRACIÓN</div>}
           </div>
           <div className="text-right">
             <div className="inline-flex items-center gap-2 rounded bg-black px-3 py-1.5 font-display font-bold text-white">hrtraining</div>

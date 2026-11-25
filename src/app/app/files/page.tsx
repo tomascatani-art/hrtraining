@@ -43,7 +43,6 @@ export default async function FilesPage({ searchParams }: { searchParams: Promis
                     <div className="text-xs muted">{size(f.size)} · {f.owner.name} · {fmtDate(f.createdAt)}{f.athlete ? ` · ${f.athlete.name}` : ""}</div>
                   </div>
                   {f.shared && <span className="chip-volt">Compartido</span>}
-                  {f.kind === "VIDEO" && <Link href={`/app/videos?file=${f.id}`} className="btn-ghost btn-sm">Analizar</Link>}
                   <a href={`/api/files/${f.id}?download=1`} className="btn-ghost btn-sm" aria-label="Descargar"><Download size={14} /></a>
                   {staff && <form action={toggleShare}><input type="hidden" name="id" value={f.id} /><Submit className="btn-ghost btn-sm" pendingText="…">{f.shared ? "Dejar de compartir" : "Compartir"}</Submit></form>}
                   {(staff || f.ownerId === u.id) && <form action={deleteFile}><input type="hidden" name="id" value={f.id} /><ConfirmSubmit message={`¿Eliminar ${f.name}?`}>Eliminar</ConfirmSubmit></form>}

@@ -96,7 +96,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             </form>
             <p className="mt-3 text-[11px] text-neutral-600">Entrenador: ve a sus alumnos y grupos. Administrador: ve toda la organización y gestiona usuarios.</p>
           </Card>
-          {u.org.isDemo && (
+          {false && u.org.isDemo && (
             <Card title="Organización de demostración">
               <p className="mb-3 text-sm muted">Restablece todos los datos ficticios al estado inicial. Las fechas se recalculan desde hoy.</p>
               <form action={resetDemo}><ConfirmSubmit message="¿Restablecer la demo? Se borran los cambios hechos en ella." className="btn-ghost w-full">Restablecer demo</ConfirmSubmit></form>

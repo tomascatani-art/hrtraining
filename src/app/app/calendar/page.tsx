@@ -54,7 +54,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
-      <PageHeader title="Calendario" subtitle="Sesiones, evaluaciones y competencias. Las franjas superiores de cada semana muestran el microciclo planificado."
+      <PageHeader title="Calendario" subtitle="Sesiones y competencias. Las franjas superiores de cada semana muestran el microciclo planificado."
         actions={u.role !== "ATHLETE" ? <Link href={`/app/sessions/new${sp.group ? `?group=${sp.group}` : sp.athlete ? `?athlete=${sp.athlete}` : ""}`} className="btn-primary">Nueva sesión</Link> : undefined} />
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <Link href={`/app/calendar${qs({ m: prev })}`} className="btn-ghost btn-sm" aria-label="Mes anterior"><ChevronLeft size={16} /></Link>
@@ -100,7 +100,6 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                       </Link>
                     );
                   })}
-                  {de.length > 0 && <Link href="/app/evaluations" className="block truncate rounded bg-[#8f78e0]/20 px-1.5 py-0.5 text-[11px] text-[#c4b5fd]">{de[0]._count} evaluaciones</Link>}
                 </div>
               </div>
             );

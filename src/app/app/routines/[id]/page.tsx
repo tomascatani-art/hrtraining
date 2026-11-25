@@ -150,7 +150,6 @@ export default async function RoutinePage({ params, searchParams }: { params: Pr
           <div className="mb-5 grid grid-cols-3 gap-2">
             <span className="rounded-2xl bg-volt py-2.5 text-center font-semibold text-ink-950">Plan</span>
             <Link href={`/app/athletes/${a.id}`} className="rounded-2xl border border-ink-600 py-2.5 text-center font-semibold text-neutral-300 hover:text-white">Perfil</Link>
-            <Link href={`/app/messages?to=${a.id}`} className="rounded-2xl border border-ink-600 py-2.5 text-center font-semibold text-neutral-300 hover:text-white">Chat</Link>
           </div>
         </>
       ) : <h1 className="mb-4 font-display text-2xl font-bold text-white">{r.name}</h1>}

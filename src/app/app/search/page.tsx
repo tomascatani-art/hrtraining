@@ -74,7 +74,6 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                 <Avatar name={a.name} src={avatarSrc(a)} size={34} />
                 <Link href={`/app/athletes/${a.id}`} className="min-w-0 flex-1 truncate font-semibold text-white hover:text-volt">{a.name}</Link>
                 <Link href={`/app/athletes/${a.id}?tab=rutina`} className="text-xs text-volt hover:underline">Plan</Link>
-                <Link href={`/app/messages?to=${a.id}`} className="text-xs text-neutral-400 hover:text-white">Chat</Link>
               </div>
             ))}
           </Section>

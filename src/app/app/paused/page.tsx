@@ -36,7 +36,6 @@ export default async function PausedPage({ searchParams }: { searchParams: Promi
         {sp.mp === "error" && <p className="mb-3 text-sm text-red-300">No se pudo abrir Mercado Pago. Probá de nuevo en unos minutos o avisale a tu entrenador.</p>}
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
           {wa && <a href={wa} target="_blank" rel="noreferrer" className={canPay ? "btn-ghost" : "btn-primary"}><MessageCircle size={16} />Escribir por WhatsApp</a>}
-          <Link href="/app/messages" className="btn-ghost"><MessageSquare size={16} />Ir al chat</Link>
           {!f.paused && <Link href="/app" className="btn-ghost">Volver al inicio</Link>}
         </div>
       </Card>
