@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Search, Users, Dumbbell, ClipboardList, CalendarRange, UsersRound } from "lucide-react";
+import { Search, Users, Dumbbell, ClipboardList, UsersRound } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { visibleAthleteIds, visibleGroups } from "@/lib/access";
@@ -31,7 +31,6 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   let athletes: { id: string; name: string; email: string; avatarKey: string | null; avatarAt: Date | null; athleteProfile: { sport: string } | null }[] = [];
   let routines: { id: string; name: string; template: boolean; extra: boolean; active: boolean; athlete: { name: string } | null; match: string | null }[] = [];
   let groups: { id: string; name: string }[] = [];
-  let plans: { id: string; name: string }[] = [];
   let exercises: { id: string; name: string; category: string | null }[] = [];
   if (words.length) {
     const ids = staff ? await visibleAthleteIds(u) : [u.id];
@@ -40,7 +39,6 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       athletes = await db.user.findMany({ where: { id: { in: ids }, OR: [like("name"), like("email")] }, select: { id: true, name: true, email: true, avatarKey: true, avatarAt: true, athleteProfile: { select: { sport: true } } }, orderBy: { name: "asc" }, take: 20 });
       const gs = await visibleGroups(u);
       groups = gs.filter((g) => words.every((w) => norm(g.name).includes(norm(w))));
-      plans = await db.plan.findMany({ where: { orgId: u.orgId, ...(u.role === "COACH" ? { coachId: u.id } : {}), ...like("name") }, select: { id: true, name: true }, take: 10 });
     }
     // Rutinas y plantillas: por nombre o por un ejercicio que tengan adentro.
     const all = await db.routine.findMany({
@@ -60,7 +58,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     routines = routines.sort((a, b) => Number(b.active) - Number(a.active)).slice(0, 25);
   }
   const vids = await exerciseVideos(u.orgId, exercises.map((e) => e.id));
-  const total = athletes.length + routines.length + groups.length + plans.length + exercises.length;
+  const total = athletes.length + routines.length + groups.length + exercises.length;
   return (
     <div className="mx-auto max-w-3xl">
       <form className="relative mb-5">
@@ -98,9 +96,6 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           </Section>
           <Section icon={<UsersRound size={16} />} title="Grupos" count={groups.length}>
             {groups.map((g) => <Link key={g.id} href={`/app/groups/${g.id}`} className="block px-4 py-2.5 font-semibold text-white hover:text-volt">{g.name}</Link>)}
-          </Section>
-          <Section icon={<CalendarRange size={16} />} title="Planificaciones por temporada" count={plans.length}>
-            {plans.map((p) => <Link key={p.id} href={`/app/planning/${p.id}`} className="block px-4 py-2.5 font-semibold text-white hover:text-volt">{p.name}</Link>)}
           </Section>
         </div>
       )}

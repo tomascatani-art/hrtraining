@@ -7,7 +7,7 @@ import clsx from "clsx";
 import { Suspense } from "react";
 import { NavProgress } from "@/components/nav-progress";
 import {
-  LayoutDashboard, Users, UsersRound, CalendarRange, CalendarDays, Dumbbell, Gauge, Activity, LineChart,
+  LayoutDashboard, Users, UsersRound, CalendarDays, Dumbbell, Gauge, Activity, LineChart,
   Video, MessageSquare, FolderOpen, Trophy, Shapes, ShieldCheck, Settings, HeartPulse, Target, Menu, X, Bell, LogOut, Sparkles, Wallet, Wrench, ChevronDown, ClipboardList, Search,
 } from "lucide-react";
 import { Logo, Avatar } from "./ui";
@@ -43,11 +43,10 @@ export function navFor(role: string, unread: number): { main: Item[]; mobile: It
     { href: "/app/athletes", label: "Alumnos", icon: Users, group: "Alumnos" },
     { href: "/app/groups", label: "Grupos", icon: UsersRound, group: "Alumnos" },
     { href: "/app/fees", label: "Cuotas", icon: Wallet, group: "Alumnos" },
-    { href: "/app/routines", label: "Rutinas", icon: ClipboardList, group: "Planificación" },
-    { href: "/app/planning", label: "Planificación", icon: CalendarRange, group: "Planificación" },
-    { href: "/app/calendar", label: "Calendario", icon: CalendarDays, group: "Planificación" },
-    { href: "/app/library", label: "Biblioteca", icon: Dumbbell, group: "Planificación" },
-    { href: "/app/competitions", label: "Competencias", icon: Trophy, group: "Planificación" },
+    { href: "/app/routines", label: "Rutinas", icon: ClipboardList, group: "Entrenamiento" },
+    { href: "/app/calendar", label: "Calendario", icon: CalendarDays, group: "Entrenamiento" },
+    { href: "/app/library", label: "Biblioteca", icon: Dumbbell, group: "Entrenamiento" },
+    { href: "/app/competitions", label: "Competencias", icon: Trophy, group: "Entrenamiento" },
     { href: "/app/evaluations", label: "Evaluaciones", icon: Gauge, group: "Rendimiento" },
     { href: "/app/load", label: "Cargas y fatiga", icon: HeartPulse, group: "Rendimiento" },
     { href: "/app/stats", label: "Estadísticas", icon: LineChart, group: "Rendimiento" },
@@ -89,7 +88,7 @@ export function Shell({
   const { main, mobile } = paused ? { main: pausedNav, mobile: pausedNav } : nav;
   const roleLabel = user.role === "ADMIN" ? "Preparador físico" : user.role === "COACH" ? "Ayudante" : "Alumno";
 
-  const activeGroup = main.find((i) => i.group && isActive(path, i.href))?.group ?? (path.startsWith("/app/sessions") && main.some((i) => i.group === "Planificación") ? "Planificación" : undefined);
+  const activeGroup = main.find((i) => i.group && isActive(path, i.href))?.group ?? (path.startsWith("/app/sessions") && main.some((i) => i.group === "Entrenamiento") ? "Entrenamiento" : undefined);
   const [openGroups, setOpenGroups] = useState<string[]>([]);
   const toggle = (g: string) => setOpenGroups((xs) => (xs.includes(g) ? xs.filter((x) => x !== g) : [...xs, g]));
 

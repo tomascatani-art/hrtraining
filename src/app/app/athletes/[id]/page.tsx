@@ -134,7 +134,6 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
               <div className="grid gap-2">
                 <Link href={`/app/calendar?new=1&athlete=${a.id}`} className="btn-ghost justify-start">Asignar sesión individual</Link>
                 <Link href={`/app/evaluations/new?athlete=${a.id}`} className="btn-ghost justify-start">Cargar evaluación</Link>
-                <Link href={`/app/planning/new?athlete=${a.id}`} className="btn-ghost justify-start">Crear planificación individual</Link>
                 <Link href={`/app/videos?athlete=${a.id}`} className="btn-ghost justify-start">Videos y análisis</Link>
               </div>
             </Card>

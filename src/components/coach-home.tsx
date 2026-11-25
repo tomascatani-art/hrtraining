@@ -61,7 +61,7 @@ export async function CoachHome() {
   const weekStart = startOfWeek(now);
   const period = monthKey(now);
 
-  const [athletes, monthSessions, weekSessions, comps, fees, routines, plans, mon, logs, wellness, org, checks] = await Promise.all([
+  const [athletes, monthSessions, weekSessions, comps, fees, routines, mon, logs, wellness, org, checks] = await Promise.all([
     db.user.findMany({
       where: { id: { in: ids } },
       select: { id: true, name: true, avatarKey: true, avatarAt: true, isDemo: true, lastSeenAt: true, firstSeenAt: true, athleteProfile: { select: { paused: true, feeAmount: true } } },
@@ -72,7 +72,6 @@ export async function CoachHome() {
     db.competition.findMany({ where: { orgId: u.orgId, date: { gte: today }, OR: [{ athleteId: { in: ids } }, { group: { members: { some: { athleteId: { in: ids } } } } }] }, orderBy: { date: "asc" }, take: 6, include: { group: true, athlete: true } }),
     db.fee.findMany({ where: { orgId: u.orgId, period, athleteId: { in: ids } } }),
     db.routine.findMany({ where: { orgId: u.orgId, active: true, template: false, athleteId: { in: ids } }, select: { id: true, name: true, data: true, createdAt: true, extra: true, athleteId: true, athlete: { select: { id: true, name: true, avatarKey: true, avatarAt: true } } } }),
-    db.plan.findMany({ where: { orgId: u.orgId, endDate: { gte: addDays(today, -7), lte: addDays(today, 21) }, OR: [{ athleteId: { in: ids } }, { group: { members: { some: { athleteId: { in: ids } } } } }] }, include: { athlete: true, group: true }, orderBy: { endDate: "asc" } }),
     monitoringFor(ids),
     db.workoutLog.findMany({ where: { athleteId: { in: ids } }, orderBy: { completedAt: "desc" }, take: 30, include: { athlete: { select: { id: true, name: true, avatarKey: true, avatarAt: true, isDemo: true } }, session: { select: { id: true, title: true } } } }),
     db.wellness.findMany({ where: { athleteId: { in: ids } }, orderBy: { createdAt: "desc" }, take: 20, include: { athlete: { select: { id: true, name: true, avatarKey: true, avatarAt: true, isDemo: true } } } }),
@@ -148,7 +147,6 @@ export async function CoachHome() {
     const end = addDays(start, (d?.weeks ?? 4) * 7);
     if (end <= addDays(today, 10) && end >= addDays(today, -14)) expiring.push({ key: r.id, name: r.name, who: r.athlete?.name ?? "", href: `/app/routines/${r.id}`, end });
   }
-  for (const p of plans) expiring.push({ key: p.id, name: p.name, who: p.athlete?.name ?? p.group?.name ?? "", href: `/app/planning/${p.id}`, end: p.endDate });
   expiring.sort((a, b) => +a.end - +b.end);
 
   // ---- Alertas y actividad reciente

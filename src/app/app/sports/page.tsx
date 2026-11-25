@@ -34,7 +34,6 @@ export default async function SportsPage() {
                 {days.map((d, i) => <div key={d} className="text-center"><div className="text-[10px] text-neutral-600">{d}</div><div className={`mt-0.5 h-7 rounded text-[9px] leading-7 ${t.weekly[i] ? "bg-ink-700 text-neutral-300" : "bg-ink-900 text-neutral-700"}`} title={t.weekly[i] ? SESSION_TYPES[t.weekly[i]] : "Descanso"}>{t.weekly[i]?.slice(0, 3) ?? "—"}</div></div>)}
               </div>
               <div className="mt-5 flex flex-wrap gap-2">
-                <Link href={`/app/planning/new?sport=${k}`} className="btn-primary btn-sm">Planificar</Link>
                 <Link href={`/app/evaluations/new?${t.tests.map((x) => `tests=${x}`).join("&")}`} className="btn-ghost btn-sm">Evaluar</Link>
                 <Link href={`/app/library?sport=${k}`} className="btn-ghost btn-sm">Ejercicios</Link>
               </div>
