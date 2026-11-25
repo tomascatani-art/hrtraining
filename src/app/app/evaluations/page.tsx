@@ -71,7 +71,7 @@ export default async function EvaluationsPage({ searchParams }: { searchParams: 
 
   const evals = await db.evaluation.findMany({ where: { athleteId: { in: ids } }, orderBy: { date: "asc" }, include: { athlete: true } });
   const athletes = [...new Map(evals.map((e) => [e.athleteId, e.athlete])).values()].sort((a, b) => a.name.localeCompare(b.name));
-  const usedTests = TESTS.filter((t) => evals.some((e) => e.testKey === t.key) && (!t.key.startsWith("FMS_") || t.key === "FMS_TOTAL"));
+  const usedTests = TESTS.filter((t) => evals.some((e) => e.testKey === t.key));
 
   // Ranking de un test en el equipo
   if (test) {

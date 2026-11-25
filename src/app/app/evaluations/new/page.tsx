@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { visibleAthleteIds, visibleGroups } from "@/lib/access";
-import { TESTS, TEST_CATEGORIES, TEST_MAP, SPORT_TEMPLATES, FMS_COMPONENTS } from "@/lib/catalog";
+import { TESTS, TEST_CATEGORIES, TEST_MAP, SPORT_TEMPLATES, FMS_COMPONENTS, isBasicTest } from "@/lib/catalog";
 import { isoDay } from "@/lib/metrics";
 import { PageHeader, Card, Field } from "@/components/ui";
 import { Submit } from "@/components/forms";
@@ -15,7 +15,7 @@ export default async function NewEvaluation({ searchParams }: { searchParams: Pr
   const sp = await searchParams;
   const ids = await visibleAthleteIds(u);
   const [athletes, groups] = await Promise.all([db.user.findMany({ where: { id: { in: ids } }, include: { athleteProfile: true }, orderBy: { name: "asc" } }), visibleGroups(u)]);
-  let selected = (Array.isArray(sp.tests) ? sp.tests : sp.tests ? [sp.tests] : []).filter((k) => TEST_MAP[k]);
+  let selected = (Array.isArray(sp.tests) ? sp.tests : sp.tests ? [sp.tests] : []).filter((k) => TEST_MAP[k] && isBasicTest(k));
   if (selected.includes("FMS_TOTAL")) selected = [...selected.filter((k) => k !== "FMS_TOTAL"), ...FMS_COMPONENTS];
   selected = [...new Set(selected)];
 
@@ -26,7 +26,7 @@ export default async function NewEvaluation({ searchParams }: { searchParams: Pr
     targets = athletes.filter((a) => m.some((x) => x.athleteId === a.id));
   }
   const sport = targets[0]?.athleteProfile?.sport ?? "GENERAL";
-  const suggested = SPORT_TEMPLATES[sport]?.tests ?? [];
+  const suggested = (SPORT_TEMPLATES[sport]?.tests ?? []).filter(isBasicTest);
 
   if (!targets.length || !selected.length) {
     return (

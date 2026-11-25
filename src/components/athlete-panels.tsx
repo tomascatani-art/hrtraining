@@ -2,7 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { monitoringFor } from "@/lib/queries";
 import { dailySeries, weeklySeries, wellnessScore, improvement, best, dbDay } from "@/lib/metrics";
-import { TEST_MAP, FMS_COMPONENTS, TEST_CATEGORIES, SESSION_TYPES } from "@/lib/catalog";
+import { TEST_MAP, TEST_CATEGORIES, SESSION_TYPES, isBasicTest } from "@/lib/catalog";
 import { Card, Empty, Stat, fmtDate, fmtNum, Delta } from "./ui";
 import { LoadBars, WellnessArea, TrendChart, ProfileRadar, Sparkline } from "./charts";
 import { AlertList } from "./alerts";
@@ -70,16 +70,12 @@ export async function EvalPanel({ athleteId, canEdit }: { athleteId: string; can
   if (!evals.length) return <Empty title="Sin evaluaciones" action={canEdit ? <Link className="btn-primary" href={`/app/evaluations/new?athlete=${athleteId}`}>Cargar evaluación</Link> : undefined} />;
   const byTest = new Map<string, typeof evals>();
   for (const e of evals) byTest.set(e.testKey, [...(byTest.get(e.testKey) ?? []), e]);
-  const fms = (byTest.get("FMS_TOTAL") ?? []).filter((e) => e.details);
-  const lastF = fms.at(-1)?.details as Record<string, number> | undefined;
-  const prevF = fms.at(-2)?.details as Record<string, number> | undefined;
-  const radar = lastF ? FMS_COMPONENTS.map((k) => ({ axis: TEST_MAP[k].name.split(" ")[0] + (k === "FMS_ASLR" ? " SLR" : ""), value: lastF[k] ?? 0, prev: prevF?.[k] })) : [];
   const cats = Object.keys(TEST_CATEGORIES) as (keyof typeof TEST_CATEGORIES)[];
   return (
     <div className="space-y-6">
       {canEdit && <div className="flex justify-end gap-2"><Link className="btn-ghost" href={`/app/evaluations/compare?athlete=${athleteId}`}>Comparar evaluaciones</Link><Link className="btn-primary" href={`/app/evaluations/new?athlete=${athleteId}`}>Cargar evaluación</Link></div>}
       {cats.map((cat) => {
-        const keys = [...byTest.keys()].filter((k) => TEST_MAP[k]?.category === cat && (cat !== "FMS" || k === "FMS_TOTAL"));
+        const keys = [...byTest.keys()].filter((k) => TEST_MAP[k]?.category === cat && isBasicTest(k));
         if (!keys.length) return null;
         return (
           <section key={cat}>
@@ -103,12 +99,6 @@ export async function EvalPanel({ athleteId, canEdit }: { athleteId: string; can
           </section>
         );
       })}
-      {radar.length > 0 && (
-        <Card title="Perfil FMS" action={<span className="label">Último vs anterior · 0-3 por patrón</span>}>
-          <ProfileRadar data={radar} />
-          <p className="text-[11px] text-neutral-600">El FMS es una herramienta de screening del movimiento. Un puntaje bajo orienta el trabajo correctivo; no es un diagnóstico.</p>
-        </Card>
-      )}
     </div>
   );
 }
