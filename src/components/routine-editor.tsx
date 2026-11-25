@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Plus, Save, Trash2, Link2, Search, Send } from "lucide-react";
-import { type RoutineData, type RoutineRow, type RoutineDay, emptyDay, emptyBlock, emptyRow, cloneDay, newId, MAX_WEEKS } from "@/lib/routine";
+import { type RoutineData, type RoutineRow, type RoutineDay, emptyDay, emptyBlock, emptyRow, cloneDay, newId, MAX_WEEKS, BLOCK_KINDS, FOCUS, type BlockKind } from "@/lib/routine";
 import { youtubeSearch } from "@/lib/video";
 import { VideoButton } from "@/components/video-player";
 
@@ -20,6 +20,9 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
   const [data, setData] = useState<RoutineData>(initial);
   const [name, setName] = useState(initialName);
   const [dayIdx, setDayIdx] = useState(0);
+  // En el celular se edita una semana por vez (sin mover para los costados); en la compu se ven todas.
+  const [view, setView] = useState<number | null>(null);
+  useEffect(() => { if (window.innerWidth < 768) setView(0); }, []);
   const [dirty, setDirty] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
@@ -42,9 +45,9 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
   });
 
   /** Si el nombre coincide con uno de la biblioteca, se vincula y trae su video. */
-  const pickName = (row: { name: string; exerciseId?: string | null; video?: string | null }, value: string) => {
+  const pickName = (row: { name: string; exerciseId?: string | null; video?: string | null }, value: string, picked?: Ex) => {
     row.name = value;
-    const ex = byName.get(norm(value));
+    const ex = picked ?? byName.get(norm(value));
     if (ex) { row.exerciseId = ex[0]; row.name = ex[1]; if (!row.video && ex[2]) row.video = ex[2]; }
     else if (row.exerciseId) { row.exerciseId = null; }
   };
@@ -57,7 +60,6 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
 
   return (
     <div className="space-y-4">
-      <datalist id="ex-lib">{exercises.map((e) => <option key={e[0]} value={e[1]} />)}</datalist>
 
       {/* Encabezado */}
       <div className="card card-pad grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -74,7 +76,7 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
         <div className="space-y-2">
           {data.warmup.map((w, i) => (
             <div key={w.id} className="flex flex-wrap items-center gap-2">
-              <input list="ex-lib" value={w.name} onChange={(e) => set((d) => { pickName(d.warmup[i], e.target.value); return d; })} placeholder="Ejercicio" className="input min-w-0 flex-[2] basis-48 py-1.5 text-sm" />
+              <div className="min-w-0 flex-[2] basis-48"><ExercisePicker value={w.name} exercises={exercises} placeholder="Ejercicio" onChange={(v, ex) => set((d) => { pickName(d.warmup[i], v, ex); return d; })} /></div>
               <input value={w.detail ?? ""} onChange={(e) => set((d) => { d.warmup[i].detail = e.target.value; return d; })} placeholder="Ej: 2x10 / 5 min" className="input min-w-0 flex-1 basis-28 py-1.5 text-sm" />
               <VideoField value={w.video} name={w.name} onChange={(v) => set((d) => { d.warmup[i].video = v; return d; })} />
               <button type="button" onClick={() => set((d) => { d.warmup.splice(i, 1); return d; })} className="text-neutral-500 hover:text-red-400" aria-label="Quitar"><Trash2 size={15} /></button>
@@ -106,10 +108,19 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 border-b border-ink-700 px-3 py-2 text-xs">
-            <span className="muted">Semanas: {data.weeks}</span>
-            <button type="button" onClick={() => setWeeks(data.weeks + 1)} disabled={data.weeks >= MAX_WEEKS} className="btn-ghost px-2 py-1 text-xs"><Plus size={12} />Semana (copia la anterior)</button>
-            <button type="button" onClick={() => setWeeks(data.weeks - 1)} disabled={data.weeks <= 1} className="btn-ghost px-2 py-1 text-xs">Quitar la última</button>
+          <div className="space-y-2 border-b border-ink-700 px-3 py-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-xs muted">Ver semana:</span>
+              {Array.from({ length: data.weeks }, (_, w) => (
+                <button key={w} type="button" onClick={() => setView(w)} className={view === w ? "chip-volt px-3 py-1" : "chip-mute px-3 py-1 hover:text-white"}>{w + 1}</button>
+              ))}
+              <button type="button" onClick={() => setView(null)} className={view == null ? "chip-volt px-3 py-1" : "chip-mute px-3 py-1 hover:text-white"}>Todas</button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <button type="button" onClick={() => { setWeeks(data.weeks + 1); if (view != null) setView(data.weeks); }} disabled={data.weeks >= MAX_WEEKS} className="btn-ghost px-2 py-1 text-xs"><Plus size={12} />Agregar semana (copia la anterior)</button>
+              {view != null && view < data.weeks - 1 && <button type="button" onClick={() => setDay((d) => { for (const b of d.blocks) for (const r of b.rows) r.cells[view + 1] = r.cells[view]; })} className="btn-ghost px-2 py-1 text-xs"><Copy size={12} />Copiar semana {view + 1} a la {view + 2}</button>}
+              <button type="button" onClick={() => { setWeeks(data.weeks - 1); if (view != null && view >= data.weeks - 1) setView(data.weeks - 2); }} disabled={data.weeks <= 1} className="btn-ghost px-2 py-1 text-xs">Quitar la última</button>
+            </div>
           </div>
 
           <div className="space-y-5 p-3">
@@ -121,32 +132,31 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
                   <IconBtn label="Bajar bloque" onClick={() => setDay((d) => { d.blocks = move(d.blocks, bi, 1); })}><ArrowDown size={14} /></IconBtn>
                   <IconBtn label="Borrar bloque" danger onClick={() => setDay((d) => { d.blocks.splice(bi, 1); })}><Trash2 size={14} /></IconBtn>
                 </div>
-                <div className="overflow-x-auto rounded-xl border border-ink-700">
-                  <table className="w-full min-w-[640px] text-sm">
-                    <thead className="bg-ink-900 text-left text-[11px] uppercase tracking-wide text-neutral-400">
-                      <tr>
-                        <th className="w-8 px-2 py-2">#</th>
-                        <th className="min-w-[280px] px-2 py-2">Ejercicio</th>
-                        {Array.from({ length: data.weeks }, (_, w) => <th key={w} className="min-w-[88px] px-2 py-2">Sem {w + 1}</th>)}
-                        <th className="min-w-[140px] px-2 py-2">Nota</th>
-                        <th className="w-20 px-2 py-2" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {b.rows.map((r, ri) => (
-                        <Row key={r.id} n={ri + 1} r={r} weeks={data.weeks}
-                          onName={(v) => setDay((d) => pickName(d.blocks[bi].rows[ri], v))}
-                          onCell={(w, v) => setDay((d) => { d.blocks[bi].rows[ri].cells[w] = v; })}
-                          onFill={(w) => setDay((d) => { const row = d.blocks[bi].rows[ri]; for (let k = w + 1; k < row.cells.length; k++) row.cells[k] = row.cells[w]; })}
-                          onNote={(v) => setDay((d) => { d.blocks[bi].rows[ri].note = v; })}
-                          onVideo={(v) => setDay((d) => { d.blocks[bi].rows[ri].video = v; })}
-                          onUp={() => setDay((d) => { d.blocks[bi].rows = move(d.blocks[bi].rows, ri, -1); })}
-                          onDown={() => setDay((d) => { d.blocks[bi].rows = move(d.blocks[bi].rows, ri, 1); })}
-                          onDel={() => setDay((d) => { d.blocks[bi].rows.splice(ri, 1); })}
-                        />
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="mb-2 flex flex-wrap items-end gap-2">
+                  <label><span className="mb-0.5 block text-[10px] uppercase tracking-wide text-neutral-500">Cómo se hace</span>
+                    <select value={b.kind ?? "normal"} onChange={(e) => setDay((d) => { d.blocks[bi].kind = e.target.value as BlockKind; })} className="input w-auto py-1.5 text-sm">
+                      {Object.entries(BLOCK_KINDS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                    </select>
+                  </label>
+                  {(b.kind === "circuito" || b.kind === "tabata") && <Mini label={b.kind === "tabata" ? "Rounds" : "Vueltas"} value={b.rounds} ph={b.kind === "tabata" ? "8" : "3"} onChange={(v) => setDay((d) => { d.blocks[bi].rounds = v; })} />}
+                  {b.kind === "tabata" && <Mini label="Trabajo (seg)" value={b.work} ph="20" onChange={(v) => setDay((d) => { d.blocks[bi].work = v; })} />}
+                  {(b.kind === "tabata" || b.kind === "circuito" || b.kind === "superserie") && <Mini label={b.kind === "tabata" ? "Descanso (seg)" : "Pausa"} value={b.rest} ph={b.kind === "tabata" ? "10" : "2 min"} onChange={(v) => setDay((d) => { d.blocks[bi].rest = v; })} />}
+                  {(b.kind === "amrap" || b.kind === "emom") && <Mini label="Minutos" value={b.minutes} ph="10" onChange={(v) => setDay((d) => { d.blocks[bi].minutes = v; })} />}
+                  {b.kind && b.kind !== "normal" && <span className="pb-2 text-xs muted">{BLOCK_KINDS[b.kind].hint}</span>}
+                </div>
+                <div className="space-y-2">
+                  {b.rows.map((r, ri) => (
+                    <Row key={r.id} n={ri + 1} r={r} weeks={data.weeks} view={view} exercises={exercises}
+                      onName={(v, ex) => setDay((d) => pickName(d.blocks[bi].rows[ri], v, ex))}
+                      onCell={(w, v) => setDay((d) => { d.blocks[bi].rows[ri].cells[w] = v; })}
+                      onNote={(v) => setDay((d) => { d.blocks[bi].rows[ri].note = v; })}
+                      onFocus={(v) => setDay((d) => { d.blocks[bi].rows[ri].focus = v; })}
+                      onVideo={(v) => setDay((d) => { d.blocks[bi].rows[ri].video = v; })}
+                      onUp={() => setDay((d) => { d.blocks[bi].rows = move(d.blocks[bi].rows, ri, -1); })}
+                      onDown={() => setDay((d) => { d.blocks[bi].rows = move(d.blocks[bi].rows, ri, 1); })}
+                      onDel={() => setDay((d) => { d.blocks[bi].rows.splice(ri, 1); })}
+                    />
+                  ))}
                 </div>
                 <button type="button" onClick={() => setDay((d) => { d.blocks[bi].rows.push(emptyRow(data.weeks)); })} className="btn-ghost mt-2 px-3 py-1.5 text-sm"><Plus size={14} />Ejercicio</button>
               </div>
@@ -167,38 +177,101 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
   );
 }
 
+function Mini({ label, value, ph, onChange }: { label: string; value?: string; ph: string; onChange: (v: string) => void }) {
+  return <label className="w-24"><span className="mb-0.5 block text-[10px] uppercase tracking-wide text-neutral-500">{label}</span><input value={value ?? ""} onChange={(e) => onChange(e.target.value)} placeholder={ph} className="input w-full py-1.5 text-center text-sm" /></label>;
+}
+
 function IconBtn({ label, onClick, children, danger }: { label: string; onClick: () => void; children: React.ReactNode; danger?: boolean }) {
   return <button type="button" title={label} aria-label={label} onClick={onClick} className={`rounded-lg p-1.5 text-neutral-400 hover:bg-ink-800 ${danger ? "hover:text-red-400" : "hover:text-white"}`}>{children}</button>;
 }
 
-function Row({ n, r, weeks, onName, onCell, onFill, onNote, onVideo, onUp, onDown, onDel }: {
-  n: number; r: RoutineRow; weeks: number; onName: (v: string) => void; onCell: (w: number, v: string) => void; onFill: (w: number) => void;
-  onNote: (v: string) => void; onVideo: (v: string | null) => void; onUp: () => void; onDown: () => void; onDel: () => void;
+function Row({ n, r, weeks, view, exercises, onName, onCell, onNote, onFocus, onVideo, onUp, onDown, onDel }: {
+  n: number; r: RoutineRow; weeks: number; view: number | null; exercises: Ex[]; onName: (v: string, ex?: Ex) => void; onCell: (w: number, v: string) => void;
+  onNote: (v: string) => void; onFocus: (v: string) => void; onVideo: (v: string | null) => void; onUp: () => void; onDown: () => void; onDel: () => void;
 }) {
+  const cols = view == null ? Array.from({ length: weeks }, (_, i) => i) : [view];
   return (
-    <tr className="border-t border-ink-800 align-top">
-      <td className="px-2 py-2 text-xs text-neutral-500">{n}</td>
-      <td className="px-2 py-1.5">
-        <input list="ex-lib" value={r.name} onChange={(e) => onName(e.target.value)} placeholder="Escribí o elegí de la biblioteca" className="input w-full py-1.5 text-sm" />
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
-          {r.exerciseId ? <span className="text-[10px] uppercase tracking-wide text-neutral-500">De la biblioteca</span> : r.name ? <span className="text-[10px] uppercase tracking-wide text-neutral-600">Escrito a mano</span> : null}
-          <VideoField value={r.video} name={r.name} onChange={onVideo} />
+    <div className="rounded-xl border border-ink-700 bg-ink-900/40 p-3">
+      <div className="flex items-start gap-2">
+        <span className="mt-2 w-5 shrink-0 text-xs text-neutral-500">{n}</span>
+        <div className="min-w-0 flex-1">
+          <ExercisePicker value={r.name} exercises={exercises} onChange={onName} />
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            {r.exerciseId ? <span className="text-[10px] uppercase tracking-wide text-neutral-500">De la biblioteca</span> : r.name ? <span className="text-[10px] uppercase tracking-wide text-neutral-600">Escrito a mano</span> : null}
+            <VideoField value={r.video} name={r.name} onChange={onVideo} />
+          </div>
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {Object.entries(FOCUS).map(([k, f]) => (
+              <button key={k} type="button" onClick={() => onFocus(r.focus === k ? "" : k)}
+                className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold transition ${r.focus === k ? f.cls : "border-ink-600 text-neutral-500 hover:text-neutral-200"}`}>{f.label}</button>
+            ))}
+          </div>
         </div>
-      </td>
-      {Array.from({ length: weeks }, (_, w) => (
-        <td key={w} className="px-1 py-1.5">
-          <input value={r.cells[w] ?? ""} onChange={(e) => onCell(w, e.target.value)} onDoubleClick={() => onFill(w)} title="Doble clic: copiar a las semanas siguientes" placeholder="3x8" className="input w-full px-2 py-1.5 text-center text-sm" />
-        </td>
-      ))}
-      <td className="px-1 py-1.5"><input value={r.note ?? ""} onChange={(e) => onNote(e.target.value)} placeholder="Pausa, tempo, RIR…" className="input w-full py-1.5 text-sm" /></td>
-      <td className="px-1 py-1.5">
-        <div className="flex items-center justify-end">
+        <div className="flex shrink-0 items-center">
           <IconBtn label="Subir" onClick={onUp}><ArrowUp size={14} /></IconBtn>
           <IconBtn label="Bajar" onClick={onDown}><ArrowDown size={14} /></IconBtn>
           <IconBtn label="Quitar" danger onClick={onDel}><Trash2 size={14} /></IconBtn>
         </div>
-      </td>
-    </tr>
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-2 pl-7 sm:grid-cols-4 lg:grid-cols-6">
+        {cols.map((w) => (
+          <label key={w} className={view != null ? "col-span-2 sm:col-span-2" : ""}>
+            <span className="mb-0.5 block text-[10px] uppercase tracking-wide text-neutral-500">Semana {w + 1}</span>
+            <input value={r.cells[w] ?? ""} onChange={(e) => onCell(w, e.target.value)} placeholder="3x8 · 70%" className="input w-full px-2 py-1.5 text-center text-sm" />
+          </label>
+        ))}
+        <label className={view != null ? "col-span-2" : "col-span-2 sm:col-span-4 lg:col-span-6"}>
+          <span className="mb-0.5 block text-[10px] uppercase tracking-wide text-neutral-500">Nota</span>
+          <input value={r.note ?? ""} onChange={(e) => onNote(e.target.value)} placeholder="Pausa, tempo, RIR…" className="input w-full py-1.5 text-sm" />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+/** Buscador de ejercicios: al escribir aparece la lista de la biblioteca (funciona igual en celular). */
+function ExercisePicker({ value, exercises, onChange, placeholder = "Escribí y elegí de la biblioteca" }: { value: string; exercises: Ex[]; onChange: (v: string, ex?: Ex) => void; placeholder?: string }) {
+  const [open, setOpen] = useState(false);
+  const [hi, setHi] = useState(0);
+  const matches = useMemo(() => {
+    const words = norm(value).split(/\s+/).filter(Boolean);
+    if (!words.length) return [];
+    const res: Ex[] = [];
+    for (const e of exercises) {
+      const n = norm(e[1]);
+      if (words.every((w) => n.includes(w))) { res.push(e); if (res.length >= 40) break; }
+    }
+    return res.sort((x, y) => Number(!norm(x[1]).startsWith(words[0])) - Number(!norm(y[1]).startsWith(words[0]))).slice(0, 8);
+  }, [value, exercises]);
+  const exact = matches.some((m) => norm(m[1]) === norm(value));
+  const show = open && matches.length > 0 && !(exact && matches.length === 1);
+  const choose = (e: Ex) => { onChange(e[1], e); setOpen(false); };
+  return (
+    <div className="relative">
+      <input value={value} placeholder={placeholder} autoComplete="off"
+        onChange={(e) => { onChange(e.target.value); setOpen(true); setHi(0); }}
+        onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
+        onKeyDown={(e) => {
+          if (!show) return;
+          if (e.key === "ArrowDown") { e.preventDefault(); setHi((h) => Math.min(matches.length - 1, h + 1)); }
+          else if (e.key === "ArrowUp") { e.preventDefault(); setHi((h) => Math.max(0, h - 1)); }
+          else if (e.key === "Enter") { e.preventDefault(); choose(matches[hi]); }
+          else if (e.key === "Escape") setOpen(false);
+        }}
+        className="input w-full py-1.5 text-sm" />
+      {show && (
+        <ul className="absolute left-0 right-0 top-full z-30 mt-1 max-h-72 overflow-y-auto rounded-xl border border-ink-600 bg-ink-900 py-1 shadow-2xl">
+          {matches.map((m, i) => (
+            <li key={m[0]}>
+              <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => choose(m)}
+                className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm ${i === hi ? "bg-volt/15 text-volt" : "text-neutral-200 hover:bg-ink-800"}`}>
+                <span className="truncate">{m[1]}</span>{m[2] && <span className="shrink-0 text-[10px] text-volt">▶ video</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
