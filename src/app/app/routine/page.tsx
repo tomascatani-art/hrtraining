@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { FileDown } from "lucide-react";
 import { Notice } from "@/components/routine-notice";
+import { CompCountdown } from "@/components/comp-countdown";
+import { startOfDay } from "@/lib/metrics";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { PageHeader, Empty, fmtDate } from "@/components/ui";
@@ -21,6 +23,7 @@ export default async function MyRoutine({ searchParams }: { searchParams: Promis
   const data = await withVideos(u.orgId, r.data);
   const week = currentWeek(data);
   const notice = main ? sanitizeRoutine(main.data).meta.notice?.trim() : "";
+  const comps = await db.competition.findMany({ where: { date: { gte: startOfDay(new Date()) }, OR: [{ athleteId: u.id }, { group: { members: { some: { athleteId: u.id } } } }] }, orderBy: { date: "asc" }, take: 1 });
   const todayChecks = await db.routineCheck.findMany({ where: { routineId: r.id, date: dateOnly(new Date()) }, select: { rowId: true } });
   const coach = r.coachId ? await db.user.findUnique({ where: { id: r.coachId }, select: { name: true } }) : null;
   return (
@@ -28,6 +31,7 @@ export default async function MyRoutine({ searchParams }: { searchParams: Promis
       <PageHeader title={r.name} eyebrow={r.extra ? "Rutina extra" : "Mi rutina"}
         actions={<a href={`/api/routines/${r.id}/pdf`} target="_blank" rel="noopener" className="btn-ghost"><FileDown size={16} />PDF</a>}
         subtitle={<>{coach ? `De ${coach.name} · ` : ""}actualizada {fmtDate(r.updatedAt)}{week != null ? ` · vas por la semana ${week + 1} de ${data.weeks}` : ""}</>} />
+      <CompCountdown comps={comps} />
       {notice && !r.extra && <Notice text={notice} />}
       {extras.length > 0 && (
         <div className="-mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1 pb-1">

@@ -27,7 +27,7 @@ export async function saveCompetition(fd: FormData) {
   } else {
     await db.competition.create({ data: { ...data, orgId: u.orgId } });
     const ids = data.athleteId ? [data.athleteId] : (await db.groupMember.findMany({ where: { groupId: data.groupId! } })).map((m) => m.athleteId);
-    await notify(ids, { kind: "COMPETENCIA", title: `Competencia: ${data.name}`, body: `${data.date.toLocaleDateString("es-AR")}${data.location ? ` · ${data.location}` : ""}`, link: "/app/competitions" });
+    await notify(ids, { kind: "COMPETENCIA", title: `Competencia: ${data.name}`, body: `${data.date.toLocaleDateString("es-AR")}${data.location ? ` · ${data.location}` : ""} · faltan ${Math.max(0, Math.round((+new Date(data.date.toDateString()) - +new Date(new Date().toDateString())) / 86400000))} días`, link: "/app" });
   }
   await audit(u, id ? "EDITAR" : "CREAR", "Competencia", data.name);
   revalidatePath("/app/competitions");

@@ -21,6 +21,7 @@ import { fmtKg } from "@/lib/plates";
 import { markRMSeen } from "./rm/actions";
 import { Submit } from "@/components/forms";
 import { CoachHome } from "@/components/coach-home";
+import { CompCountdown } from "@/components/comp-countdown";
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<{ bienvenida?: string }> }) {
   const u = await requireUser();
@@ -34,11 +35,11 @@ async function AthleteHome({ userId, name }: { userId: string; name: string }) {
   const now = new Date();
   const today = startOfDay(now);
   const weekStart = startOfWeek(now);
-  const [todaySessions, weekSessions, goals, comp, evals, wellToday, mon] = await Promise.all([
+  const [todaySessions, weekSessions, goals, comps, evals, wellToday, mon] = await Promise.all([
     db.session.findMany({ where: { ...sw, date: { gte: today, lt: addDays(today, 1) } }, include: { items: { include: { exercise: true }, orderBy: { order: "asc" } }, logs: { where: { athleteId: userId } } } }),
     db.session.findMany({ where: { ...sw, date: { gte: weekStart, lt: addDays(weekStart, 7) } }, include: { logs: { where: { athleteId: userId } } } }),
     db.goal.findMany({ where: { athleteId: userId, done: false }, orderBy: [{ weekly: "desc" }, { createdAt: "asc" }] }),
-    db.competition.findFirst({ where: { date: { gte: today }, OR: [{ athleteId: userId }, { group: { members: { some: { athleteId: userId } } } }] }, orderBy: { date: "asc" } }),
+    db.competition.findMany({ where: { date: { gte: today }, OR: [{ athleteId: userId }, { group: { members: { some: { athleteId: userId } } } }] }, orderBy: { date: "asc" }, take: 3 }),
     db.evaluation.findMany({ where: { athleteId: userId }, orderBy: { date: "asc" } }),
     db.wellness.findUnique({ where: { athleteId_date: { athleteId: userId, date: dateOnly(now) } } }),
     monitoringFor([userId]),
@@ -62,11 +63,13 @@ async function AthleteHome({ userId, name }: { userId: string; name: string }) {
   const cm = byTest.get("CMJ") ?? [];
   const progress = sq.map((e, i) => ({ x: fmtDate(e.date, { month: "short", year: "2-digit" }), sq: e.value, cmj: cm[i]?.value ?? null }));
   const m = mon[0];
+  const comp = comps[0] ?? null;
 
   return (
     <>
       <PageHeader eyebrow={fmtDateLong(now)} title={`¡Vamos, ${name.split(" ")[0]}!`} subtitle="Tu entrenamiento de hoy, objetivos y progreso."
         actions={streak > 0 ? <div className="flex items-center gap-2 rounded-xl border border-volt/40 bg-volt/10 px-4 py-2"><Flame size={18} className="text-volt" /><span className="num text-2xl font-bold text-white">{streak}</span><span className="text-xs leading-tight text-neutral-300">{streak === 1 ? "sesión" : "sesiones"}<br />seguidas</span></div> : undefined} />
+      <CompCountdown comps={comps} />
       {notice && <Notice text={notice} />}
       {mainRoutine && <Link href="/app/routine" className="card card-pad card-hover mb-6 flex items-center justify-between gap-3 border-volt/40"><span><span className="label block">Tu plan</span><b className="text-white">{mainRoutine.name}</b></span><span className="btn-primary whitespace-nowrap">Ver mi rutina</span></Link>}
       {feeDue && (
