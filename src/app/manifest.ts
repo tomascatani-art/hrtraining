@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Hrtraining.co",
+    name: "Hrtraining",
     short_name: "Hrtraining",
     description: "Planificación, evaluaciones y control de cargas para entrenadores y alumnos.",
     start_url: "/app",

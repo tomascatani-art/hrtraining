@@ -40,7 +40,7 @@ export function mailLayout(o: { brand: string; title: string; body: string; cta:
 <tr><td style="padding-top:12px;font-size:15px;line-height:1.5;color:#a3a3a3">${esc(o.body)}</td></tr>
 <tr><td style="padding-top:24px"><a href="${esc(o.url)}" style="display:inline-block;background:#ffd60a;color:#000000;font-weight:bold;text-decoration:none;padding:12px 22px;border-radius:12px">${esc(o.cta)}</a></td></tr>
 <tr><td style="padding-top:20px;font-size:12px;color:#737373">${esc(o.foot ?? "Si no esperabas este mail, podés ignorarlo.")}<br>${esc(o.url)}</td></tr>
-</table><div style="padding-top:16px;font-size:11px;color:#525252">Con tecnología Hrtraining.co</div></td></tr></table></body></html>`;
+</table><div style="padding-top:16px;font-size:11px;color:#525252">Con tecnología Hrtraining</div></td></tr></table></body></html>`;
   const text = `${o.title}\n\n${o.body}\n\n${o.cta}: ${o.url}\n\n${o.foot ?? "Si no esperabas este mail, podés ignorarlo."}`;
   return { html, text };
 }

@@ -7,9 +7,9 @@ const display = Space_Grotesk({ subsets: ["latin"], variable: "--font-display" }
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: { default: "Hrtraining.co — Rendimiento deportivo", template: "%s · Hrtraining.co" },
+  title: { default: "Hrtraining — Rendimiento deportivo", template: "%s · Hrtraining" },
   description: "Planificación, evaluaciones, control de cargas y análisis de rendimiento para entrenadores y alumnos.",
-  applicationName: "Hrtraining.co",
+  applicationName: "Hrtraining",
   appleWebApp: { capable: true, title: "Hrtraining", statusBarStyle: "black-translucent" },
   icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
 };

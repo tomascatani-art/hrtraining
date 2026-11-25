@@ -137,7 +137,11 @@ export function Shell({
     <div className="min-h-dvh lg:pl-64">
       {/* Sidebar escritorio */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-ink-700 bg-ink-950 lg:flex">
-        <div className="flex h-16 min-w-0 items-center px-5"><Link href="/app" className="min-w-0"><Logo brand={brand} /></Link></div>
+        {brand ? (
+          <div className="flex h-16 min-w-0 items-center px-5"><Link href="/app" className="min-w-0"><Logo brand={brand} /></Link></div>
+        ) : (
+          <Link href="/app" className="flex flex-col items-center gap-1.5 px-5 pb-3 pt-5"><Logo size={64} withText={false} /><span className="font-display text-lg font-bold tracking-tight text-white">hrtraining</span></Link>
+        )}
         <div className="mx-4 mb-3 rounded-xl border border-ink-700 bg-ink-900 px-3 py-2">
           <div className="label">Tu espacio</div>
           <div className="truncate text-sm font-semibold text-white">{user.org}</div>
@@ -152,7 +156,7 @@ export function Shell({
             </div>
             <form action={logoutAction}><button className="rounded-lg p-2 text-neutral-500 hover:bg-ink-800 hover:text-white" title="Cerrar sesión"><LogOut size={16} /></button></form>
           </div>
-          {brand && <div className="px-2 pt-1 text-[11px] text-neutral-600">Con tecnología Hrtraining.co</div>}
+          {brand && <div className="px-2 pt-1 text-[11px] text-neutral-600">Con tecnología Hrtraining</div>}
         </div>
       </aside>
 

@@ -21,7 +21,7 @@ export function Logo({ size = 32, withText = true, brand }: { size?: number; wit
       <img src={size > 64 ? "/brand/hr-logo.png" : "/brand/hr-logo-128.png"} alt="HR Rendimiento & Disciplina" width={size} height={size} className="shrink-0 rounded-full" style={{ width: size, height: size }} />
       {withText && (
         <span className="font-display text-[17px] font-bold tracking-tight text-white">
-          hrtraining<span className="text-volt">.co</span>
+          hrtraining
         </span>
       )}
     </span>

@@ -9,7 +9,7 @@ const W = 842, H = 595, M = 32;
 export async function routinePdf(o: { club: string; athlete?: string | null; coach?: string | null; name: string; data: RoutineData; week: number | null }) {
   const doc = await PDFDocument.create();
   doc.setTitle(`${o.name}${o.athlete ? ` - ${o.athlete}` : ""}`);
-  doc.setCreator("hrtraining.co");
+  doc.setCreator("hrtraining");
   const f = await doc.embedFont(StandardFonts.Helvetica);
   const b = await doc.embedFont(StandardFonts.HelveticaBold);
   const safe = (font: PDFFont, s: string) => [...(s ?? "").replace(/[″”“]/g, '"').replace(/[’‘]/g, "'").replace(/[–—]/g, "-").replace(/…/g, "...")].map((ch) => { try { font.encodeText(ch); return ch; } catch { return ""; } }).join("");
@@ -34,11 +34,11 @@ export async function routinePdf(o: { club: string; athlete?: string | null; coa
   const newPage = () => {
     page = doc.addPage([W, H]); pageNo++;
     page.drawRectangle({ x: 0, y: H - 46, width: W, height: 46, color: BLACK });
-    text("hrtraining", M, H - 29, 15, b, rgb(1, 1, 1)); text(".co", M + b.widthOfTextAtSize("hrtraining", 15), H - 29, 15, b, YEL);
+    text("hrtraining", M, H - 29, 15, b, rgb(1, 1, 1));
     const right = [o.club, o.athlete].filter(Boolean).join("  ·  ");
     text(right, W - M - f.widthOfTextAtSize(safe(f, right), 9.5), H - 27, 9.5, f, rgb(0.8, 0.8, 0.8));
     text(`Página ${pageNo}`, W - M - 40, 16, 8, f, GREY);
-    text("Generado con hrtraining.co", M, 16, 8, f, GREY);
+    text("Generado con hrtraining", M, 16, 8, f, GREY);
     y = H - 70;
   };
   const need = (h: number) => { if (y - h < 34) newPage(); };

@@ -41,7 +41,7 @@ export default async function Report({ params }: { params: Promise<{ id: string 
             {a.isDemo && <div className="mt-2 inline-block bg-[#ffd60a] px-2 py-0.5 text-xs font-bold">DATOS DE DEMOSTRACIÓN</div>}
           </div>
           <div className="text-right">
-            <div className="inline-flex items-center gap-2 rounded bg-black px-3 py-1.5 font-display font-bold text-white">hrtraining<span className="text-[#ffd60a]">.co</span></div>
+            <div className="inline-flex items-center gap-2 rounded bg-black px-3 py-1.5 font-display font-bold text-white">hrtraining</div>
             <div className="mt-2 text-xs text-neutral-500">Generado el {d(new Date())}</div>
           </div>
         </header>
