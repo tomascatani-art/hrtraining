@@ -3,6 +3,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import clsx from "clsx";
+import { Suspense } from "react";
+import { NavProgress } from "@/components/nav-progress";
 import {
   LayoutDashboard, Users, UsersRound, CalendarRange, CalendarDays, Dumbbell, Gauge, Activity, LineChart,
   Video, MessageSquare, FolderOpen, Trophy, Shapes, ShieldCheck, Settings, HeartPulse, Target, Menu, X, Bell, LogOut, Sparkles, Wallet, Wrench, ChevronDown, ClipboardList, Search,
@@ -147,6 +149,7 @@ export function Shell({
       </aside>
 
       {/* Barra superior */}
+      <Suspense fallback={null}><NavProgress /></Suspense>
       <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-ink-700 bg-ink-950/85 px-4 backdrop-blur lg:h-16 lg:px-8">
         <div className="min-w-0 lg:hidden"><Link href="/app" className="min-w-0"><Logo size={28} brand={brand} /></Link></div>
         {isDemo && (
