@@ -51,7 +51,8 @@ async function AthleteHome({ userId, name }: { userId: string; name: string }) {
   ]);
   const mainRoutine = await currentRoutine(userId);
   const notice = mainRoutine ? sanitizeRoutine(mainRoutine.data).meta.notice?.trim() : "";
-  const plan = mainRoutine ? todayPlan(sanitizeRoutine(mainRoutine.data), mainRoutine.createdAt) : null;
+  const lastCheck = mainRoutine ? await db.routineCheck.findFirst({ where: { routineId: mainRoutine.id }, orderBy: [{ date: "desc" }, { createdAt: "desc" }], select: { dayId: true, date: true } }) : null;
+  const plan = mainRoutine ? todayPlan(sanitizeRoutine(mainRoutine.data), mainRoutine.createdAt, now, lastCheck && { dayId: lastCheck.dayId, today: +lastCheck.date === +dateOnly(now) }) : null;
   const feeDue = fee.status === "PENDIENTE" && fee.amount != null && fee.org && now.getDate() >= fee.org.feeDueDay - 3;
   const prevRM = rmNews.length ? await db.exerciseRM.findMany({ where: { athleteId: userId, exerciseId: { in: rmNews.map((r) => r.exerciseId) } }, orderBy: { date: "desc" } }) : [];
   const done = weekSessions.filter((s) => s.logs.some((l) => l.status === "COMPLETADO" || l.status === "PARCIAL")).length;
@@ -97,17 +98,18 @@ async function AthleteHome({ userId, name }: { userId: string; name: string }) {
       <CompCountdown comps={comps} />
       {notice && <Notice text={notice} />}
       {mainRoutine && plan && (
-        <Link href="/app/routine" className="card card-hover mb-6 block overflow-hidden border-volt/50">
+        <Link href={plan.today ? `/app/routine?d=${plan.today.id}` : "/app/routine"} className="card card-hover mb-6 block overflow-hidden border-volt/50">
           <div className="flex items-center gap-4 p-4 sm:p-5">
             <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl border-2 border-volt text-center leading-none"><div><div className="text-[10px] font-bold uppercase text-volt">Semana</div><div className="num mt-1 text-2xl font-bold text-white">{plan.week + 1}<span className="text-sm text-neutral-500">/{plan.weeks}</span></div></div></div>
             <div className="min-w-0 flex-1">
               <div className="label text-volt">Hoy te toca</div>
-              {plan.today ? <div className="font-display text-xl font-bold leading-tight text-white">{plan.today.name}</div>
-                : plan.hasWeekdays ? <div className="font-display text-lg font-bold leading-tight text-white">Día libre{plan.next ? <span className="block text-sm font-normal muted">Próximo: {plan.next.name} · {plan.next.weekday}</span> : null}</div>
-                : <div className="font-display text-lg font-bold leading-tight text-white">Elegí el día de tu rutina</div>}
+              {plan.today ? <div className="font-display text-xl font-bold leading-tight text-white">Semana {plan.week + 1} · {plan.today.name}</div>
+                : <div className="font-display text-lg font-bold leading-tight text-white">Día libre{plan.next ? <span className="block text-sm font-normal muted">Próximo: Semana {plan.week + 1} · {plan.next.name} ({plan.next.weekday})</span> : null}</div>}
               <div className="truncate text-xs muted">{mainRoutine.name}</div>
             </div>
-            <span className="btn-primary hidden whitespace-nowrap sm:inline-flex">Ver mi rutina</span>
+          </div>
+          <div className="border-t border-ink-700 px-4 py-3 sm:px-5">
+            <span className="btn-primary w-full justify-center sm:w-auto">{plan.today ? `Empezar ${plan.today.name}` : "Ver mi rutina"}<ArrowRight size={16} /></span>
           </div>
         </Link>
       )}

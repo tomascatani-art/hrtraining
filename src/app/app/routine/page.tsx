@@ -9,12 +9,12 @@ import { db } from "@/lib/db";
 import { PageHeader, Empty, fmtDate } from "@/components/ui";
 import { RoutineView } from "@/components/routine-view";
 import { withVideos, currentRoutine, extraRoutines } from "@/lib/routine-server";
-import { currentWeek, sanitizeRoutine } from "@/lib/routine";
+import { currentWeek, sanitizeRoutine, todayPlan } from "@/lib/routine";
 import { dateOnly } from "@/lib/metrics";
 
 export const metadata = { title: "Mi rutina" };
 
-export default async function MyRoutine({ searchParams }: { searchParams: Promise<{ r?: string }> }) {
+export default async function MyRoutine({ searchParams }: { searchParams: Promise<{ r?: string; d?: string }> }) {
   const u = await requireUser(["ATHLETE"]);
   const sp = await searchParams;
   const main = await currentRoutine(u.id);
@@ -25,8 +25,10 @@ export default async function MyRoutine({ searchParams }: { searchParams: Promis
   const week = currentWeek(data);
   const notice = main ? sanitizeRoutine(main.data).meta.notice?.trim() : "";
   const comps = await db.competition.findMany({ where: { date: { gte: startOfDay(new Date()) }, OR: [{ athleteId: u.id }, { group: { members: { some: { athleteId: u.id } } } }] }, orderBy: { date: "asc" }, take: 1 });
-  const todayChecks = await db.routineCheck.findMany({ where: { routineId: r.id, date: dateOnly(new Date()) }, select: { rowId: true } });
+  const todayChecks = await db.routineCheck.findMany({ where: { routineId: r.id, date: dateOnly(new Date()) }, select: { rowId: true, kg: true, note: true, molestia: true } });
   const wellnessToday = await db.wellness.findFirst({ where: { athleteId: u.id, date: dateOnly(new Date()) }, select: { id: true } });
+  const lastCheck = await db.routineCheck.findFirst({ where: { routineId: r.id }, orderBy: [{ date: "desc" }, { createdAt: "desc" }], select: { dayId: true, date: true } });
+  const plan = todayPlan(data, r.createdAt, new Date(), lastCheck && { dayId: lastCheck.dayId, today: +lastCheck.date === +dateOnly(new Date()) });
   const coach = r.coachId ? await db.user.findUnique({ where: { id: r.coachId }, select: { name: true } }) : null;
   return (
     <>
@@ -41,7 +43,7 @@ export default async function MyRoutine({ searchParams }: { searchParams: Promis
           {extras.map((x) => <Link key={x.id} href={`/app/routine?r=${x.id}`} className={r.id === x.id ? "chip-volt whitespace-nowrap" : "chip-mute whitespace-nowrap hover:text-white"}>{x.name}</Link>)}
         </div>
       )}
-      <RoutineView roles={focusRoles(u.org.focusRoles)} data={data} week={week} checks={{ routineId: r.id, done: todayChecks.map((c) => c.rowId), wellnessDone: !!wellnessToday }} />
+      <RoutineView roles={focusRoles(u.org.focusRoles)} data={data} week={week} initialDay={sp.d || plan.today?.id} todayDayId={plan.today?.id} todayWeek={plan.week} checks={{ routineId: r.id, done: todayChecks.map((c) => c.rowId), wellnessDone: !!wellnessToday, notes: Object.fromEntries(todayChecks.filter((c) => c.kg || c.note || c.molestia).map((c) => [c.rowId, { kg: c.kg ?? "", note: c.note ?? "", molestia: c.molestia }])) }} />
     </>
   );
 }

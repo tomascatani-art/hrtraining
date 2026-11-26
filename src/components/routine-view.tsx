@@ -1,18 +1,20 @@
 "use client";
 import { useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { Check, HeartPulse, X } from "lucide-react";
+import { Check, HeartPulse, X, PencilLine, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { type RoutineData, FOCUS, type FocusMap, blockSummary, WEEKDAYS } from "@/lib/routine";
 import { VideoButton } from "@/components/video-player";
-import { toggleCheck } from "@/app/app/routine/actions";
+import { toggleCheck, saveCheckNote } from "@/app/app/routine/actions";
 
-type Checks = { routineId: string; done: string[]; wellnessDone?: boolean };
+type RowNote = { kg: string; note: string; molestia: boolean };
+type Checks = { routineId: string; done: string[]; wellnessDone?: boolean; notes?: Record<string, RowNote> };
 
 /** Lo que ve el alumno: un día por pestaña, la semana en curso resaltada y el video adentro de la app. */
-export function RoutineView({ data, week, checks, roles = FOCUS }: { data: RoutineData; week: number | null; checks?: Checks; roles?: FocusMap }) {
-  // Día que se abre: el que tiene tics hoy, o el que coincide con el día de la semana, o el primero.
+export function RoutineView({ data, week, checks, roles = FOCUS, initialDay, todayDayId, todayWeek }: { data: RoutineData; week: number | null; checks?: Checks; roles?: FocusMap; initialDay?: string; todayDayId?: string; todayWeek?: number | null }) {
+  // Día que se abre: el pedido, el que tiene tics hoy, el que coincide con el día de la semana, o el primero.
   const [di, setDi] = useState(() => {
+    if (initialDay) { const i = data.days.findIndex((d) => d.id === initialDay); if (i >= 0) return i; }
     if (checks?.done.length) { const i = data.days.findIndex((d) => d.blocks.some((b) => b.rows.some((r) => checks.done.includes(r.id)))); if (i >= 0) return i; }
     const today = WEEKDAYS[(new Date().getDay() + 6) % 7];
     const i = data.days.findIndex((d) => d.weekday === today);
@@ -20,22 +22,34 @@ export function RoutineView({ data, week, checks, roles = FOCUS }: { data: Routi
   });
   const [done, setDone] = useState<Set<string>>(() => new Set(checks?.done ?? []));
   const [askWellness, setAskWellness] = useState(false);
+  const [notes, setNotes] = useState<Record<string, RowNote>>(() => checks?.notes ?? {});
+  const [editing, setEditing] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [noteErr, setNoteErr] = useState("");
+  const saveNote = async (dayId: string, rowId: string, exercise: string, n: RowNote) => {
+    if (!checks) return;
+    setSaving(true); setNoteErr("");
+    try {
+      await saveCheckNote(checks.routineId, dayId, rowId, { ...n, exercise });
+      setNotes((m) => ({ ...m, [rowId]: n }));
+      if (!done.has(rowId)) toggleLocal(dayId, rowId);
+      setEditing(null);
+    } catch { setNoteErr("No se pudo guardar. Probá de nuevo."); }
+    setSaving(false);
+  };
   const [, start] = useTransition();
   const toggle = (dayId: string, rowId: string) => {
     if (!checks) return;
     const on = !done.has(rowId);
     // Se marca al instante; si no se pudo guardar, vuelve atrás.
     setDone((s) => { const n = new Set(s); if (on) n.add(rowId); else n.delete(rowId); return n; });
-    // Terminó todo el día: le pedimos la encuesta de bienestar (si hoy no la hizo).
-    if (on && !checks.wellnessDone) {
-      const d = data.days.find((x) => x.id === dayId);
-      const rs = d ? rowsOf(d) : [];
-      if (rs.length && rs.every((r) => r.id === rowId || done.has(r.id))) setAskWellness(true);
-    }
     start(async () => {
       try { await toggleCheck(checks.routineId, dayId, rowId, on); }
       catch { setDone((s) => { const n = new Set(s); if (on) n.delete(rowId); else n.add(rowId); return n; }); }
     });
+  };
+  const toggleLocal = (dayId: string, rowId: string) => {
+    setDone((s) => new Set(s).add(rowId));
   };
   const rowsOf = (d: RoutineData["days"][number]) => d.blocks.flatMap((b) => b.rows.filter((r) => r.name));
   const [w, setW] = useState<number | null>(week);
@@ -65,8 +79,14 @@ export function RoutineView({ data, week, checks, roles = FOCUS }: { data: Routi
         </div>
       )}
 
+      {todayDayId && (() => { const td = data.days.find((d) => d.id === todayDayId); return td ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-volt/50 bg-volt/[.06] px-4 py-3">
+          <div><div className="label text-volt">Hoy te toca</div><div className="font-display text-lg font-bold text-white">{todayWeek != null ? `Semana ${todayWeek + 1} · ` : ""}{td.name}</div></div>
+          {day?.id !== td.id && <button type="button" onClick={() => { setDi(data.days.indexOf(td)); if (todayWeek != null) setW(todayWeek); }} className="btn-primary btn-sm">Ir a {td.name}</button>}
+        </div>) : null; })()}
+
       <div className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
-        {data.days.map((d, i) => { const rs = rowsOf(d); const full = !!checks && rs.length > 0 && rs.every((r) => done.has(r.id)); return <button key={d.id} type="button" onClick={() => setDi(i)} className={day?.id === d.id ? "tab tab-active whitespace-nowrap" : "tab whitespace-nowrap"}>{full && <Check size={14} className="mr-1 inline" />}{d.name}{d.weekday ? ` · ${d.weekday}` : ""}</button>; })}
+        {data.days.map((d, i) => { const rs = rowsOf(d); const full = !!checks && rs.length > 0 && rs.every((r) => done.has(r.id)); return <button key={d.id} type="button" onClick={() => setDi(i)} className={day?.id === d.id ? "tab tab-active whitespace-nowrap" : "tab whitespace-nowrap"}>{full && <Check size={14} className="mr-1 inline" />}{d.name}{d.weekday ? ` · ${d.weekday}` : ""}{d.id === todayDayId && <span className="ml-1.5 rounded bg-volt px-1 text-[10px] font-bold text-black">HOY</span>}</button>; })}
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5 text-xs">
@@ -86,9 +106,6 @@ export function RoutineView({ data, week, checks, roles = FOCUS }: { data: Routi
               <span className="num shrink-0 font-bold text-volt">{n}/{rs.length}</span>
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink-700"><div className="h-full rounded-full bg-volt transition-all" style={{ width: `${pct}%` }} /></div>
-            {n === rs.length && !checks.wellnessDone && (
-              <Link href="/app/wellness?desde=rutina" className="btn-primary mt-3 w-full"><HeartPulse size={16} />Contanos cómo terminaste (encuesta de bienestar)</Link>
-            )}
           </div>
         );
       })()}
@@ -98,9 +115,14 @@ export function RoutineView({ data, week, checks, roles = FOCUS }: { data: Routi
             <button type="button" onClick={() => setAskWellness(false)} className="float-right -mr-2 -mt-2 p-2 text-neutral-500 hover:text-white" aria-label="Cerrar"><X size={18} /></button>
             <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-volt text-black"><HeartPulse size={26} /></div>
             <div className="font-display text-xl font-bold text-white">¡Terminaste el entrenamiento!</div>
-            <p className="mt-1 text-sm muted">Contale a tu preparador cómo te sentiste. Son 30 segundos.</p>
-            <Link href="/app/wellness?desde=rutina" className="btn-primary mt-4 w-full">Responder encuesta de bienestar</Link>
-            <button type="button" onClick={() => setAskWellness(false)} className="mt-2 w-full py-2 text-sm text-neutral-400 hover:text-white">Ahora no</button>
+            {checks?.wellnessDone ? (<>
+              <p className="mt-1 text-sm muted">Buen trabajo. La encuesta de bienestar de hoy ya la completaste.</p>
+              <button type="button" onClick={() => setAskWellness(false)} className="btn-primary mt-4 w-full">Listo</button>
+            </>) : (<>
+              <p className="mt-1 text-sm muted">Contale a tu preparador cómo te sentiste. Son 30 segundos.</p>
+              <Link href="/app/wellness?desde=rutina" className="btn-primary mt-4 w-full">Responder encuesta de bienestar</Link>
+              <button type="button" onClick={() => setAskWellness(false)} className="mt-2 w-full py-2 text-sm text-neutral-400 hover:text-white">Ahora no</button>
+            </>)}
           </div>
         </div>, document.body
       )}
@@ -138,6 +160,19 @@ export function RoutineView({ data, week, checks, roles = FOCUS }: { data: Routi
                     </div>
                   )}
                   {(r.note || (r.rest && r.mode !== "tabata")) && <div className="mt-1 text-xs muted">{[r.rest && r.mode !== "tabata" ? `Descanso ${r.rest}″` : "", r.note].filter(Boolean).join(" · ")}</div>}
+                  {checks && editing !== r.id && (
+                    notes[r.id] && (notes[r.id].kg || notes[r.id].note || notes[r.id].molestia) ? (
+                      <button type="button" onClick={() => setEditing(r.id)} className="mt-2 block w-full rounded-lg border border-ink-600 bg-ink-900 px-3 py-2 text-left text-sm">
+                        {notes[r.id].molestia && <span className="mr-2 inline-flex items-center gap-1 text-xs font-bold text-volt"><AlertTriangle size={13} />Molestia</span>}
+                        {notes[r.id].kg && <span className="mr-2 font-semibold text-white">{notes[r.id].kg}</span>}
+                        {notes[r.id].note && <span className="text-neutral-300">{notes[r.id].note}</span>}
+                        <span className="ml-2 text-xs text-neutral-500">Editar</span>
+                      </button>
+                    ) : (
+                      <button type="button" onClick={() => setEditing(r.id)} className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-neutral-400 hover:text-white"><PencilLine size={13} />Anotar kilos o una nota</button>
+                    )
+                  )}
+                  {checks && editing === r.id && <NoteForm initial={notes[r.id]} saving={saving} error={noteErr} onCancel={() => setEditing(null)} onSave={(n) => saveNote(day.id, r.id, r.name, n)} />}
                   </div>
                 </div>
                 {r.link && i < rows.length - 1 && <div className="px-4 pb-2"><span className="inline-flex items-center rounded-full border border-white/50 bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">{r.link === "circuito" ? "↻ Circuito con el siguiente" : "⛓ Sin descanso, seguí con el siguiente"}</span></div>}
@@ -147,6 +182,32 @@ export function RoutineView({ data, week, checks, roles = FOCUS }: { data: Routi
         </div>
       ))}
       {day && !day.blocks.some((b) => b.rows.some((r) => r.name)) && <div className="card card-pad text-sm muted">Este día todavía no tiene ejercicios.</div>}
+      {checks && day && rowsOf(day).length > 0 && (
+        <button type="button" onClick={() => setAskWellness(true)} className="btn-primary w-full justify-center py-3 text-base"><Check size={18} strokeWidth={3} />Finalizar entrenamiento</button>
+      )}
+    </div>
+  );
+}
+
+function NoteForm({ initial, saving, error, onSave, onCancel }: { initial?: RowNote; saving: boolean; error?: string; onSave: (n: RowNote) => void; onCancel: () => void }) {
+  const [kg, setKg] = useState(initial?.kg ?? "");
+  const [note, setNote] = useState(initial?.note ?? "");
+  const [molestia, setMolestia] = useState(initial?.molestia ?? false);
+  return (
+    <div className="mt-2 space-y-2 rounded-xl border border-ink-600 bg-ink-900 p-3">
+      <label className="block"><span className="label">¿Cuánto levantaste? / ¿Qué hiciste?</span>
+        <input className="input mt-1" value={kg} onChange={(e) => setKg(e.target.value)} placeholder="Ej: 60 kg, 4x8 · o 3 series con 50" maxLength={60} /></label>
+      <label className="block"><span className="label">Nota</span>
+        <textarea className="input mt-1 min-h-[64px]" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Cómo te sentiste, si te costó, si bajaste el peso…" maxLength={300} /></label>
+      <button type="button" onClick={() => setMolestia((v) => !v)} aria-pressed={molestia}
+        className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm font-semibold ${molestia ? "border-volt bg-volt/10 text-volt" : "border-ink-600 text-neutral-300"}`}>
+        <AlertTriangle size={15} />{molestia ? "Me molestó algo (le avisamos a tu preparador)" : "¿Te molestó algo? Tocá acá"}
+      </button>
+      {error && <div className="text-sm text-volt">{error}</div>}
+      <div className="flex gap-2">
+        <button type="button" disabled={saving} onClick={() => onSave({ kg: kg.trim(), note: note.trim(), molestia })} className="btn-primary flex-1 justify-center">{saving ? "Guardando…" : "Guardar"}</button>
+        <button type="button" onClick={onCancel} className="btn-ghost">Cancelar</button>
+      </div>
     </div>
   );
 }

@@ -179,7 +179,32 @@ async function RoutineTab({ athleteId, orgId, roles }: { athleteId: string; orgI
         <div><div className="h2">{r.name}</div><div className="text-xs muted">Así la ve el alumno en “Mi rutina”.</div></div>
         <Link href={`/app/routines/${r.id}`} className="btn-primary">Editar rutina</Link>
       </div>
+      <AthleteNotes routineId={r.id} data={data} />
       <RoutineView roles={roles} data={data} week={currentWeek(data)} />
     </>
+  );
+}
+
+/** Lo que el alumno anotó en cada ejercicio: kilos, notas y molestias. */
+async function AthleteNotes({ routineId, data }: { routineId: string; data: Awaited<ReturnType<typeof withVideos>> }) {
+  const rows = await db.routineCheck.findMany({
+    where: { routineId, OR: [{ kg: { not: null } }, { note: { not: null } }, { molestia: true }] },
+    orderBy: [{ date: "desc" }, { createdAt: "desc" }], take: 30,
+  });
+  if (!rows.length) return null;
+  const names = new Map<string, { ex: string; day: string }>();
+  for (const d of data.days) for (const b of d.blocks) for (const x of b.rows) names.set(x.id, { ex: x.name, day: d.name });
+  return (
+    <div className="card mb-4 overflow-hidden">
+      <div className="border-b border-ink-700 px-4 py-3"><div className="h2">Lo que anotó el alumno</div><div className="text-xs muted">Kilos, notas y molestias que cargó al hacer cada ejercicio.</div></div>
+      <ul className="divide-y divide-ink-800">
+        {rows.map((c) => { const n = names.get(c.rowId); return (
+          <li key={c.id} className="px-4 py-2.5 text-sm">
+            <div className="flex flex-wrap items-center gap-x-2 text-xs muted"><span>{new Date(c.date).toLocaleDateString("es-AR", { day: "2-digit", month: "short", timeZone: "UTC" })}</span>{n && <span>· {n.day}</span>}{c.molestia && <span className="font-bold text-volt">· Molestia</span>}</div>
+            <div><span className="font-semibold text-white">{n?.ex ?? "Ejercicio"}</span>{c.kg && <span className="ml-2 text-white">{c.kg}</span>}{c.note && <span className="ml-2 text-neutral-300">{c.note}</span>}</div>
+          </li>
+        ); })}
+      </ul>
+    </div>
   );
 }

@@ -651,6 +651,10 @@ model RoutineCheck {
   date      DateTime @db.Date
   dayId     String
   rowId     String
+  /// Lo que anota el alumno: kilos/lo que hizo, una nota y si algo le molestó.
+  kg        String?  @db.VarChar(60)
+  note      String?  @db.VarChar(300)
+  molestia  Boolean  @default(false)
   createdAt DateTime @default(now())
 
   @@unique([routineId, date, rowId])
