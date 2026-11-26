@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Plus, Save, X, Search, Send, ClipboardCopy, ClipboardPaste, Link2, Repeat, Megaphone, Cloud, CheckCircle2 } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Plus, Save, X, Search, Send, ClipboardCopy, ClipboardPaste, Link2, Repeat, Megaphone, Cloud, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 import { type RoutineData, type RoutineRow, type RoutineDay, emptyDay, emptyBlock, emptyRow, cloneDay, newId, MAX_WEEKS, BLOCK_KINDS, FOCUS, type FocusMap, WEEKDAYS, type BlockKind } from "@/lib/routine";
 import { youtubeSearch } from "@/lib/video";
 import { VideoButton } from "@/components/video-player";
@@ -227,6 +227,9 @@ function Row({ roles, n, r, weeks, exercises, clip, isLast, upd, onPick, onCopy,
 }) {
   const [changing, setChanging] = useState(!r.name);
   const [copied, setCopied] = useState(false);
+  // Cerrado muestra un resumen; al tocarlo se abren todas las opciones (Diego).
+  const [open, setOpen] = useState(!r.name);
+  const summary = r.mode === "tabata" ? `Tabata ${r.tabata?.work || 20}"/${r.tabata?.rest || 10}" x${r.tabata?.rounds || 8}` : r.cells.slice(0, weeks).map((c) => c || "—").join(" · ");
   const tabata = r.mode === "tabata";
   const ok = !r.video || /^https:\/\/\S+\.\S{2,}/.test(r.video);
   return (
@@ -243,11 +246,24 @@ function Row({ roles, n, r, weeks, exercises, clip, isLast, upd, onPick, onCopy,
               : <div className="font-display text-lg font-semibold leading-tight text-white">{r.name}</div>}
             {!changing && <div className="mt-0.5 text-[10px] uppercase tracking-wide text-neutral-500">{r.exerciseId ? "De la biblioteca" : "Escrito a mano"}</div>}
           </div>
-          {!changing && <button type="button" onClick={() => setChanging(true)} className="btn-ghost shrink-0 px-2.5 py-1 text-xs"><Search size={13} />Cambiar</button>}
+          {!changing && open && <button type="button" onClick={() => setChanging(true)} className="btn-ghost shrink-0 px-2.5 py-1 text-xs"><Search size={13} />Cambiar</button>}
+          {!changing && <button type="button" onClick={() => setOpen((o) => !o)} className="shrink-0 rounded-lg border border-ink-600 p-1.5 text-neutral-300 hover:text-volt" aria-label={open ? "Cerrar opciones" : "Abrir opciones"} aria-expanded={open}>{open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}</button>}
           {changing && r.name && <button type="button" onClick={() => setChanging(false)} className="btn-ghost shrink-0 px-2.5 py-1 text-xs">Listo</button>}
           <IconBtn label="Quitar ejercicio" danger onClick={onDel}><X size={16} /></IconBtn>
         </div>
 
+        {!open && !changing && (
+          <button type="button" onClick={() => setOpen(true)} className="mt-2 flex w-full flex-wrap items-center gap-1.5 text-left">
+            {r.focus && roles[r.focus] && <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold ${roles[r.focus].cls}`}>{roles[r.focus].label}</span>}
+            <span className="num min-w-0 truncate text-sm text-neutral-300">{summary}</span>
+            {r.rest && r.mode !== "tabata" && <span className="text-xs text-neutral-500">· {r.rest}&quot;</span>}
+            {r.video && <span className="text-xs text-volt">· video</span>}
+            {r.link && <span className="text-xs text-volt">· {r.link === "circuito" ? "circuito" : "sin descanso"}</span>}
+            <span className="ml-auto text-xs text-neutral-500">Tocá para editar</span>
+          </button>
+        )}
+
+        {(open || changing) && <>
         <div className="mt-3"><span className={cap}>Rol en la sesión</span>
           <div className="flex flex-wrap gap-1.5">
             {Object.entries(roles).map(([k, f]) => (
@@ -319,6 +335,7 @@ function Row({ roles, n, r, weeks, exercises, clip, isLast, upd, onPick, onCopy,
           {!tabata && <label><span className={cap}>RM / RIR (respaldo)</span><input value={r.rmBase ?? ""} onChange={(e) => upd((x) => { x.rmBase = e.target.value; })} placeholder="Ej: RIR 2" className="input w-full py-1.5 text-center text-sm" /></label>}
           <label><span className={cap}>Descanso (seg)</span><input inputMode="numeric" value={r.rest ?? ""} onChange={(e) => upd((x) => { x.rest = e.target.value; })} placeholder="90" className="input w-full py-1.5 text-center text-sm" /></label>
         </div>
+        </>}
       </div>
     </div>
   );
