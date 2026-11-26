@@ -19,7 +19,7 @@ import { TrainingInsights } from "@/components/insights";
 import { updateAthlete, regenerateInvite, resetLinkForAthlete, setAthletePassword } from "../actions";
 import { RoutineView } from "@/components/routine-view";
 import { withVideos, currentRoutine } from "@/lib/routine-server";
-import { currentWeek } from "@/lib/routine";
+import { currentWeek, focusRoles, type FocusMap } from "@/lib/routine";
 import { createRoutine } from "../../routines/actions";
 
 export default async function AthleteDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; invitado?: string; nueva?: string; carpeta?: string; mail?: string; clave?: string }> }) {
@@ -105,7 +105,7 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
         { key: "carpeta", label: "Carpeta", href: `${base}?tab=carpeta` },
       ]} />
 
-      {tab === "rutina" && <RoutineTab athleteId={id} orgId={u.orgId} />}
+      {tab === "rutina" && <RoutineTab athleteId={id} orgId={u.orgId} roles={focusRoles(u.org.focusRoles)} />}
       {tab === "carga" && <LoadPanel athleteId={id} />}
       {tab === "antropometria" && <AnthropometryPanel athleteId={id} canEdit />}
       {tab === "carpeta" && <FolderPanel athleteId={id} viewerId={u.id} staff base={`${base}?tab=carpeta`} active={sp.carpeta} />}
@@ -159,7 +159,7 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
   );
 }
 
-async function RoutineTab({ athleteId, orgId }: { athleteId: string; orgId: string }) {
+async function RoutineTab({ athleteId, orgId, roles }: { athleteId: string; orgId: string; roles: FocusMap }) {
   const r = await currentRoutine(athleteId);
   const templates = await db.routine.findMany({ where: { orgId, template: true }, orderBy: { name: "asc" }, select: { id: true, name: true } });
   if (!r) return (
@@ -179,7 +179,7 @@ async function RoutineTab({ athleteId, orgId }: { athleteId: string; orgId: stri
         <div><div className="h2">{r.name}</div><div className="text-xs muted">Así la ve el alumno en “Mi rutina”.</div></div>
         <Link href={`/app/routines/${r.id}`} className="btn-primary">Editar rutina</Link>
       </div>
-      <RoutineView data={data} week={currentWeek(data)} />
+      <RoutineView roles={roles} data={data} week={currentWeek(data)} />
     </>
   );
 }

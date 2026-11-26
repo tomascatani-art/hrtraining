@@ -3,7 +3,9 @@ import { sportLabel } from "@/lib/catalog";
 import { PageHeader, Card, Field } from "@/components/ui";
 import { Submit } from "@/components/forms";
 import { headers } from "next/headers";
-import { updateProfile, changePassword, updateOrg, updateBrand } from "./actions";
+import { updateProfile, changePassword, updateOrg, updateBrand, addFocusRole, removeFocusRole, resetFocusRoles } from "./actions";
+import { focusRoles } from "@/lib/routine";
+import { X } from "lucide-react";
 import { AvatarUpload } from "@/components/avatar-upload";
 import { avatarSrc } from "@/lib/avatar";
 import { BrandColorPicker } from "@/components/brand-color";
@@ -86,6 +88,26 @@ export default async function SettingsPage() {
               <div className="lg:col-span-2"><Submit>Guardar marca</Submit></div>
             </form>
           </Card>
+        )}
+        {u.role !== "ATHLETE" && (
+          <div id="roles" className="scroll-mt-24 lg:col-span-2">
+            <Card title="Roles de los ejercicios">
+              <p className="mb-3 text-sm muted">Son las etiquetas de “Rol en la sesión” que le ponés a cada ejercicio de la rutina. Agregá las tuyas o borrá las que no uses.</p>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(focusRoles(u.org.focusRoles)).map(([k, r]) => (
+                  <form key={k} action={removeFocusRole} className={`inline-flex items-center gap-1 rounded-full border py-1 pl-3 pr-1 text-sm font-semibold ${r.cls}`}>
+                    <input type="hidden" name="key" value={k} />{r.label}
+                    <button className="rounded-full p-1 opacity-70 hover:opacity-100" aria-label={`Borrar ${r.label}`} title="Borrar"><X size={13} /></button>
+                  </form>
+                ))}
+              </div>
+              <form action={addFocusRole} className="mt-4 flex gap-2">
+                <input name="label" required maxLength={30} placeholder="Nuevo rol (ej: Pliometría)" className="input min-w-0 flex-1" />
+                <Submit className="btn-primary" pendingText="…">Agregar</Submit>
+              </form>
+              {Array.isArray(u.org.focusRoles) && <form action={resetFocusRoles} className="mt-2"><button className="text-xs text-neutral-500 hover:text-white">Volver a los roles de siempre</button></form>}
+            </Card>
+          </div>
         )}
         <Card title="Privacidad">
           <p className="text-sm leading-relaxed text-neutral-400">Cada usuario ve solo la información que le corresponde: los alumnos acceden a sus propios datos; y vos, como preparador, ves a todos tus alumnos. Los archivos se sirven solo a usuarios autorizados. Podés descargar tus evaluaciones desde la sección Evaluaciones.</p>

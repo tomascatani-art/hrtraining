@@ -2,10 +2,12 @@
 import { runAction } from "@/lib/action-error";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { requireUser, hashPassword, verifyPassword } from "@/lib/auth";
 import { audit } from "@/lib/access";
 import { putFile, removeFile } from "@/lib/storage";
 import { encryptSecret } from "@/lib/secret";
+import { focusRoles, focusList } from "@/lib/routine";
 import { normalizeHex, contrastWithBlack, MIN_CONTRAST, DEFAULT_ACCENT, isAllowedAccent } from "@/lib/brand";
 
 async function _updateProfile(fd: FormData) {
@@ -88,3 +90,31 @@ export async function updateProfile(fd: FormData) { return runAction("updateProf
 export async function changePassword(fd: FormData) { return runAction("changePassword", _changePassword, fd); }
 export async function updateOrg(fd: FormData) { return runAction("updateOrg", _updateOrg, fd); }
 export async function updateBrand(fd: FormData) { return runAction("updateBrand", _updateBrand, fd); }
+
+/** Roles de los ejercicios ("Rol en la sesión"): el preparador agrega los suyos o borra los que no usa. */
+async function _addFocusRole(fd: FormData) {
+  const u = await requireUser(["COACH", "ADMIN"]);
+  const label = String(fd.get("label") ?? "").trim().slice(0, 30);
+  if (label.length < 2) throw new Error("Escribí el nombre del rol");
+  const list = focusList(focusRoles(u.org.focusRoles));
+  if (list.some((r) => r.label.toLowerCase() === label.toLowerCase())) throw new Error("Ese rol ya existe");
+  const base = label.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 30) || "rol";
+  let key = `c_${base}`; let n = 2; while (list.some((r) => r.key === key)) key = `c_${base}_${n++}`;
+  await db.organization.update({ where: { id: u.orgId }, data: { focusRoles: [...list, { key, label }] } });
+  revalidatePath("/app/settings");
+}
+async function _removeFocusRole(fd: FormData) {
+  const u = await requireUser(["COACH", "ADMIN"]);
+  const key = String(fd.get("key") ?? "");
+  const list = focusList(focusRoles(u.org.focusRoles)).filter((r) => r.key !== key);
+  await db.organization.update({ where: { id: u.orgId }, data: { focusRoles: list } });
+  revalidatePath("/app/settings");
+}
+async function _resetFocusRoles() {
+  const u = await requireUser(["COACH", "ADMIN"]);
+  await db.organization.update({ where: { id: u.orgId }, data: { focusRoles: Prisma.DbNull } });
+  revalidatePath("/app/settings");
+}
+export async function addFocusRole(fd: FormData) { return runAction("addFocusRole", _addFocusRole, fd); }
+export async function removeFocusRole(fd: FormData) { return runAction("removeFocusRole", _removeFocusRole, fd); }
+export async function resetFocusRoles(fd: FormData) { void fd; return runAction("resetFocusRoles", _resetFocusRoles); }

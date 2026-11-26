@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Plus, Save, X, Search, Send, ClipboardCopy, ClipboardPaste, Link2, Repeat, Megaphone, Cloud, CheckCircle2 } from "lucide-react";
-import { type RoutineData, type RoutineRow, type RoutineDay, emptyDay, emptyBlock, emptyRow, cloneDay, newId, MAX_WEEKS, BLOCK_KINDS, FOCUS, WEEKDAYS, type BlockKind } from "@/lib/routine";
+import { type RoutineData, type RoutineRow, type RoutineDay, emptyDay, emptyBlock, emptyRow, cloneDay, newId, MAX_WEEKS, BLOCK_KINDS, FOCUS, type FocusMap, WEEKDAYS, type BlockKind } from "@/lib/routine";
 import { youtubeSearch } from "@/lib/video";
 import { VideoButton } from "@/components/video-player";
 
@@ -14,8 +14,8 @@ const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCa
 const hhmm = (d: Date) => d.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false });
 
 /** Planilla del plan del alumno. Se guarda sola mientras editás. */
-export function RoutineEditor({ id, initialName, initial, exercises, athletes, isTemplate, athleteName, save, copyDay, children }: {
-  id: string; initialName: string; initial: RoutineData; exercises: Ex[]; athletes: Athlete[]; isTemplate: boolean; athleteName?: string | null;
+export function RoutineEditor({ id, initialName, initial, exercises, athletes, isTemplate, athleteName, save, copyDay, children, roles = FOCUS }: {
+  roles?: FocusMap; id: string; initialName: string; initial: RoutineData; exercises: Ex[]; athletes: Athlete[]; isTemplate: boolean; athleteName?: string | null;
   save: (id: string, name: string, data: unknown) => Promise<{ ok: boolean; savedAt: string }>;
   copyDay: (fromId: string, dayId: string, toAthleteId: string) => Promise<{ ok: boolean; name: string }>;
   children?: React.ReactNode;
@@ -171,7 +171,7 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
                     return (
                       <div key={r.id}>
                         <div className={`${r.link || prevLink ? "border-l-2 border-volt/70 pl-2" : ""}`}>
-                          <Row n={ri + 1} r={r} weeks={data.weeks} exercises={exercises} clip={clip} isLast={ri === b.rows.length - 1}
+                          <Row roles={roles} n={ri + 1} r={r} weeks={data.weeks} exercises={exercises} clip={clip} isLast={ri === b.rows.length - 1}
                             upd={upd} onPick={(v, ex) => upd((row) => pickName(row, v, ex))}
                             onCopy={() => setClip({ cells: [...r.cells], rm: [...(r.rm ?? [])] })}
                             onAddWeek={addWeek} onRemoveWeek={removeWeek}
@@ -220,8 +220,8 @@ function IconBtn({ label, onClick, children, danger }: { label: string; onClick:
 
 const cap = "mb-0.5 block text-[10px] uppercase tracking-wide text-neutral-500";
 
-function Row({ n, r, weeks, exercises, clip, isLast, upd, onPick, onCopy, onAddWeek, onRemoveWeek, onUp, onDown, onDel }: {
-  n: number; r: RoutineRow; weeks: number; exercises: Ex[]; clip: Clip; isLast: boolean;
+function Row({ roles, n, r, weeks, exercises, clip, isLast, upd, onPick, onCopy, onAddWeek, onRemoveWeek, onUp, onDown, onDel }: {
+  roles: FocusMap; n: number; r: RoutineRow; weeks: number; exercises: Ex[]; clip: Clip; isLast: boolean;
   upd: (f: (row: RoutineRow) => void) => void; onPick: (v: string, ex?: Ex) => void; onCopy: () => void;
   onAddWeek: () => void; onRemoveWeek: (w: number) => void; onUp: () => void; onDown: () => void; onDel: () => void;
 }) {
@@ -250,10 +250,11 @@ function Row({ n, r, weeks, exercises, clip, isLast, upd, onPick, onCopy, onAddW
 
         <div className="mt-3"><span className={cap}>Rol en la sesión</span>
           <div className="flex flex-wrap gap-1.5">
-            {Object.entries(FOCUS).map(([k, f]) => (
+            {Object.entries(roles).map(([k, f]) => (
               <button key={k} type="button" onClick={() => upd((x) => { x.focus = x.focus === k ? "" : k; })}
                 className={`rounded-full border px-2.5 py-1 text-xs font-semibold transition ${r.focus === k ? f.cls : "border-ink-600 text-neutral-500 hover:text-neutral-200"}`}>{f.label}</button>
             ))}
+            <a href="/app/settings#roles" className="rounded-full border border-dashed border-ink-600 px-2.5 py-1 text-xs text-neutral-500 hover:text-volt">+ Agregar o borrar roles</a>
           </div>
         </div>
 

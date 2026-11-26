@@ -1,3 +1,4 @@
+import { focusRoles } from "@/lib/routine";
 import Link from "next/link";
 import { FileDown } from "lucide-react";
 import { Notice } from "@/components/routine-notice";
@@ -40,7 +41,7 @@ export default async function MyRoutine({ searchParams }: { searchParams: Promis
           {extras.map((x) => <Link key={x.id} href={`/app/routine?r=${x.id}`} className={r.id === x.id ? "chip-volt whitespace-nowrap" : "chip-mute whitespace-nowrap hover:text-white"}>{x.name}</Link>)}
         </div>
       )}
-      <RoutineView data={data} week={week} checks={{ routineId: r.id, done: todayChecks.map((c) => c.rowId), wellnessDone: !!wellnessToday }} />
+      <RoutineView roles={focusRoles(u.org.focusRoles)} data={data} week={week} checks={{ routineId: r.id, done: todayChecks.map((c) => c.rowId), wellnessDone: !!wellnessToday }} />
     </>
   );
 }

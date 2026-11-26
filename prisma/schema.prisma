@@ -21,6 +21,7 @@ model Organization {
   createdAt   DateTime @default(now())
   whatsapp    String? // número de contacto para cuotas (formato internacional, solo dígitos)
   payLink     String? // link de pago de la cuota (ej. Mercado Pago) que carga el preparador
+  focusRoles  Json?   // roles de los ejercicios ("Rol en la sesión") propios del preparador; null = los de siempre
   feeDueDay   Int      @default(10)
   feeAmount   Float? // cuota mensual por defecto
   // Marca propia del club

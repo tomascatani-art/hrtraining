@@ -1,3 +1,4 @@
+import { focusRoles } from "@/lib/routine";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, History, RotateCcw } from "lucide-react";
@@ -72,7 +73,7 @@ export default async function History_({ params, searchParams }: { params: Promi
             {sel && <form action={restoreSnapshot}><input type="hidden" name="snapshotId" value={sel.id} /><Submit className="btn-primary" pendingText="Volviendo…"><RotateCcw size={15} />Volver a esta versión</Submit></form>}
           </div>
           {sel && <p className="mb-3 text-xs muted">Si volvés a esta versión, la de ahora no se pierde: queda guardada arriba en la lista.</p>}
-          <RoutineView data={shown} week={null} />
+          <RoutineView roles={focusRoles(u.org.focusRoles)} data={shown} week={null} />
         </div>
       </div>
     </div>

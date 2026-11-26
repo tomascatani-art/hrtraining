@@ -2,14 +2,14 @@
 import { useState, useTransition } from "react";
 import { Check, HeartPulse, X } from "lucide-react";
 import Link from "next/link";
-import { type RoutineData, FOCUS, blockSummary, WEEKDAYS } from "@/lib/routine";
+import { type RoutineData, FOCUS, type FocusMap, blockSummary, WEEKDAYS } from "@/lib/routine";
 import { VideoButton } from "@/components/video-player";
 import { toggleCheck } from "@/app/app/routine/actions";
 
 type Checks = { routineId: string; done: string[]; wellnessDone?: boolean };
 
 /** Lo que ve el alumno: un día por pestaña, la semana en curso resaltada y el video adentro de la app. */
-export function RoutineView({ data, week, checks }: { data: RoutineData; week: number | null; checks?: Checks }) {
+export function RoutineView({ data, week, checks, roles = FOCUS }: { data: RoutineData; week: number | null; checks?: Checks; roles?: FocusMap }) {
   // Día que se abre: el que tiene tics hoy, o el que coincide con el día de la semana, o el primero.
   const [di, setDi] = useState(() => {
     if (checks?.done.length) { const i = data.days.findIndex((d) => d.blocks.some((b) => b.rows.some((r) => checks.done.includes(r.id)))); if (i >= 0) return i; }
@@ -122,7 +122,7 @@ export function RoutineView({ data, week, checks }: { data: RoutineData; week: n
                   )}
                   <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1"><span className="mr-2 text-xs text-neutral-500">{i + 1}</span><span className="font-semibold text-white">{r.name}</span>{r.focus && FOCUS[r.focus] && <span className={`ml-2 inline-block rounded-full border px-2 py-0.5 align-middle text-[10px] font-bold ${FOCUS[r.focus].cls}`}>{FOCUS[r.focus].label}</span>}</div>
+                    <div className="min-w-0 flex-1"><span className="mr-2 text-xs text-neutral-500">{i + 1}</span><span className="font-semibold text-white">{r.name}</span>{r.focus && roles[r.focus] && <span className={`ml-2 inline-block rounded-full border px-2 py-0.5 align-middle text-[10px] font-bold ${roles[r.focus].cls}`}>{roles[r.focus].label}</span>}</div>
                     <VideoButton url={r.video} name={r.name} />
                   </div>
                   {r.mode === "tabata" ? (

@@ -1,12 +1,12 @@
 import "server-only";
 import { PDFDocument, StandardFonts, rgb, PDFName, PDFString, type PDFFont, type PDFPage } from "pdf-lib";
-import { type RoutineData, FOCUS, blockSummary } from "./routine";
+import { type RoutineData, FOCUS, type FocusMap, blockSummary } from "./routine";
 
 // PDF de la rutina para mandar por WhatsApp o imprimir. A4 apaisado, negro y amarillo como la app.
 const YEL = rgb(1, 0.839, 0.039), BLACK = rgb(0.02, 0.02, 0.02), INK = rgb(0.13, 0.13, 0.13), GREY = rgb(0.42, 0.42, 0.42), LINE = rgb(0.85, 0.85, 0.85), SOFT = rgb(0.97, 0.97, 0.95);
 const W = 842, H = 595, M = 32;
 
-export async function routinePdf(o: { club: string; athlete?: string | null; coach?: string | null; name: string; data: RoutineData; week: number | null }) {
+export async function routinePdf(o: { club: string; athlete?: string | null; coach?: string | null; name: string; data: RoutineData; week: number | null; roles?: FocusMap }) {
   const doc = await PDFDocument.create();
   doc.setTitle(`${o.name}${o.athlete ? ` - ${o.athlete}` : ""}`);
   doc.setCreator("hrtraining");
@@ -90,7 +90,7 @@ export async function routinePdf(o: { club: string; athlete?: string | null; coa
       head();
       rows.forEach((r, i) => {
         const nameLines = wrap(b, r.name, 9.5, colEx - 8);
-        const role = r.focus && FOCUS[r.focus] ? FOCUS[r.focus].label : "";
+        const R = o.roles ?? FOCUS; const role = r.focus && R[r.focus] ? R[r.focus].label : "";
         const noteLines = wrap(f, [r.rmBase && `RM/RIR: ${r.rmBase}`, r.note].filter(Boolean).join(" · "), 8.5, noteW - 8);
         const tab = r.mode === "tabata";
         const cellLines = weeks.map((w) => wrap(f, tab ? "" : r.cells[w] ?? "", 9, colW - 8));

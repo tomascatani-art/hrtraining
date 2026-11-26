@@ -47,6 +47,22 @@ export const FOCUS: Record<string, { label: string; cls: string }> = {
   prevencion: { label: "Prevención", cls: "border-dotted border-white/70 text-white" },
   enfriamiento: { label: "Enfriamiento", cls: "border-neutral-600 text-neutral-400" },
 };
+
+export type FocusMap = Record<string, { label: string; cls: string }>;
+const CUSTOM_CLS = ["border-volt text-volt", "bg-white/15 text-white border-white/40", "bg-volt/20 text-volt border-volt/40", "border-white text-white", "bg-neutral-700 text-neutral-100 border-neutral-700"];
+/** Roles del preparador (los puede agregar o borrar en Ajustes). Si nunca los tocó, son los de siempre. */
+export function focusRoles(raw: unknown): FocusMap {
+  if (!Array.isArray(raw)) return FOCUS;
+  const out: FocusMap = {};
+  raw.forEach((x, i) => {
+    const r = x as { key?: unknown; label?: unknown };
+    if (typeof r?.key !== "string" || typeof r?.label !== "string") return;
+    out[r.key] = { label: r.label.slice(0, 40), cls: FOCUS[r.key]?.cls ?? CUSTOM_CLS[i % CUSTOM_CLS.length] };
+  });
+  return out;
+}
+export const focusList = (m: FocusMap) => Object.entries(m).map(([key, v]) => ({ key, label: v.label }));
+
 export type RoutineDay = { id: string; name: string; weekday?: string; blocks: RoutineBlock[] };
 export const WEEKDAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 export type WarmupItem = { id: string; exerciseId?: string | null; name: string; video?: string | null; detail?: string };
@@ -87,7 +103,7 @@ export function sanitizeRoutine(raw: unknown): RoutineData {
           const t = (x.tabata ?? {}) as Record<string, unknown>;
           return {
             id: id(x.id), exerciseId: typeof x.exerciseId === "string" ? x.exerciseId : null, name: str(x.name, 120), video: url(x.video), note: str(x.note, 200),
-            focus: str(x.focus) in FOCUS ? str(x.focus) : "",
+            focus: /^[a-z0-9_]{1,40}$/.test(str(x.focus)) ? str(x.focus) : "",
             cells: Array.from({ length: weeks }, (_, i) => cells[i] ?? ""), rm: Array.from({ length: weeks }, (_, i) => rm[i] ?? ""),
             rmBase: str(x.rmBase, 20), rest: str(x.rest, 10), mode: x.mode === "tabata" ? "tabata" as const : "normal" as const,
             tabata: { work: str(t.work, 6) || "20", rest: str(t.rest, 6) || "10", rounds: str(t.rounds, 6) || "8" },

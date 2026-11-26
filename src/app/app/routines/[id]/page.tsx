@@ -1,3 +1,4 @@
+import { focusRoles } from "@/lib/routine";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ChevronDown, CalendarClock, FolderOpen, History, Settings2, Sparkles } from "lucide-react";
@@ -156,7 +157,7 @@ export default async function RoutinePage({ params, searchParams }: { params: Pr
       {(kind || r.isDemo) && <div className="mb-4 flex flex-wrap items-center gap-2">{kind && <span className="chip-volt">{kind}</span>}{r.isDemo && <DemoBadge />}</div>}
       {sp.restaurada && <div className="mb-4 rounded-xl border border-volt/40 bg-volt/10 px-4 py-3 text-sm text-volt">Listo, el plan volvió a esa versión. La que había antes quedó guardada en el historial.</div>}
       {sp.copiada && <div className="mb-4 rounded-xl border border-volt/40 bg-volt/10 px-4 py-3 text-sm text-volt">Plan copiado. Esta es la copia; podés ajustarla para este alumno.</div>}
-      <RoutineEditor id={r.id} initialName={r.name} initial={data} exercises={exercises} athletes={others} isTemplate={r.template} athleteName={r.extra ? null : a?.name}
+      <RoutineEditor roles={focusRoles(u.org.focusRoles)} id={r.id} initialName={r.name} initial={data} exercises={exercises} athletes={others} isTemplate={r.template} athleteName={r.extra ? null : a?.name}
         save={saveRoutine} copyDay={copyDay}>{actions}</RoutineEditor>
     </div>
   );
