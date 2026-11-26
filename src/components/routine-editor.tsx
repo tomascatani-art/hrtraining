@@ -216,7 +216,7 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
       ) : <div className="card card-pad text-sm muted">Sin días todavía. Tocá “+ Día” para empezar.</div>}
 
       {/* Botón Guardar siempre a mano, abajo de la pantalla (Diego) */}
-      <div className="sticky bottom-20 z-20 lg:bottom-4">
+      <div className="sticky bottom-[calc(76px+env(safe-area-inset-bottom))] z-20 lg:bottom-4">
         <div className="flex items-center gap-3 rounded-2xl border border-ink-600 bg-ink-900/95 p-2.5 pl-4 shadow-2xl backdrop-blur">
           <span className="min-w-0 flex-1 truncate text-sm">
             {savedMsg ? <span className="inline-flex items-center gap-1.5 font-semibold text-volt"><CheckCircle2 size={16} />{isTemplate ? "Plantilla guardada" : "Guardada"}</span>

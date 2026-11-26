@@ -76,3 +76,8 @@ button[data-pending]::after {
 }
 a[data-pending] { opacity: .6; transition: opacity .1s; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* En el celular, los campos con letra menor a 16px hacen que el iPhone se acerque al escribir y no vuelva. */
+@media (max-width: 1023px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea { font-size: 16px !important; }
+}
