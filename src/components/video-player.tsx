@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { PlayCircle, X, ExternalLink, Search } from "lucide-react";
 import { youtubeId, realVideo, youtubeSearch } from "@/lib/video";
 
@@ -29,14 +30,26 @@ export function VideoButton({ url, name, compact }: { url?: string | null; name:
       <button type="button" onClick={() => setOpen(true)} className="inline-flex items-center gap-1 text-xs font-semibold text-volt hover:underline" aria-label={`Ver video de ${name}`}>
         <PlayCircle size={compact ? 16 : 14} />{!compact && "Ver video"}
       </button>
-      {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4" onClick={() => setOpen(false)}>
-          <div className="w-full max-w-2xl rounded-2xl border border-ink-700 bg-ink-900 p-3" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-2 flex items-center justify-between gap-2"><div className="truncate font-semibold text-white">{name}</div><button onClick={() => setOpen(false)} className="text-neutral-400 hover:text-white" aria-label="Cerrar"><X size={18} /></button></div>
-            <VideoEmbed url={v} title={name} />
-          </div>
-        </div>
-      )}
+      {open && createPortal(<VideoModal name={name} url={v} onClose={() => setOpen(false)} />, document.body)}
     </>
+  );
+}
+
+/** Ventana del video centrada sobre toda la pantalla (fuera de cualquier tarjeta, así no se corta). */
+function VideoModal({ name, url, onClose }: { name: string; url: string; onClose: () => void }) {
+  useEffect(() => {
+    const prev = document.body.style.overflow; document.body.style.overflow = "hidden";
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", k);
+    return () => { document.body.style.overflow = prev; window.removeEventListener("keydown", k); };
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/85 p-3 sm:p-6" onClick={onClose} role="dialog" aria-label={`Video de ${name}`}
+      style={{ paddingTop: "max(12px, env(safe-area-inset-top))", paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
+      <div className="w-full max-w-3xl rounded-2xl border border-ink-700 bg-ink-900 p-3" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-2 flex items-center justify-between gap-2"><div className="truncate font-semibold text-white">{name}</div><button onClick={onClose} className="rounded-lg p-1 text-neutral-400 hover:text-white" aria-label="Cerrar"><X size={20} /></button></div>
+        <VideoEmbed url={url} title={name} />
+      </div>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { Check, HeartPulse, X } from "lucide-react";
 import Link from "next/link";
 import { type RoutineData, FOCUS, type FocusMap, blockSummary, WEEKDAYS } from "@/lib/routine";
@@ -91,8 +92,8 @@ export function RoutineView({ data, week, checks, roles = FOCUS }: { data: Routi
           </div>
         );
       })()}
-      {askWellness && (
-        <div className="fixed inset-0 z-50 grid place-items-end bg-black/75 p-4 sm:place-items-center" onClick={() => setAskWellness(false)}>
+      {askWellness && createPortal(
+        <div className="fixed inset-0 z-[80] grid place-items-end bg-black/75 p-4 sm:place-items-center" onClick={() => setAskWellness(false)}>
           <div className="card card-pad w-full max-w-sm border-volt/60 text-center animate-rise" onClick={(e) => e.stopPropagation()} style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
             <button type="button" onClick={() => setAskWellness(false)} className="float-right -mr-2 -mt-2 p-2 text-neutral-500 hover:text-white" aria-label="Cerrar"><X size={18} /></button>
             <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-volt text-black"><HeartPulse size={26} /></div>
@@ -101,7 +102,7 @@ export function RoutineView({ data, week, checks, roles = FOCUS }: { data: Routi
             <Link href="/app/wellness?desde=rutina" className="btn-primary mt-4 w-full">Responder encuesta de bienestar</Link>
             <button type="button" onClick={() => setAskWellness(false)} className="mt-2 w-full py-2 text-sm text-neutral-400 hover:text-white">Ahora no</button>
           </div>
-        </div>
+        </div>, document.body
       )}
 
       {day && day.blocks.map((b) => b.rows.some((r) => r.name) && (
