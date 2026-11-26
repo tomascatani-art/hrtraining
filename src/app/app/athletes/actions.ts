@@ -10,24 +10,29 @@ import { requireUser } from "@/lib/auth";
 import { assertAthlete, audit } from "@/lib/access";
 import { sendInviteMail, createResetLink } from "@/lib/account-mail";
 import { appOrigin } from "@/lib/origin";
+import { cookies } from "next/headers";
+import { hashPassword } from "@/lib/auth";
 
 const num = (v: FormDataEntryValue | null) => (v === null || v === "" ? null : Number(v));
 const str = (v: FormDataEntryValue | null) => (v === null || String(v).trim() === "" ? null : String(v).trim());
 
 const athleteSchema = z.object({
   name: z.string().min(2, "Nombre requerido"),
-  email: z.string().email("Email inválido"),
+  email: z.string().min(3, "Poné un email o un usuario de al menos 3 letras").regex(/^\S+$/, "El usuario no puede tener espacios"),
 });
 
 async function _createAthlete(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const { name, email } = athleteSchema.parse({ name: String(fd.get("name") ?? "").trim(), email: String(fd.get("email") ?? "").trim().toLowerCase() });
-  if (await db.user.findUnique({ where: { email } })) throw new Error("Ya existe un usuario con ese email");
+  if (await db.user.findUnique({ where: { email } })) throw new Error("Ese usuario o email ya está en uso. Probá con otro.");
+  // Contraseña inicial que pone el preparador (el alumno la puede cambiar después). Además queda el link.
+  const pw = String(fd.get("password") ?? "").trim();
+  if (pw && pw.length < 6) throw new Error("La contraseña tiene que tener al menos 6 caracteres");
   const token = randomBytes(24).toString("base64url");
   const groupId = str(fd.get("groupId"));
   const athlete = await db.user.create({
     data: {
-      orgId: u.orgId, name, email, role: "ATHLETE", inviteToken: token,
+      orgId: u.orgId, name, email, role: "ATHLETE", inviteToken: token, ...(pw ? { passwordHash: await hashPassword(pw) } : {}),
       athleteProfile: {
         create: {
           coachId: str(fd.get("coachId")) ?? u.id, sport: String(fd.get("sport") ?? "GENERAL"), position: str(fd.get("position")),
@@ -41,6 +46,8 @@ async function _createAthlete(fd: FormData) {
   await audit(u, "CREAR", "Alumno", `Alta de ${name}`, athlete.id);
   const mail = fd.get("sendMail") === "on" ? await sendInviteMail({ ...athlete, org: u.org }, await appOrigin()) : { sent: false };
   revalidatePath("/app/athletes");
+  // Se muestra una sola vez en el perfil para que el preparador se la pase (dura 10 minutos, no queda guardada).
+  if (pw) (await cookies()).set(`alta_${athlete.id}`, pw, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 600, path: `/app/athletes/${athlete.id}` });
   redirect(`/app/athletes/${athlete.id}?invitado=1${mail.sent ? "&mail=1" : ""}`);
 }
 
@@ -86,6 +93,19 @@ async function _resetLinkForAthlete(fd: FormData) {
   await db.user.update({ where: { id }, data: { resetRequestedAt: null } });
   await audit(u, "EDITAR", "Alumno", "Enlace para cambiar contraseña", id);
   redirect(`/app/athletes/${id}?clave=${encodeURIComponent(url.split("/reset/")[1])}`);
+}
+
+/** El preparador le pone una contraseña nueva al alumno (por ejemplo si se la olvidó) y se la pasa. No se guarda a la vista. */
+async function _setAthletePassword(fd: FormData) {
+  const u = await requireUser(["COACH", "ADMIN"]);
+  const id = String(fd.get("id"));
+  await assertAthlete(u, id);
+  const pw = String(fd.get("password") ?? "").trim();
+  if (pw.length < 6) throw new Error("La contraseña tiene que tener al menos 6 caracteres");
+  await db.user.update({ where: { id }, data: { passwordHash: await hashPassword(pw), resetRequestedAt: null } });
+  await audit(u, "EDITAR", "Alumno", "Contraseña nueva puesta por el preparador", id);
+  (await cookies()).set(`alta_${id}`, pw, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 600, path: `/app/athletes/${id}` });
+  redirect(`/app/athletes/${id}?invitado=1&nueva=1`);
 }
 
 async function _saveGoal(fd: FormData) {
@@ -136,3 +156,4 @@ export async function resetLinkForAthlete(fd: FormData) { return runAction("rese
 export async function saveGoal(fd: FormData) { return runAction("saveGoal", _saveGoal, fd); }
 export async function toggleGoal(fd: FormData) { return runAction("toggleGoal", _toggleGoal, fd); }
 export async function deleteGoal(fd: FormData) { return runAction("deleteGoal", _deleteGoal, fd); }
+export async function setAthletePassword(fd: FormData) { return runAction("setAthletePassword", _setAthletePassword, fd); }

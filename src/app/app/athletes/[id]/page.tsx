@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { avatarSrc } from "@/lib/avatar";
 import { notFound } from "next/navigation";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import { FileText, MessageSquare } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -16,16 +16,17 @@ import { RMPanel } from "@/components/rm-panel";
 import { WhatsAppShare } from "@/components/whatsapp-share";
 import { AvatarUpload } from "@/components/avatar-upload";
 import { TrainingInsights } from "@/components/insights";
-import { updateAthlete, regenerateInvite, resetLinkForAthlete } from "../actions";
+import { updateAthlete, regenerateInvite, resetLinkForAthlete, setAthletePassword } from "../actions";
 import { RoutineView } from "@/components/routine-view";
 import { withVideos, currentRoutine } from "@/lib/routine-server";
 import { currentWeek } from "@/lib/routine";
 import { createRoutine } from "../../routines/actions";
 
-export default async function AthleteDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; invitado?: string; carpeta?: string; mail?: string; clave?: string }> }) {
+export default async function AthleteDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; invitado?: string; nueva?: string; carpeta?: string; mail?: string; clave?: string }> }) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const { id } = await params;
   const sp = await searchParams;
+  const newPw = sp.invitado === "1" ? (await cookies()).get(`alta_${(await params).id}`)?.value ?? null : null;
   if (!(await canSeeAthlete(u, id))) notFound();
   const a = await db.user.findUnique({ where: { id }, include: { athleteProfile: true, memberships: { include: { group: true } } } });
   if (!a || a.role !== "ATHLETE") notFound();
@@ -58,10 +59,21 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
         </div>
       </div>
 
-      {(sp.invitado === "1" || a.inviteToken) && a.inviteToken && (
+      {sp.invitado === "1" && newPw && (
+        <div className="card card-pad mb-4 border-volt/60 bg-volt/[.05]">
+          <div className="label text-volt">{sp.nueva ? "Contraseña nueva lista · pasásela" : "Opción 1 · Pasale su cuenta"}</div>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <div><div className="text-xs muted">Usuario</div><CopyField value={a.email} /></div>
+            <div><div className="text-xs muted">Contraseña</div><CopyField value={newPw} /></div>
+          </div>
+          <div className="mt-3"><WhatsAppShare label="Mandar usuario y contraseña por WhatsApp" text={`Hola ${a.name.split(" ")[0]}! Ya tenés tu cuenta en hrtraining para ver tu rutina.\nEntrá a ${origin}/login\nUsuario: ${a.email}\nContraseña: ${newPw}\n(Después la podés cambiar en Mi perfil)`} /></div>
+          <p className="mt-2 text-xs muted">La contraseña se muestra solo ahora. Si se la olvida, le ponés una nueva desde Perfil → Acceso.</p>
+        </div>
+      )}
+      {a.inviteToken && !a.lastLoginAt && !sp.nueva && (
         <div className="card card-pad mb-6 border-volt/40">
-          <div className="font-semibold text-white">Invitación pendiente</div>
-          <p className="mb-3 text-sm muted">Mandale este link por WhatsApp. Con el link elige su contraseña, y después entra con su email ({a.email}) y esa contraseña.</p>
+          <div className="font-semibold text-white">{newPw ? "Opción 2 · Mandale un link" : "Invitación pendiente"}</div>
+          <p className="mb-3 text-sm muted">Con este link elige su propia contraseña, y después entra con su usuario ({a.email}) y esa contraseña.</p>
           <div className="mb-3"><WhatsAppShare label="Mandar link por WhatsApp" text={`Hola ${a.name.split(" ")[0]}! Te sumé a hrtraining para que veas tu rutina. Entrá a este link y elegí tu contraseña: ${origin}/invite/${a.inviteToken}`} /></div>
           <CopyField value={`${origin}/invite/${a.inviteToken}`} />
           <form action={regenerateInvite} className="mt-3"><input type="hidden" name="id" value={a.id} /><Submit className="btn-ghost btn-sm" pendingText="Generando…">Generar un link nuevo</Submit></form>
@@ -123,7 +135,13 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
           </Card>
           <div className="space-y-6">
             <Card title="Acceso">
-              <div className="text-sm"><div className="label">Email</div><div className="text-white">{a.email}</div></div>
+              <form action={setAthletePassword} className="mb-4 rounded-xl border border-volt/40 p-3">
+                <input type="hidden" name="id" value={a.id} />
+                <div className="label mb-1 text-volt">¿Se olvidó la contraseña?</div>
+                <p className="mb-2 text-xs muted">Ponele una nueva y pasásela por WhatsApp.</p>
+                <div className="flex gap-2"><input name="password" required minLength={6} autoComplete="off" defaultValue={`hr${Math.floor(1000 + Math.random() * 9000)}${Math.floor(10 + Math.random() * 90)}`} className="input min-w-0 flex-1 py-2" /><Submit className="btn-primary px-3 py-2 text-sm" pendingText="…">Poner</Submit></div>
+              </form>
+              <div className="text-sm"><div className="label">Usuario</div><div className="text-white">{a.email}</div></div>
               <div className="mt-3 text-sm"><div className="label">Último ingreso</div><div className="text-white">{a.lastLoginAt ? a.lastLoginAt.toLocaleString("es-AR") : "Nunca"}</div></div>
               {a.inviteToken
                 ? <form action={regenerateInvite} className="mt-4"><input type="hidden" name="id" value={a.id} /><Submit className="btn-ghost w-full">Generar nuevo enlace de invitación</Submit></form>

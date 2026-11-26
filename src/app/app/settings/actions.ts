@@ -31,12 +31,15 @@ async function _updateOrg(fd: FormData) {
   const name = String(fd.get("org") ?? "").trim();
   if (name.length < 2) throw new Error("Nombre inválido");
   const whatsapp = String(fd.get("whatsapp") ?? "").replace(/\D/g, "") || null;
+  let payLink: string | null = String(fd.get("payLink") ?? "").trim() || null;
+  if (payLink && !/^https?:\/\//i.test(payLink)) payLink = `https://${payLink}`;
+  if (payLink) { try { new URL(payLink); } catch { throw new Error("El link de pago no es válido"); } }
   const feeAmount = String(fd.get("feeAmount") ?? "").trim() ? Number(String(fd.get("feeAmount")).replace(",", ".")) : null;
   const feeDueDay = Math.min(28, Math.max(1, Number(fd.get("feeDueDay") ?? 10) || 10));
   const mpIn = String(fd.get("mpToken") ?? "").trim();
   if (mpIn && !/^(APP_USR|TEST)-[\w-]{20,}$/.test(mpIn)) throw new Error("El Access Token de Mercado Pago empieza con APP_USR- (o TEST- para pruebas)");
   const mp = fd.get("mpRemove") === "1" ? { mpToken: null } : mpIn ? { mpToken: encryptSecret(mpIn) } : {};
-  await db.organization.update({ where: { id: u.orgId }, data: { name, whatsapp, feeAmount: feeAmount != null && feeAmount >= 0 ? feeAmount : null, feeDueDay, ...mp } });
+  await db.organization.update({ where: { id: u.orgId }, data: { name, whatsapp, payLink, feeAmount: feeAmount != null && feeAmount >= 0 ? feeAmount : null, feeDueDay, ...mp } });
   await audit(u, "EDITAR", "Organización", `Nuevo nombre: ${name}`);
   revalidatePath("/app", "layout");
 }

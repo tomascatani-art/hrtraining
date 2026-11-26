@@ -3,7 +3,7 @@ import { Notice } from "@/components/routine-notice";
 import { currentRoutine } from "@/lib/routine-server";
 import { todayPlan, sanitizeRoutine } from "@/lib/routine";
 import { avatarSrc } from "@/lib/avatar";
-import { Users, CalendarCheck, Percent, AlertTriangle, ClipboardList, Trophy, ArrowRight, Flame, HeartPulse } from "lucide-react";
+import { Users, CalendarCheck, Percent, AlertTriangle, ClipboardList, Trophy, ArrowRight, Flame, HeartPulse, CreditCard, MessageCircle } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sessionWhere, visibleAthleteIds } from "@/lib/access";
@@ -70,6 +70,30 @@ async function AthleteHome({ userId, name }: { userId: string; name: string }) {
     <>
       <PageHeader eyebrow={fmtDateLong(now)} title={`¡Vamos, ${name.split(" ")[0]}!`} subtitle="Tu entrenamiento de hoy, objetivos y progreso."
         actions={streak > 0 ? <div className="flex items-center gap-2 rounded-xl border border-volt/40 bg-volt/10 px-4 py-2"><Flame size={18} className="text-volt" /><span className="num text-2xl font-bold text-white">{streak}</span><span className="text-xs leading-tight text-neutral-300">{streak === 1 ? "sesión" : "sesiones"}<br />seguidas</span></div> : undefined} />
+      {feeDue && (() => {
+        const org = fee.org!;
+        const late = now.getDate() > org.feeDueDay;
+        const mes = monthLabel(monthKey()).toLowerCase();
+        const pay = org.payLink || (org.mpToken ? "/app/paused" : null);
+        const wa = org.whatsapp ? `https://wa.me/${org.whatsapp}?text=${encodeURIComponent(`Hola! Soy ${u.name}. Te escribo por la cuota de ${mes}.`)}` : null;
+        return (
+          <div className={`card card-pad mb-6 ${late ? "border-volt/70 bg-volt/[.06]" : "border-volt/40"}`}>
+            <div className="flex items-start gap-3">
+              <div className="flex-1 text-sm">
+                <b className={late ? "text-volt" : "text-white"}>{late ? `Tu cuota de ${mes} está vencida` : `Cuota de ${mes} pendiente`}</b>
+                <div className="muted">{late ? `Venció el día ${org.feeDueDay}.` : `Vence el día ${org.feeDueDay}.`} {pay ? "Podés pagarla desde acá." : "Escribile a tu preparador para regularizarla."}</div>
+              </div>
+              <span className="num text-lg font-bold text-white">$ {fee.amount!.toLocaleString("es-AR", { maximumFractionDigits: 0 })}</span>
+            </div>
+            {(pay || wa) && (
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                {pay && <a href={pay} {...(org.payLink ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="btn-primary flex-1 justify-center"><CreditCard size={16} />Pagar cuota</a>}
+                {wa && <a href={wa} target="_blank" rel="noopener noreferrer" className={pay ? "btn-ghost flex-1 justify-center" : "btn-primary flex-1 justify-center"}><MessageCircle size={16} />Hablar con mi preparador</a>}
+              </div>
+            )}
+          </div>
+        );
+      })()}
       <CompCountdown comps={comps} />
       {notice && <Notice text={notice} />}
       {mainRoutine && plan && (
@@ -85,12 +109,6 @@ async function AthleteHome({ userId, name }: { userId: string; name: string }) {
             </div>
             <span className="btn-primary hidden whitespace-nowrap sm:inline-flex">Ver mi rutina</span>
           </div>
-        </Link>
-      )}
-      {feeDue && (
-        <Link href="/app/paused" className="card card-pad mb-6 flex items-center gap-3 border-red-500/40 card-hover">
-          <div className="flex-1 text-sm"><b className="text-white">Cuota de {monthLabel(monthKey()).toLowerCase()} pendiente</b><div className="muted">Vence el día {fee.org!.feeDueDay}. Tocá para pagarla o ver cómo regularizarla.</div></div>
-          <span className="num font-semibold text-white">$ {fee.amount!.toLocaleString("es-AR", { maximumFractionDigits: 0 })}</span>
         </Link>
       )}
       {rmNews.length > 0 && (

@@ -15,11 +15,12 @@ export default async function NewAthlete() {
   ]);
   return (
     <>
-      <PageHeader title="Nuevo alumno" subtitle="Se genera un enlace de invitación para que el alumno elija su contraseña y acceda a su espacio personal." />
+      <PageHeader title="Nuevo alumno" subtitle="Le ponés un usuario y una contraseña para pasarle. También se genera un link para que entre y elija su propia contraseña." />
       <Card className="max-w-3xl">
         <form action={createAthlete} className="grid gap-4 sm:grid-cols-2">
           <Field label="Nombre y apellido"><input name="name" className="input" required /></Field>
-          <Field label="Email"><input name="email" type="email" className="input" required /></Field>
+          <Field label="Usuario o email (con esto entra)"><input name="email" className="input" required autoCapitalize="none" autoCorrect="off" placeholder="ej: juanperez" /></Field>
+          <Field label="Contraseña inicial (la puede cambiar después)"><input name="password" className="input" defaultValue={`hr${Math.floor(1000 + Math.random() * 9000)}${Math.floor(10 + Math.random() * 90)}`} minLength={6} autoComplete="off" /></Field>
           <Field label="Deporte"><select name="sport" className="input">{Object.entries(SPORTS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></Field>
           <Field label="Puesto / prueba / especialidad"><input name="position" className="input" /></Field>
           <input type="hidden" name="coachId" value={u.id} />
@@ -29,7 +30,7 @@ export default async function NewAthlete() {
           <Field label="Peso (kg)"><input name="weightKg" type="number" step="0.1" className="input" /></Field>
           <Field label="Nivel"><select name="level" className="input"><option>Iniciación</option><option>Intermedio</option><option>Avanzado</option><option>Élite</option></select></Field>
           <Field label="Objetivo principal" className="sm:col-span-2"><textarea name="objective" className="input" /></Field>
-          <div className="sm:col-span-2 flex justify-end"><Submit>Crear y generar invitación</Submit></div>
+          <div className="sm:col-span-2 flex justify-end"><Submit>Crear alumno</Submit></div>
         </form>
       </Card>
     </>

@@ -20,6 +20,7 @@ model Organization {
   isDemo      Boolean  @default(false)
   createdAt   DateTime @default(now())
   whatsapp    String? // número de contacto para cuotas (formato internacional, solo dígitos)
+  payLink     String? // link de pago de la cuota (ej. Mercado Pago) que carga el preparador
   feeDueDay   Int      @default(10)
   feeAmount   Float? // cuota mensual por defecto
   // Marca propia del club
