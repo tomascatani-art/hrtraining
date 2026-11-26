@@ -6,6 +6,12 @@ import bcrypt from "bcryptjs";
 import { readFile } from "fs/promises";
 import { putBuffer } from "../src/lib/blob";
 import path from "path";
+
+/** Usuarios fáciles en vez de email (Diego 25-11-2026). Las contraseñas no van en el código: se cambian desde Ajustes. */
+export const COACH_LOGIN = "hernan";
+const OLD_COACH_LOGIN = "entrenador.demo@hrtraining.co";
+export const ATHLETE_LOGIN = "alumna";
+const OLD_ATHLETE_LOGIN = "deportista.demo@hrtraining.co";
 import { LIBRARY } from "./library";
 import EXTRA from "./library-extra.json";
 import { categoryFromPattern } from "../src/lib/catalog";
@@ -70,11 +76,11 @@ export async function createDemo(db: PrismaClient) {
   const hash = await bcrypt.hash("demo1234", 10);
   const org = await db.organization.create({ data: { slug: "club-demo", name: "Hrtraining", isDemo: true, feeAmount: 25000, feeDueDay: 10 } });
 
-  const coach = await db.user.create({ data: { orgId: org.id, email: "entrenador.demo@hrtraining.co", name: "Martina", role: "ADMIN", passwordHash: hash, isDemo: true } });
+  const coach = await db.user.create({ data: { orgId: org.id, email: COACH_LOGIN, name: "Hernán", role: "ADMIN", passwordHash: hash, isDemo: true } });
   const coach2 = await db.user.create({ data: { orgId: org.id, email: "preparador.demo@hrtraining.co", name: "Joaquín", role: "COACH", passwordHash: hash, isDemo: true } });
 
   const athletesSpec = [
-    { name: "Sofía", sport: "ATLETISMO", pos: "Velocista 100/200 m", sex: "F", h: 168, w: 58, email: "deportista.demo@hrtraining.co", lvl: "Avanzado", base: { cmj: 38, sq: 95, spr10: 1.85, spr30: 4.25 } },
+    { name: "Sofía", sport: "ATLETISMO", pos: "Velocista 100/200 m", sex: "F", h: 168, w: 58, email: ATHLETE_LOGIN, lvl: "Avanzado", base: { cmj: 38, sq: 95, spr10: 1.85, spr30: 4.25 } },
     { name: "Tomás", sport: "ATLETISMO", pos: "Saltador de longitud", sex: "M", h: 182, w: 74, lvl: "Élite", base: { cmj: 52, sq: 150, spr10: 1.7, spr30: 3.95 } },
     { name: "Camila", sport: "ATLETISMO", pos: "Vallista 100 m", sex: "F", h: 171, w: 60, lvl: "Avanzado", base: { cmj: 40, sq: 100, spr10: 1.83, spr30: 4.2 } },
     { name: "Mateo", sport: "FUTBOL", pos: "Mediocampista", sex: "M", h: 176, w: 70, lvl: "Intermedio", base: { cmj: 42, sq: 120, spr10: 1.78, spr30: 4.15 } },
@@ -347,8 +353,8 @@ export async function createDemo(db: PrismaClient) {
 export async function ensureDemoRoutines(db: PrismaClient) {
   const org = await db.organization.findFirst({ where: { isDemo: true } });
   if (!org || (await db.routine.count({ where: { orgId: org.id } }))) return;
-  const athlete = await db.user.findFirst({ where: { orgId: org.id, email: "deportista.demo@hrtraining.co" } });
-  const coach = await db.user.findFirst({ where: { orgId: org.id, email: "entrenador.demo@hrtraining.co" } });
+  const athlete = await db.user.findFirst({ where: { orgId: org.id, email: ATHLETE_LOGIN } });
+  const coach = await db.user.findFirst({ where: { orgId: org.id, email: COACH_LOGIN } });
   const exs = await db.exercise.findMany({ where: { orgId: null }, select: { id: true, name: true } });
   const find = (n: string) => exs.find((e) => e.name.toLowerCase() === n.toLowerCase())?.id ?? null;
   let k = 0;
@@ -437,7 +443,14 @@ export async function trimDemo(db: PrismaClient) {
   }
   for (const f of await db.fileAsset.findMany({ where: { orgId: org.id, OR: [{ name: { contains: "DEMO" } }, { note: { contains: "DEMO" } }] } }))
     await db.fileAsset.update({ where: { id: f.id }, data: { name: f.name.replace(/\s*DEMO/g, ""), note: f.note?.replace(/\s*·\s*DEMO/g, "") ?? null } });
-  const keepEmails = ["entrenador.demo@hrtraining.co", "deportista.demo@hrtraining.co"];
+  // Una sola vez: las cuentas pasan a usuario "hernan" y "alumna" (la contraseña no se toca).
+  const old = await db.user.findFirst({ where: { orgId: org.id, email: OLD_COACH_LOGIN } });
+  if (old && !(await db.user.findUnique({ where: { email: COACH_LOGIN } })))
+    await db.user.update({ where: { id: old.id }, data: { email: COACH_LOGIN, name: "Hernán" } });
+  const oldA = await db.user.findFirst({ where: { orgId: org.id, email: OLD_ATHLETE_LOGIN } });
+  if (oldA && !(await db.user.findUnique({ where: { email: ATHLETE_LOGIN } })))
+    await db.user.update({ where: { id: oldA.id }, data: { email: ATHLETE_LOGIN } });
+  const keepEmails = [COACH_LOGIN, ATHLETE_LOGIN];
   const coach = await db.user.findFirst({ where: { orgId: org.id, email: keepEmails[0] } });
   if (!coach) return;
   const extra = await db.user.findMany({ where: { orgId: org.id, isDemo: true, email: { notIn: keepEmails } }, select: { id: true } });

@@ -11,7 +11,7 @@ import { mailConfigured } from "@/lib/mail";
 
 export type FormState = { error?: string } | undefined;
 
-const loginSchema = z.object({ email: z.string().email("Email inválido"), password: z.string().min(1, "Ingresá tu contraseña") });
+const loginSchema = z.object({ email: z.string().min(1, "Ingresá tu email o usuario"), password: z.string().min(1, "Ingresá tu contraseña") });
 
 export async function loginAction(_: FormState, fd: FormData): Promise<FormState> {
   const parsed = loginSchema.safeParse({ email: String(fd.get("email") ?? "").trim().toLowerCase(), password: fd.get("password") });
@@ -71,7 +71,7 @@ export async function acceptInviteAction(_: FormState, fd: FormData): Promise<Fo
 }
 
 async function _demoLoginAction(fd: FormData) {
-  const as = fd.get("as") === "athlete" ? "deportista.demo@hrtraining.co" : "entrenador.demo@hrtraining.co";
+  const as = fd.get("as") === "athlete" ? "alumna" : "hernan";
   const user = await db.user.findUnique({ where: { email: as } });
   if (!user) redirect("/login?demo=missing");
   await createSession(user.id);

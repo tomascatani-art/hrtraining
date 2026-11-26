@@ -16,7 +16,7 @@ export function LoginForm({ next }: { next?: string }) {
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="next" value={next ?? ""} />
-      <div><span className="label mb-1.5 block">Email</span><input className="input" name="email" type="email" autoComplete="email" required /></div>
+      <div><span className="label mb-1.5 block">Email o usuario</span><input className="input" name="email" type="text" autoCapitalize="none" autoCorrect="off" autoComplete="username" required /></div>
       <div><span className="label mb-1.5 block">Contraseña</span><input className="input" name="password" type="password" autoComplete="current-password" required /></div>
       <ErrorBox msg={state?.error} />
       <Submit>Ingresar</Submit>

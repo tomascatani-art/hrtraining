@@ -15,6 +15,6 @@ async function main() {
   await ensureDemoPresence(db);
   await ensureDemoExpiring(db);
   await ensureDemoChecks(db);
-  console.log("Demo creada: entrenador.demo@hrtraining.co / deportista.demo@hrtraining.co (contraseña demo1234)");
+  console.log("Demo creada: usuarios hernan y alumna");
 }
 main().finally(() => db.$disconnect());

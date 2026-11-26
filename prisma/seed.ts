@@ -7,7 +7,7 @@ async function main() {
   await ensureLibrary(db);
   if (process.env.SEED_DEMO !== "false") {
     await createDemo(db);
-    console.log("Demo creada: entrenador.demo@hrtraining.co / deportista.demo@hrtraining.co (contraseña demo1234)");
+    console.log("Demo creada: usuarios hernan y alumna");
   }
 }
 main().finally(() => db.$disconnect());
