@@ -2,6 +2,7 @@
 import { runAction } from "@/lib/action-error";
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { signupOpen } from "@/lib/signup";
 import { db } from "@/lib/db";
 import { createSession, destroySession, hashPassword, verifyPassword } from "@/lib/auth";
 import { sendResetMail, hashToken } from "@/lib/account-mail";
@@ -40,6 +41,7 @@ const registerSchema = z.object({
 });
 
 export async function registerAction(_: FormState, fd: FormData): Promise<FormState> {
+  if (!signupOpen()) return { error: "Las cuentas las crea tu preparador físico. Pedile tu acceso." };
   const parsed = registerSchema.safeParse({
     name: String(fd.get("name") ?? "").trim(),
     org: String(fd.get("org") ?? "").trim() || String(fd.get("name") ?? "").trim(),

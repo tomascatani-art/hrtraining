@@ -1,9 +1,14 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { signupOpen } from "@/lib/signup";
 import { RegisterForm } from "@/components/auth-forms";
 
 export const metadata = { title: "Crear cuenta" };
+export const dynamic = "force-dynamic";
 
 export default function RegisterPage() {
+  // Las cuentas las crea el preparador: el alta libre está cerrada.
+  if (!signupOpen()) redirect("/login");
   return (
     <div className="animate-rise">
       <h1 className="h1">Crear cuenta</h1>
