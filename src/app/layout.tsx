@@ -1,3 +1,4 @@
+import { StaleReload } from "@/components/stale-reload";
 import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
@@ -18,7 +19,7 @@ export const viewport: Viewport = { themeColor: "#050505", width: "device-width"
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
-      <body className="min-h-dvh">{children}</body>
+      <body className="min-h-dvh"><StaleReload />{children}</body>
     </html>
   );
 }
