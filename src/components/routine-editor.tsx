@@ -100,14 +100,19 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
 
       <div className="card card-pad">
         <div className="mb-2 flex items-center justify-between gap-2"><div className="h2">Entrada en calor</div><span className="text-xs muted">Igual para todos los días</span></div>
-        <div className="space-y-2">
+        <div className="space-y-3 divide-y divide-ink-800">
           {data.warmup.map((w, i) => (
-            <div key={w.id} className="grid grid-cols-[1fr_auto] gap-2 sm:grid-cols-[2fr_1fr_auto]">
+            <div key={w.id} className="grid grid-cols-[1fr_auto] gap-2 pt-3 first:pt-0 sm:grid-cols-[2fr_1fr_auto]">
               <div className="col-span-2 min-w-0 sm:col-span-1"><ExercisePicker value={w.name} exercises={exercises} placeholder="Ejercicio" onChange={(v, ex) => set((d) => { pickName(d.warmup[i], v, ex); })} /></div>
               <input value={w.detail ?? ""} onChange={(e) => set((d) => { d.warmup[i].detail = e.target.value; })} placeholder="Ej: 2x10 / 5 min" className="input min-w-0 py-1.5 text-sm" />
               <div className="flex items-center gap-2">
-                {w.video && <VideoButton url={w.video} name={w.name} compact />}
                 <button type="button" onClick={() => set((d) => { d.warmup.splice(i, 1); })} className="text-neutral-500 hover:text-red-400" aria-label="Quitar"><X size={16} /></button>
+              </div>
+              <div className="col-span-2 flex items-center gap-2 sm:col-span-3">
+                <input value={w.video ?? ""} onChange={(e) => set((d) => { d.warmup[i].video = e.target.value.trim() || null; })} placeholder="Link del video (YouTube, Drive…)" aria-label="Link del video"
+                  className={`input min-w-0 flex-1 py-1.5 text-sm ${!w.video || /^https:\/\/\S+\.\S{2,}/.test(w.video) ? "" : "border-red-500/60"}`} />
+                <a href={youtubeSearch(w.name || "entrada en calor")} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-volt hover:underline"><Search size={12} />Buscar</a>
+                {w.video && /^https:\/\/\S+\.\S{2,}/.test(w.video) && <VideoButton url={w.video} name={w.name || "Video"} compact />}
               </div>
             </div>
           ))}
@@ -115,17 +120,26 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
         <button type="button" onClick={() => set((d) => { d.warmup.push({ id: newId(), name: "", detail: "" }); })} className="btn-ghost mt-2 px-3 py-1.5 text-sm"><Plus size={14} />Agregar a la entrada en calor</button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="-mx-1 flex flex-1 gap-1 overflow-x-auto px-1 pb-1">
+      <div className="rounded-2xl border-2 border-dashed border-ink-600 bg-ink-950 p-3">
+        <div className="mb-2 font-display text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-400">Días de la rutina</div>
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {data.days.map((d, i) => (
-            <button key={d.id} type="button" onClick={() => setDayIdx(i)} className={i === di ? "tab tab-active whitespace-nowrap" : "tab whitespace-nowrap"}>{d.name || `Día ${i + 1}`}{d.weekday ? ` · ${d.weekday.slice(0, 3)}` : ""}</button>
+            <button key={d.id} type="button" onClick={() => setDayIdx(i)} aria-pressed={i === di}
+              className={`flex shrink-0 items-center gap-2.5 rounded-xl border-2 py-1.5 pl-1.5 pr-3.5 text-left transition ${i === di ? "border-volt bg-volt/10" : "border-ink-600 hover:border-ink-500"}`}>
+              <span className={`grid h-10 w-10 place-items-center rounded-lg font-display text-xl font-black ${i === di ? "bg-volt text-black" : "bg-ink-800 text-white"}`}>{i + 1}</span>
+              <span className="leading-tight">
+                <span className={`block max-w-[9rem] truncate font-display text-sm font-bold uppercase tracking-wide ${i === di ? "text-volt" : "text-white"}`}>{d.name || `Día ${i + 1}`}</span>
+                <span className="block text-[11px] text-neutral-500">{d.weekday || "Sin día fijo"}</span>
+              </span>
+            </button>
           ))}
+          <button type="button" onClick={() => { set((d) => { d.days.push(emptyDay(d.days.length + 1)); }); setDayIdx(data.days.length); }}
+            className="flex shrink-0 items-center gap-1.5 rounded-xl border-2 border-dashed border-ink-500 px-4 text-sm font-semibold text-neutral-300 hover:border-volt hover:text-volt"><Plus size={16} />Agregar día</button>
         </div>
-        <button type="button" onClick={() => { set((d) => { d.days.push(emptyDay(d.days.length + 1)); }); setDayIdx(data.days.length); }} className="btn-ghost px-3 py-1.5 text-sm"><Plus size={14} />Día</button>
       </div>
 
       {day ? (
-        <div className="card">
+        <div className="card border-t-4 border-t-volt">
           <div className="space-y-3 border-b border-ink-700 p-3">
             <div className="flex items-center gap-2">
               <select value={day.weekday ?? ""} onChange={(e) => setDay((d) => { d.weekday = e.target.value; })} className="input w-auto py-1.5 text-sm" aria-label="Día de la semana">
@@ -138,7 +152,10 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
                 <button type="button" onClick={() => { set((d) => { d.days.splice(di, 1); }); setDayIdx(Math.max(0, di - 1)); }} className="ml-1 inline-flex items-center gap-1 whitespace-nowrap text-sm text-neutral-400 hover:text-red-400">Eliminar día <X size={14} /></button>
               </div>
             </div>
-            <input value={day.name} onChange={(e) => setDay((d) => { d.name = e.target.value; })} className="input w-full py-1.5 font-display text-lg font-semibold" aria-label="Nombre del día" />
+            <div className="flex items-center gap-2">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-volt font-display text-2xl font-black text-black">{di + 1}</span>
+              <input value={day.name} onChange={(e) => setDay((d) => { d.name = e.target.value; })} className="input w-full py-2 font-display text-xl font-black uppercase tracking-wide text-volt" aria-label="Nombre del día" />
+            </div>
             {!isTemplate && athletes.length > 0 && <CopyDay disabled={dirty} onCopy={(to) => copyDay(id, day.id, to)} athletes={athletes} dayName={day.name} />}
           </div>
 
