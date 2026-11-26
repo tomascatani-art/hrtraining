@@ -23,6 +23,11 @@ export async function loginAction(_: FormState, fd: FormData): Promise<FormState
   if (!user.active) return { error: "La cuenta está desactivada. Contactá a tu entrenador." };
   await db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   await createSession(user.id);
+  // Cuenta pausada por cuota: va directo al cartel, sin pasar por el inicio.
+  if (user.role === "ATHLETE") {
+    const prof = await db.athleteProfile.findUnique({ where: { userId: user.id }, select: { paused: true } });
+    if (prof?.paused) redirect("/app/paused");
+  }
   const next = String(fd.get("next") ?? "");
   redirect(next.startsWith("/app") ? next : "/app");
 }

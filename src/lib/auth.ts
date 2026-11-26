@@ -1,5 +1,5 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
@@ -70,6 +70,11 @@ export async function requireUser(roles?: Role[]) {
   const u = await currentUser();
   if (!u) redirect("/login");
   if (roles && !roles.includes(u.role)) redirect("/app");
+  // Cuenta pausada por cuota: se chequea en cada pantalla (el layout no se vuelve a dibujar al navegar).
+  if (u.role === "ATHLETE" && u.athleteProfile?.paused) {
+    const path = (await headers()).get("x-pathname") ?? "";
+    if (path.startsWith("/app") && !/^\/app\/(paused|pay|notifications)/.test(path)) redirect("/app/paused");
+  }
   return u;
 }
 

@@ -24,7 +24,7 @@ export default async function PausedPage({ searchParams }: { searchParams: Promi
         <h1 className="h1">{f.paused ? "Tu cuenta está pausada" : "Tu cuota"}</h1>
         <p className="mt-2 text-sm muted">
           {f.paused
-            ? "Tu entrenador pausó el acceso hasta que se regularice la cuota. Mientras tanto podés usar el chat. Apenas se registre el pago, todo vuelve a estar disponible."
+            ? "Tu entrenador pausó el acceso hasta que se regularice la cuota. Si ya pagaste, escribile por WhatsApp. Apenas se registre el pago, todo vuelve a estar disponible."
             : f.status === "PENDIENTE" ? `La cuota de ${monthLabel(period).toLowerCase()} figura como pendiente.` : `La cuota de ${monthLabel(period).toLowerCase()} está al día. ¡Gracias!`}
         </p>
         {f.amount != null && <div className="num my-5 text-4xl font-bold text-white">$ {f.amount.toLocaleString("es-AR", { maximumFractionDigits: 0 })}</div>}
