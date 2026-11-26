@@ -52,7 +52,7 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
         <Stat label="Cobrado" value={money(sum(paid))} hint={`${paid.length} pagaron`} />
         <Stat label="Pendiente" value={money(sum(pending))} hint={`${pending.length} alumnos${overdue ? " · vencido" : ""}`} accent={overdue && pending.length > 0} />
         <Stat label="Al día" value={rows.length ? Math.round(((rows.length - pending.length) / rows.length) * 100) : "—"} unit={rows.length ? "%" : undefined} hint="pagos y bonificados" />
-        <Stat label="Cuentas pausadas" value={rows.filter((r) => r.a.athleteProfile?.paused).length} hint="solo ven el chat" />
+        <Stat label="Cuentas pausadas" value={rows.filter((r) => r.a.athleteProfile?.paused).length} hint="solo ven su cuota" />
       </div>
 
       <div className="mt-6 mb-3 flex flex-wrap gap-1.5">
@@ -91,7 +91,7 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
           </ul>
         ) : <div className="p-5"><Empty title="Nadie en este filtro" /></div>}
       </Card>
-      <p className="mt-3 flex items-center gap-1.5 text-xs muted"><MessageCircle size={13} />Una cuenta pausada solo puede ver la pantalla de cuota y el chat. Al marcar «Pagó» se reactiva sola.</p>
+      <p className="mt-3 flex items-center gap-1.5 text-xs muted"><MessageCircle size={13} />Una cuenta pausada solo ve la pantalla de su cuota, con el link de pago y tu WhatsApp. Al marcar «Pagó» se reactiva sola.</p>
     </>
   );
 }
