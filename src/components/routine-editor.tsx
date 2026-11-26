@@ -180,8 +180,10 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
                             onDel={() => setDay((d) => { d.blocks[bi].rows.splice(ri, 1); })} />
                         </div>
                         {r.link && ri < b.rows.length - 1 ? (
-                          <div className="flex items-center gap-1.5 border-l-2 border-volt/70 py-1.5 pl-3 text-xs font-bold uppercase tracking-wide text-volt">
-                            {r.link === "circuito" ? <><Repeat size={13} />Circuito — con el siguiente</> : <><Link2 size={13} />Sin descanso — con el siguiente</>}
+                          <div className="flex justify-center py-1.5">
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/50 bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
+                              {r.link === "circuito" ? <><Repeat size={13} />Circuito con el siguiente</> : <><Link2 size={13} />Sin descanso con el siguiente</>}
+                            </span>
                           </div>
                         ) : <div className="h-3" />}
                       </div>
@@ -258,7 +260,7 @@ function Row({ roles, n, r, weeks, exercises, clip, isLast, upd, onPick, onCopy,
             <span className="num min-w-0 truncate text-sm text-neutral-300">{summary}</span>
             {r.rest && r.mode !== "tabata" && <span className="text-xs text-neutral-500">· {r.rest}&quot;</span>}
             {r.video && <span className="text-xs text-volt">· video</span>}
-            {r.link && <span className="text-xs text-volt">· {r.link === "circuito" ? "circuito" : "sin descanso"}</span>}
+            {r.link && <span className="shrink-0 rounded-full border border-white/50 bg-white/10 px-2 py-0.5 text-[10px] font-bold uppercase text-white">{r.link === "circuito" ? "circuito" : "sin descanso"}</span>}
             <span className="ml-auto text-xs text-neutral-500">Tocá para editar</span>
           </button>
         )}

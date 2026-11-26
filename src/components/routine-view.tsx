@@ -140,7 +140,7 @@ export function RoutineView({ data, week, checks, roles = FOCUS }: { data: Routi
                   {(r.note || (r.rest && r.mode !== "tabata")) && <div className="mt-1 text-xs muted">{[r.rest && r.mode !== "tabata" ? `Descanso ${r.rest}″` : "", r.note].filter(Boolean).join(" · ")}</div>}
                   </div>
                 </div>
-                {r.link && i < rows.length - 1 && <div className="px-4 pb-2 text-[11px] font-bold uppercase tracking-wide text-volt">{r.link === "circuito" ? "↻ Circuito con el siguiente" : "⛓ Sin descanso, seguí con el siguiente"}</div>}
+                {r.link && i < rows.length - 1 && <div className="px-4 pb-2"><span className="inline-flex items-center rounded-full border border-white/50 bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">{r.link === "circuito" ? "↻ Circuito con el siguiente" : "⛓ Sin descanso, seguí con el siguiente"}</span></div>}
               </div>
             ))}
           </div>
