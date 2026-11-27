@@ -1,20 +1,12 @@
-import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { visibleAthleteIds } from "@/lib/access";
-import { TEST_MAP, isBasicTest } from "@/lib/catalog";
-import { addDays, best, startOfDay, weeklySeries, wellnessScore, improvement } from "@/lib/metrics";
-import { PageHeader, Card, Empty, Field, fmtDate, fmtNum, Delta } from "@/components/ui";
-import { TrendChart, LoadBars } from "@/components/charts";
+import { addDays, startOfDay, weeklySeries, wellnessScore } from "@/lib/metrics";
+import { PageHeader, Card, Field, fmtDate, fmtNum, Delta } from "@/components/ui";
+import { LoadBars } from "@/components/charts";
 
 export const metadata = { title: "Estadísticas" };
 
-const GROUPS: { title: string; keys: string[] }[] = [
-  { title: "Fuerza", keys: ["RM1_SQ", "RM1_BP", "RM1_DL", "RM3_SQ"] },
-  { title: "Potencia y saltos", keys: ["CMJ", "SJ", "ABK", "RSI", "POT_PICO"] },
-  { title: "Velocidad", keys: ["SPR10", "SPR20", "SPR30", "T_TEST", "PRO_AGI"] },
-  { title: "Resistencia y específicos", keys: ["COOPER", "NAVETTE", "YOYO_IR1", "SWIM_100", "SWIM_CSS", "FTP", "RUN_5K"] },
-];
 
 export default async function StatsPage({ searchParams }: { searchParams: Promise<{ athlete?: string; weeks?: string }> }) {
   const u = await requireUser();
@@ -27,26 +19,11 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
   const today = startOfDay(new Date());
   const bStart = addDays(today, -7 * weeks + 1), aStart = addDays(bStart, -7 * weeks);
 
-  const [evals, logs, wellness, goals] = await Promise.all([
-    db.evaluation.findMany({ where: { athleteId: { in: scope } }, orderBy: { date: "asc" } }),
+  const [logs, wellness, goals] = await Promise.all([
     db.workoutLog.findMany({ where: { athleteId: { in: scope }, completedAt: { gte: addDays(aStart, -7 * 8) } }, include: { sets: true } }),
     db.wellness.findMany({ where: { athleteId: { in: scope }, date: { gte: aStart } } }),
     db.goal.findMany({ where: { athleteId: { in: scope } } }),
   ]);
-
-  // Evolución: promedio por fecha (equipo) o valor individual
-  const series = (key: string) => {
-    const byDate = new Map<string, number[]>();
-    for (const e of evals.filter((x) => x.testKey === key)) {
-      const k = e.date.toISOString().slice(0, 10);
-      byDate.set(k, [...(byDate.get(k) ?? []), e.value]);
-    }
-    return [...byDate.entries()].sort().map(([d, v]) => ({ x: fmtDate(d, { day: "2-digit", month: "short", year: "2-digit" }), v: +(v.reduce((a, b) => a + b, 0) / v.length).toFixed(2) }));
-  };
-  const pbs = [...new Set(evals.map((e) => e.testKey))].filter((k) => TEST_MAP[k] && isBasicTest(k)).map((k) => {
-    const l = evals.filter((e) => e.testKey === k);
-    return { k, pb: best(l, TEST_MAP[k].higherIsBetter)!, n: l.length };
-  });
 
   const done = (l: (typeof logs)[number]) => l.status === "COMPLETADO" || l.status === "PARCIAL";
   const period = (from: Date, to: Date) => {
@@ -82,7 +59,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
 
   return (
     <>
-      <PageHeader title={u.role === "ATHLETE" ? "Mi progreso" : "Estadísticas y evolución"} subtitle="Evolución de fuerza, potencia, saltos y velocidad; marcas personales; volumen, asistencia y comparación de períodos." />
+      <PageHeader title={u.role === "ATHLETE" ? "Mi progreso" : "Estadísticas y evolución"} subtitle="Tu constancia, volumen y bienestar, comparando períodos." />
       <Card className="mb-6">
         <form className="grid gap-3 sm:grid-cols-4">
           {u.role !== "ATHLETE" && <Field label="Ver"><select name="athlete" defaultValue={focus ?? ""} className="input"><option value="">Todo el equipo (promedios)</option>{athletes.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></Field>}
@@ -91,28 +68,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
         </form>
       </Card>
 
-      {GROUPS.map((g) => {
-        const keys = g.keys.filter((k) => evals.some((e) => e.testKey === k));
-        if (!keys.length) return null;
-        return (
-          <section key={g.title} className="mb-6">
-            <h2 className="h2 mb-3">{g.title}</h2>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {keys.map((k) => {
-                const s = series(k);
-                const t = TEST_MAP[k];
-                return (
-                  <Card key={k} title={<span className="text-base">{t.name}</span>} action={<Delta value={s.length > 1 ? improvement(s[0].v, s.at(-1)!.v, t.higherIsBetter) : null} />}>
-                    {s.length > 1 ? <TrendChart data={s} series={[{ key: "v", name: t.name }]} unit={t.unit} height={180} /> : <p className="text-sm muted">Un solo registro: {s[0]?.v} {t.unit}</p>}
-                  </Card>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
-
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-6">
         <Card title={`Comparación de períodos · últimas ${weeks} semanas vs. ${weeks} anteriores`} pad={false}>
           <div className="overflow-x-auto"><table className="table">
             <thead><tr><th>Indicador</th><th>Período A</th><th>Período B</th><th>Cambio</th></tr></thead>
@@ -128,21 +84,6 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
             </tbody>
           </table></div>
           <p className="px-5 py-3 text-[11px] text-neutral-600">A: {fmtDate(aStart)} – {fmtDate(addDays(bStart, -1))} · B: {fmtDate(bStart)} – {fmtDate(today)}. Carga, volumen y RPE se muestran sin valoración: más no es necesariamente mejor.</p>
-        </Card>
-        <Card title="Marcas personales" pad={false}>
-          {pbs.length ? (
-            <ul className="divide-y divide-ink-800">
-              {pbs.map(({ k, pb, n }) => (
-                <li key={k} className="flex items-center gap-3 px-5 py-2.5">
-                  <span className="flex-1 text-sm text-neutral-200">{TEST_MAP[k].name}</span>
-                  <span className="num text-sm font-semibold text-volt">{pb.value} {pb.unit}</span>
-                  <span className="w-20 text-right text-xs text-neutral-600">{fmtDate(pb.date, { day: "2-digit", month: "short", year: "2-digit" })}</span>
-                  {focus ? <Link href={`/app/evaluations?athlete=${focus}&test=${k}`} className="text-xs text-neutral-500 hover:text-volt">{n} reg.</Link> : <span className="text-xs text-neutral-600">{n} reg.</span>}
-                </li>
-              ))}
-            </ul>
-          ) : <div className="p-5"><Empty title="Sin evaluaciones" /></div>}
-          {!focus && pbs.length > 0 && <p className="px-5 py-3 text-[11px] text-neutral-600">Mejor marca del equipo en cada test.</p>}
         </Card>
       </div>
 
