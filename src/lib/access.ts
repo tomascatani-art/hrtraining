@@ -1,4 +1,6 @@
 import "server-only";
+import { after } from "next/server";
+import { pushTo } from "@/lib/push";
 import { db } from "./db";
 import type { SessionUser } from "./auth";
 
@@ -58,4 +60,7 @@ export async function audit(u: SessionUser, action: string, entity: string, summ
 export async function notify(userIds: string[], n: { kind: string; title: string; body?: string; link?: string }) {
   if (!userIds.length) return;
   await db.notification.createMany({ data: userIds.map((userId) => ({ userId, ...n })) });
+  // También al celular (si lo activó). Se manda después de responder, para no demorar la pantalla.
+  const send = () => pushTo(userIds, n).catch(() => {});
+  try { after(send); } catch { await send(); }
 }

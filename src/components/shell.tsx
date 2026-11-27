@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { PrefetchKind } from "next/dist/client/components/router-reducer/router-reducer-types";
 import clsx from "clsx";
 import { Suspense } from "react";
+import { PushPrompt } from "@/components/push-prompt";
 import { ActionErrorBanner } from "./action-error-banner";
 import { NavProgress } from "@/components/nav-progress";
 import {
@@ -176,7 +177,7 @@ export function Shell({
         <button className="rounded-xl p-2 text-neutral-400 hover:bg-ink-800 lg:hidden" onClick={() => setOpen(true)} aria-label="Menú"><Menu size={20} /></button>
       </header>
 
-      <main className="mx-auto max-w-[1400px] px-4 pb-28 pt-6 sm:px-6 lg:px-8 lg:pb-12"><Suspense fallback={null}><ActionErrorBanner /></Suspense>{children}</main>
+      <main className="mx-auto max-w-[1400px] px-4 pb-28 pt-6 sm:px-6 lg:px-8 lg:pb-12"><Suspense fallback={null}><ActionErrorBanner /></Suspense>{realPath === "/app" && !paused && <PushPrompt />}{children}</main>
 
       {/* Navegación inferior móvil */}
       <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-ink-700 bg-ink-950/95 backdrop-blur lg:hidden" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
