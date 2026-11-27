@@ -16,15 +16,17 @@ export default async function ClubLogin({ params }: { params: Promise<{ slug: st
   const org = await db.organization.findUnique({ where: { slug } });
   if (!org) notFound();
   const name = org.brandName || org.name;
+  const selling = await db.routine.count({ where: { orgId: org.id, template: true, forSale: true } });
   return (
     <div className="grid min-h-dvh place-items-center bg-grid p-5" style={accentVars(org.brandColor) as React.CSSProperties | undefined}>
       <div className="w-full max-w-sm animate-rise">
         <div className="mb-8 flex flex-col items-center text-center">
-          <Logo size={72} withText={false} brand={{ name, logo: logoUrl(org) }} />
+          <Logo size={72} withText={false} brand={org.logoKey ? { name, logo: logoUrl(org) } : null} />
           <h1 className="h1 mt-4">{name}</h1>
           <p className="mt-1 text-sm muted">Ingresá para ver tus entrenamientos</p>
         </div>
         <div className="card card-pad"><LoginForm /><p className="mt-3 text-right text-sm"><a href="/forgot" className="text-neutral-400 hover:text-volt">¿Olvidaste tu contraseña?</a></p></div>
+        {selling > 0 && <a href={`/c/${slug}/planes`} className="btn-ghost mt-4 w-full justify-center">¿Todavía no entrenás con nosotros? Mirá los planes</a>}
         <div className="mx-auto mt-6 h-1.5 w-24 rounded hazard" />
         <p className="mt-4 text-center text-xs text-neutral-600">Con tecnología Hrtraining</p>
       </div>

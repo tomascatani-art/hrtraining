@@ -12,6 +12,7 @@ import { sendInviteMail, createResetLink } from "@/lib/account-mail";
 import { appOrigin } from "@/lib/origin";
 import { cookies } from "next/headers";
 import { hashPassword } from "@/lib/auth";
+import { waPhone } from "@/lib/phone";
 
 const num = (v: FormDataEntryValue | null) => (v === null || v === "" ? null : Number(v));
 const str = (v: FormDataEntryValue | null) => (v === null || String(v).trim() === "" ? null : String(v).trim());
@@ -159,12 +160,3 @@ export async function saveGoal(fd: FormData) { return runAction("saveGoal", _sav
 export async function toggleGoal(fd: FormData) { return runAction("toggleGoal", _toggleGoal, fd); }
 export async function deleteGoal(fd: FormData) { return runAction("deleteGoal", _deleteGoal, fd); }
 export async function setAthletePassword(fd: FormData) { return runAction("setAthletePassword", _setAthletePassword, fd); }
-
-/** Celular para WhatsApp: solo dígitos y con 549 adelante si es un número argentino sin código de país. */
-function waPhone(v: FormDataEntryValue | null) {
-  let d = String(v ?? "").replace(/\D/g, "");
-  if (!d) return null;
-  if (d.startsWith("0")) d = d.slice(1);
-  if (d.length === 10) d = "549" + d;
-  return d.slice(0, 15);
-}

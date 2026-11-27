@@ -37,6 +37,38 @@ export async function createFeeCheckout(opts: { token: string; feeId: string; am
   return pref.init_point;
 }
 
+/** Cobro de un plan pedido desde la página pública. */
+export async function createPlanCheckout(opts: { token: string; requestId: string; amount: number; planName: string; orgName: string; payerEmail: string; origin: string; orgId: string; back: string }) {
+  const pref = await mp<{ id: string; init_point: string }>(opts.token, "/checkout/preferences", {
+    method: "POST",
+    headers: { "X-Idempotency-Key": `plan-${opts.requestId}-${Date.now()}` },
+    body: JSON.stringify({
+      items: [{ id: opts.requestId, title: `${opts.planName} · ${opts.orgName}`.slice(0, 250), quantity: 1, unit_price: opts.amount, currency_id: "ARS" }],
+      ...(opts.payerEmail.includes("@") ? { payer: { email: opts.payerEmail } } : {}),
+      external_reference: `plan:${opts.requestId}`,
+      back_urls: { success: opts.back, pending: opts.back, failure: opts.back },
+      auto_return: "approved",
+      ...(opts.origin.startsWith("https://") ? { notification_url: `${opts.origin}/api/payments/mercadopago?org=${opts.orgId}` } : {}),
+    }),
+  });
+  return pref.init_point;
+}
+
+/** Marca un pedido de plan como pagado (verificado con Mercado Pago) y avisa al preparador. Idempotente. */
+async function applyPlanPayment(orgId: string, p: Payment, requestId: string) {
+  const req = await db.planRequest.findUnique({ where: { id: requestId } });
+  if (!req || req.orgId !== orgId) return { ok: false as const, reason: "plan" };
+  if (p.status !== "approved") return { ok: false as const, reason: p.status, plan: req };
+  if (req.amount != null && (p.transaction_amount ?? 0) + 0.01 < req.amount) return { ok: false as const, reason: "amount", plan: req };
+  if (req.status !== "NUEVO") return { ok: true as const, plan: req };
+  const done = await db.planRequest.updateMany({ where: { id: req.id, status: "NUEVO" }, data: { status: "PAGADO", mpPaymentId: String(p.id) } });
+  if (done.count) {
+    const staff = await db.user.findMany({ where: { orgId, role: { in: ["ADMIN", "COACH"] }, active: true }, select: { id: true } });
+    await notify(staff.map((s) => s.id), { kind: "PLAN", title: `${req.name} pagó el plan ${req.planName}`, body: "Aprobalo para crearle la cuenta.", link: "/app/templates#pedidos" });
+  }
+  return { ok: true as const, plan: req };
+}
+
 type Payment = { id: number | string; status: string; external_reference?: string | null; transaction_amount?: number };
 
 /**
@@ -47,6 +79,7 @@ export async function applyMpPayment(orgId: string, paymentId: string) {
   const token = await orgToken(orgId);
   if (!token || !/^\d{1,20}$/.test(paymentId)) return { ok: false as const, reason: "config" };
   const p = await mp<Payment>(token, `/v1/payments/${paymentId}`);
+  if (p.external_reference?.startsWith("plan:")) return applyPlanPayment(orgId, p, p.external_reference.slice(5));
   const fee = p.external_reference ? await db.fee.findUnique({ where: { id: p.external_reference }, include: { athlete: { select: { name: true, athleteProfile: { select: { coachId: true } } } } } }) : null;
   if (!fee || fee.orgId !== orgId) return { ok: false as const, reason: "fee" };
   if (p.status !== "approved") return { ok: false as const, reason: p.status, fee };

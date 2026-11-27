@@ -47,6 +47,7 @@ model Organization {
   conversations Conversation[]
   routines      Routine[]
   exerciseLinks ExerciseLink[]
+  planRequests  PlanRequest[]
 }
 
 model User {
@@ -607,6 +608,9 @@ model Routine {
   active    Boolean      @default(true) // false = versión anterior guardada
   template  Boolean      @default(false)
   extra     Boolean      @default(false) // rutina extra (además del plan principal)
+  forSale   Boolean      @default(false) // plantilla que se ofrece en la página pública de planes
+  price     Float? // precio del plan a la venta
+  blurb     String? // descripción corta para la página pública
   startsOn  DateTime? // próximo plan: pasa a ser el actual en esta fecha
   data      Json // { meta, weeks, warmup[], days[{ name, blocks[{ name, rows[{ exerciseId?, name, video?, note, cells[] }] }] }] }
   isDemo    Boolean      @default(false)
@@ -614,6 +618,7 @@ model Routine {
   updatedAt DateTime     @updatedAt
 
   snapshots RoutineSnapshot[]
+  requests  PlanRequest[]
   checks    RoutineCheck[]
   sessions  RoutineSession[]
 
@@ -697,4 +702,25 @@ model PushSubscription {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+/// Pedido de un plan desde la página pública. El preparador lo aprueba y recién ahí se crea la cuenta.
+model PlanRequest {
+  id          String       @id @default(cuid())
+  orgId       String
+  org         Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  routineId   String?
+  routine     Routine?     @relation(fields: [routineId], references: [id], onDelete: SetNull)
+  planName    String
+  name        String
+  email       String
+  phone       String?
+  note        String?
+  amount      Float?
+  status      String       @default("NUEVO") // NUEVO, PAGADO, APROBADO, RECHAZADO
+  mpPaymentId String?      @unique
+  athleteId   String?
+  createdAt   DateTime     @default(now())
+
+  @@index([orgId, status])
 }

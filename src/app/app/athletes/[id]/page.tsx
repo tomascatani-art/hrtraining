@@ -22,7 +22,7 @@ import { withVideos, currentRoutine } from "@/lib/routine-server";
 import { currentWeek, focusRoles, type FocusMap } from "@/lib/routine";
 import { createRoutine } from "../../routines/actions";
 
-export default async function AthleteDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; invitado?: string; nueva?: string; carpeta?: string; mail?: string; clave?: string }> }) {
+export default async function AthleteDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; invitado?: string; aprobado?: string; nueva?: string; carpeta?: string; mail?: string; clave?: string }> }) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const { id } = await params;
   const sp = await searchParams;
@@ -59,6 +59,11 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
         </div>
       </div>
 
+      {sp.aprobado === "1" && (
+        <div className="card card-pad mb-4 border-volt/60 bg-volt/[.05] text-sm">
+          <span className="font-semibold text-volt">Pedido aprobado.</span> Ya tiene su cuenta y el plan cargado. Mandale el link de abajo para que elija su contraseña{sp.mail === "1" ? " (también le llegó por email)" : ""}.
+        </div>
+      )}
       {sp.invitado === "1" && newPw && (
         <div className="card card-pad mb-4 border-volt/60 bg-volt/[.05]">
           <div className="label text-volt">{sp.nueva ? "Contraseña nueva lista · pasásela" : "Opción 1 · Pasale su cuenta"}</div>
