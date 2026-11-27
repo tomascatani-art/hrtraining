@@ -1,3 +1,4 @@
+import { normalizeLink } from "./video";
 // Rutina del alumno (estilo planilla): días → bloques → ejercicios, con una columna por semana.
 // Se guarda como JSON en Routine.data. Estas funciones sirven en servidor y navegador.
 
@@ -85,7 +86,7 @@ export function sanitizeRoutine(raw: unknown): RoutineData {
   const r = (raw ?? {}) as Record<string, unknown>;
   const weeks = Math.max(1, Math.min(MAX_WEEKS, Math.round(Number(r.weeks) || 4)));
   const m = (r.meta ?? {}) as Record<string, unknown>;
-  const url = (v: unknown) => { const s = str(v, 500).trim(); return /^https:\/\/\S+$/.test(s) ? s : null; };
+  const url = (v: unknown) => normalizeLink(str(v, 600));
   const id = (v: unknown) => (typeof v === "string" && /^[\w-]{1,40}$/.test(v) ? v : newId());
   return {
     weeks,

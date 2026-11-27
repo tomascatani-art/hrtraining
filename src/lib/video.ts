@@ -7,6 +7,19 @@ export function youtubeId(url?: string | null) {
   return m ? m[1] : null;
 }
 
+/** Arregla links pegados sin "https://" (youtu.be/…, www.youtube.com/…, http://…) para que no se pierdan al guardar. */
+export function normalizeLink(raw?: string | null): string | null {
+  let s = String(raw ?? "").trim().replace(/\s+/g, "");
+  if (!s) return null;
+  if (s.startsWith("/api/files/")) return s;
+  s = s.replace(/^http:\/\//i, "https://");
+  if (!/^https:\/\//i.test(s)) {
+    if (/^[\w-]+(\.[\w-]+)+(\/|$)/.test(s.replace(/^\/\//, ""))) s = "https://" + s.replace(/^\/\//, "");
+    else return null;
+  }
+  return /^https:\/\/\S+\.\S{2,}/.test(s) ? s.slice(0, 500) : null;
+}
+
 /** true si es un link a una búsqueda (no a un video puntual). */
 export const isSearchUrl = (url?: string | null) => !!url && /youtube\.com\/results/.test(url);
 

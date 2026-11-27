@@ -78,6 +78,24 @@ async function _createRoutine(fd: FormData) {
 }
 
 /** Guarda lo que se editó en la planilla. Recuerda el link de video de cada ejercicio para todo el club. */
+/** Busca cada fila sin ejercicio vinculado en la biblioteca (por nombre); si no existe, la crea. Modifica `data`. */
+async function linkNewExercises(u: { id: string; orgId: string }, data: ReturnType<typeof sanitizeRoutine>) {
+  const rows = [...data.warmup, ...data.days.flatMap((d) => d.blocks.flatMap((b) => b.rows))].filter((r) => !r.exerciseId && r.name.trim().length >= 3);
+  if (!rows.length) return;
+  const key = (n: string) => n.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ");
+  const names = [...new Set(rows.map((r) => r.name.trim()))];
+  const found = await db.exercise.findMany({ where: { OR: [{ orgId: null }, { orgId: u.orgId }], name: { in: names, mode: "insensitive" } }, select: { id: true, name: true, orgId: true } });
+  const byKey = new Map<string, string>();
+  // Primero los propios del preparador, después la biblioteca base
+  for (const e of found.sort((a, b) => (a.orgId ? 0 : 1) - (b.orgId ? 0 : 1))) if (!byKey.has(key(e.name))) byKey.set(key(e.name), e.id);
+  for (const n of names) {
+    if (byKey.has(key(n))) continue;
+    const ex = await db.exercise.create({ data: { orgId: u.orgId, createdById: u.id, name: n.slice(0, 120), primaryMuscle: "Cuerpo completo", muscles: [], kineticChain: "MIXTA", pattern: "OTRO", category: "Propios", capacities: [], sports: [], equipment: [] } });
+    byKey.set(key(n), ex.id);
+  }
+  for (const r of rows) r.exerciseId = byKey.get(key(r.name)) ?? null;
+}
+
 export async function saveRoutine(id: string, name: string, raw: unknown) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const r = await ownRoutine(u, id);
@@ -88,6 +106,9 @@ export async function saveRoutine(id: string, name: string, raw: unknown) {
     const last = await db.routineSnapshot.findFirst({ where: { routineId: id }, orderBy: { createdAt: "desc" } });
     if (!last || Date.now() - +last.createdAt > 30 * 60_000) await snapshot(r.id, r.name, r.data, u.id);
   }
+  // Ejercicios escritos a mano que no están en la biblioteca: se agregan a la biblioteca del preparador,
+  // así quedan guardados (con su video) para usarlos en otras rutinas.
+  await linkNewExercises(u, data);
   await db.routine.update({ where: { id }, data: { name: clean, data: json(data) } });
   // Videos: si una fila es de la biblioteca y le pegaron un link, queda guardado para ese ejercicio.
   const pairs = new Map<string, string>();

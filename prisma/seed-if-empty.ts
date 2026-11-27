@@ -8,7 +8,7 @@ const db = new PrismaClient();
 async function main() {
   await ensureLibrary(db);
   if (process.env.SEED_DEMO === "false") return;
-  if (await db.organization.count({ where: { isDemo: true } })) { await trimDemo(db); await ensureDemoRoutines(db); await ensureDemoPresence(db); await ensureDemoExpiring(db); await ensureDemoChecks(db); return console.log("Demo ya cargada."); }
+  if (await db.organization.count({ where: { isDemo: true } })) { await trimDemo(db); await ensureDemoRoutines(db); return console.log("Demo ya cargada."); }
   await createDemo(db);
   await trimDemo(db);
   await ensureDemoRoutines(db);

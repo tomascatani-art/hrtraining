@@ -3,6 +3,7 @@ import { runAction } from "@/lib/action-error";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
+import { normalizeLink } from "@/lib/video";
 import { requireUser } from "@/lib/auth";
 import { audit } from "@/lib/access";
 
@@ -18,11 +19,11 @@ async function _saveExercise(fd: FormData) {
     kineticChain: String(fd.get("kineticChain") ?? "CERRADA"), pattern: String(fd.get("pattern") ?? "SENTADILLA"), category: s(fd, "category"),
     capacities: list(fd, "capacities"), sports: list(fd, "sports"), equipment: list(fd, "equipment"),
     difficulty: Number(fd.get("difficulty") ?? 2), objective: s(fd, "objective"), description: s(fd, "description"), cues: s(fd, "cues"),
-    commonErrors: s(fd, "commonErrors"), variants: s(fd, "variants"), videoUrl: s(fd, "videoUrl"), imageUrl: s(fd, "imageUrl"),
+    commonErrors: s(fd, "commonErrors"), variants: s(fd, "variants"), videoUrl: normalizeLink(s(fd, "videoUrl")), imageUrl: s(fd, "imageUrl"),
     suggestedSets: s(fd, "suggestedSets"), suggestedReps: s(fd, "suggestedReps"),
   };
   if (!data.name) throw new Error("El ejercicio necesita un nombre");
-  if (data.videoUrl && !/^(https:\/\/|\/api\/files\/)/.test(data.videoUrl)) throw new Error("El video debe ser un enlace https o un archivo subido");
+  if (s(fd, "videoUrl") && !data.videoUrl) throw new Error("Ese link de video no parece válido. Copialo de nuevo desde YouTube o Drive.");
   let exId = id;
   if (id) {
     const ex = await db.exercise.findUnique({ where: { id } });
@@ -59,12 +60,13 @@ async function _deleteExercise(fd: FormData) {
 async function _setExerciseLink(fd: FormData) {
   const u = await requireUser(["COACH", "ADMIN"]);
   const exerciseId = String(fd.get("exerciseId") ?? "");
-  const url = String(fd.get("url") ?? "").trim();
+  const raw = String(fd.get("url") ?? "").trim();
+  const url = normalizeLink(raw);
   const ex = await db.exercise.findUnique({ where: { id: exerciseId } });
   if (!ex || (ex.orgId && ex.orgId !== u.orgId)) throw new Error("Ejercicio no encontrado");
-  if (!url) await db.exerciseLink.deleteMany({ where: { orgId: u.orgId, exerciseId } });
+  if (!raw) await db.exerciseLink.deleteMany({ where: { orgId: u.orgId, exerciseId } });
   else {
-    if (!/^https:\/\/\S+\.\S{2,}/.test(url)) throw new Error("Pegá un link que empiece con https://");
+    if (!url) throw new Error("Ese link no parece válido. Copialo de nuevo desde YouTube o Drive.");
     await db.exerciseLink.upsert({ where: { orgId_exerciseId: { orgId: u.orgId, exerciseId } }, create: { orgId: u.orgId, exerciseId, url }, update: { url } });
   }
   await audit(u, "EDITAR", "Ejercicio", `Video de ${ex.name}`, ex.id);

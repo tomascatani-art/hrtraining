@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Plus, Save, X, Search, Send, ClipboardCopy, ClipboardPaste, Link2, Repeat, Megaphone, Cloud, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 import { type RoutineData, type RoutineRow, type RoutineDay, emptyDay, emptyBlock, emptyRow, cloneDay, newId, MAX_WEEKS, BLOCK_KINDS, FOCUS, type FocusMap, WEEKDAYS, type BlockKind } from "@/lib/routine";
-import { youtubeSearch } from "@/lib/video";
+import { youtubeSearch, normalizeLink } from "@/lib/video";
 import { VideoButton } from "@/components/video-player";
 
 type Ex = [id: string, name: string, video: string | null];
@@ -110,9 +110,9 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
               </div>
               <div className="col-span-2 flex items-center gap-2 sm:col-span-3">
                 <input value={w.video ?? ""} onChange={(e) => set((d) => { d.warmup[i].video = e.target.value.trim() || null; })} placeholder="Link del video (YouTube, Drive…)" aria-label="Link del video"
-                  className={`input min-w-0 flex-1 py-1.5 text-sm ${!w.video || /^https:\/\/\S+\.\S{2,}/.test(w.video) ? "" : "border-red-500/60"}`} />
+                  className={`input min-w-0 flex-1 py-1.5 text-sm ${!w.video || normalizeLink(w.video) ? "" : "border-red-500/60"}`} />
                 <a href={youtubeSearch(w.name || "entrada en calor")} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-volt hover:underline"><Search size={12} />Buscar</a>
-                {w.video && /^https:\/\/\S+\.\S{2,}/.test(w.video) && <VideoButton url={w.video} name={w.name || "Video"} compact />}
+                {w.video && normalizeLink(w.video) && <VideoButton url={normalizeLink(w.video)!} name={w.name || "Video"} compact />}
               </div>
             </div>
           ))}
@@ -250,7 +250,7 @@ function Row({ roles, n, r, weeks, exercises, clip, isLast, upd, onPick, onCopy,
   const [open, setOpen] = useState(!r.name);
   const summary = r.mode === "tabata" ? `Tabata ${r.tabata?.work || 20}"/${r.tabata?.rest || 10}" x${r.tabata?.rounds || 8}` : r.cells.slice(0, weeks).map((c) => c || "—").join(" · ");
   const tabata = r.mode === "tabata";
-  const ok = !r.video || /^https:\/\/\S+\.\S{2,}/.test(r.video);
+  const ok = !r.video || !!normalizeLink(r.video);
   return (
     <div className="flex gap-2">
       <div className="flex flex-col pt-2">
@@ -309,7 +309,7 @@ function Row({ roles, n, r, weeks, exercises, clip, isLast, upd, onPick, onCopy,
             <a href={youtubeSearch(r.name || "ejercicio")} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-volt hover:underline"><Search size={12} />Buscar en YouTube</a></div>
           <div className="flex items-center gap-2">
             <input value={r.video ?? ""} onChange={(e) => upd((x) => { x.video = e.target.value.trim() || null; })} placeholder="https://youtu.be/…" className={`input min-w-0 flex-1 py-1.5 text-sm ${ok ? "" : "border-red-500/60"}`} />
-            {r.video && ok && <VideoButton url={r.video} name={r.name || "Video"} />}
+            {r.video && ok && <VideoButton url={normalizeLink(r.video)!} name={r.name || "Video"} />}
             {r.video && <button type="button" onClick={() => upd((x) => { x.video = null; })} className="rounded-lg border border-ink-600 p-2 text-red-400 hover:bg-ink-800" aria-label="Sacar link"><X size={14} /></button>}
           </div>
         </div>
