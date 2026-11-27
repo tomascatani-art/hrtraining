@@ -4,6 +4,7 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Plus, Save, X, Search,
 import { type RoutineData, type RoutineRow, type RoutineDay, emptyDay, emptyBlock, emptyRow, cloneDay, newId, MAX_WEEKS, BLOCK_KINDS, FOCUS, type FocusMap, WEEKDAYS, type BlockKind } from "@/lib/routine";
 import { youtubeSearch, normalizeLink } from "@/lib/video";
 import { VideoButton } from "@/components/video-player";
+import { parseSheet, type Parsed } from "@/lib/excel-paste";
 
 type Ex = [id: string, name: string, video: string | null];
 type Athlete = { id: string; name: string };
@@ -136,6 +137,19 @@ export function RoutineEditor({ id, initialName, initial, exercises, athletes, i
           <button type="button" onClick={() => { set((d) => { d.days.push(emptyDay(d.days.length + 1)); }); setDayIdx(data.days.length); }}
             className="flex shrink-0 items-center gap-1.5 rounded-xl border-2 border-dashed border-ink-500 px-4 text-sm font-semibold text-neutral-300 hover:border-volt hover:text-volt"><Plus size={16} />Agregar día</button>
         </div>
+        <PasteSheet weeks={data.weeks} onApply={(p, replace) => {
+          set((d) => {
+            const w = Math.max(replace ? p.weeks : d.weeks, p.weeks);
+            const fit = (r: RoutineRow) => { while (r.cells.length < w) r.cells.push(r.cells[r.cells.length - 1] ?? ""); if (r.rm) while (r.rm.length < w) r.rm.push(""); };
+            for (const day of p.days) for (const b of day.blocks) for (const r of b.rows) pickName(r, r.name);
+            for (const it of p.warmup) pickName(it, it.name);
+            if (replace) { d.days = p.days; if (p.warmup.length) d.warmup = p.warmup; }
+            else { d.days.push(...p.days); d.warmup.push(...p.warmup); }
+            d.weeks = w;
+            for (const r of allRows(d)) fit(r);
+          });
+          setDayIdx(replace ? 0 : data.days.length);
+        }} />
       </div>
 
       {day ? (
@@ -422,6 +436,43 @@ function CopyDay({ athletes, dayName, disabled, onCopy }: { athletes: Athlete[];
       <button type="button" onClick={() => setOpen(false)} className="text-neutral-400 hover:text-white" aria-label="Cerrar"><X size={16} /></button>
       {disabled && <span className="basis-full text-xs muted">Esperá a que se guarde y copialo.</span>}
       {msg && <span className="basis-full text-xs text-volt">{msg}</span>}
+    </div>
+  );
+}
+
+function PasteSheet({ weeks, onApply }: { weeks: number; onApply: (p: Parsed, replace: boolean) => void }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const p = useMemo(() => (text.trim() ? parseSheet(text, weeks) : null), [text, weeks]);
+  const close = () => { setOpen(false); setText(""); };
+  if (!open) return (
+    <button type="button" onClick={() => setOpen(true)} className="btn-ghost mt-2 px-3 py-1.5 text-sm"><ClipboardPaste size={14} />Pegar desde Excel</button>
+  );
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4" onClick={close}>
+      <div className="card w-full max-w-xl space-y-3 p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="font-display text-lg font-bold uppercase">Pegar desde Excel</h3>
+            <p className="mt-1 text-sm text-neutral-400">Seleccioná las celdas en Excel o Google Sheets, copialas y pegalas acá. Una fila por ejercicio: nombre y después una columna por semana (por ejemplo 3x8). Una fila que diga &quot;Día 1&quot; arranca un día, y una fila con un solo título arranca un bloque.</p>
+          </div>
+          <button type="button" onClick={close} className="text-neutral-500 hover:text-white" aria-label="Cerrar"><X size={18} /></button>
+        </div>
+        <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} autoFocus placeholder={"Día 1 - Inferior\nFUERZA\nSentadilla\t4x8\t4x6\t5x5\nPeso muerto\t3x8\t3x8\t4x6"}
+          className="input w-full font-mono text-xs" />
+        {p && (p.exercises || p.warmup.length ? (
+          <div className="rounded-xl border border-ink-600 p-3 text-sm">
+            <p className="font-semibold text-volt">Se van a cargar {p.days.length} {p.days.length === 1 ? "día" : "días"}, {p.exercises} ejercicios y {p.weeks} {p.weeks === 1 ? "semana" : "semanas"}{p.warmup.length ? `, más ${p.warmup.length} de entrada en calor` : ""}.</p>
+            <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto text-neutral-300">
+              {p.days.map((d) => <li key={d.id}><span className="font-bold text-white">{d.name}</span>: {d.blocks.map((b) => `${b.name} (${b.rows.length})`).join(" · ")}</li>)}
+            </ul>
+          </div>
+        ) : <p className="text-sm text-neutral-400">No encontré ejercicios. Revisá que cada fila tenga el nombre en la primera columna.</p>)}
+        <div className="flex flex-wrap justify-end gap-2">
+          <button type="button" disabled={!p?.exercises} onClick={() => { if (p) { onApply(p, false); close(); } }} className="btn-ghost px-3 py-2 text-sm disabled:opacity-40">Agregar a los días que hay</button>
+          <button type="button" disabled={!p?.exercises} onClick={() => { if (p) { onApply(p, true); close(); } }} className="btn-primary px-3 py-2 text-sm disabled:opacity-40">Reemplazar los días</button>
+        </div>
+      </div>
     </div>
   );
 }
