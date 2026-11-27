@@ -142,6 +142,13 @@ export function currentWeek(d: RoutineData, now = new Date()) {
   return w >= 0 && w < d.weeks ? w : null;
 }
 
+/** Cuándo termina el plan (día siguiente a la última semana) y cuántos días le quedan. */
+export function planEnd(d: RoutineData, fallbackStart: Date, now = new Date()) {
+  const start = d.meta.start ? new Date(`${d.meta.start}T00:00:00-03:00`) : fallbackStart;
+  const end = new Date(+start + d.weeks * 7 * 86400000);
+  return { end, daysLeft: Math.ceil((+end - +now) / 86400000) };
+}
+
 export const countExercises = (d: RoutineData) => d.days.reduce((n, day) => n + day.blocks.reduce((m, b) => m + b.rows.filter((r) => r.name).length, 0), 0);
 
 /** Qué semana va el alumno y qué día de la rutina le toca hoy (según el día de la semana que puso el entrenador). */

@@ -10,7 +10,7 @@ import { ActionErrorBanner } from "./action-error-banner";
 import { NavProgress } from "@/components/nav-progress";
 import {
   LayoutDashboard, Users, UsersRound, CalendarDays, Dumbbell, Gauge, Activity, LineChart,
-  Video, MessageSquare, FolderOpen, Trophy, Shapes, ShieldCheck, Settings, HeartPulse, Target, Menu, X, Bell, LogOut, Sparkles, Wallet, Wrench, ChevronDown, ClipboardList, Search, LayoutTemplate } from "lucide-react";
+  Video, MessageSquare, FolderOpen, Trophy, Shapes, ShieldCheck, Settings, HeartPulse, Target, Menu, X, Bell, LogOut, Sparkles, Wallet, CalendarCheck, Wrench, ChevronDown, ClipboardList, Search, LayoutTemplate } from "lucide-react";
 import { Logo, Avatar } from "./ui";
 import { logoutAction } from "@/app/(auth)/actions";
 
@@ -39,6 +39,7 @@ export function navFor(role: string, unread: number): { main: Item[]; mobile: It
     { href: "/app", label: "Inicio", icon: LayoutDashboard },
     { href: "/app/athletes", label: "Alumnos", icon: Users, group: "Alumnos" },
     { href: "/app/fees", label: "Cuotas", icon: Wallet, group: "Alumnos" },
+    { href: "/app/resumen", label: "Resumen semanal", icon: CalendarCheck, group: "Alumnos" },
     { href: "/app/routines", label: "Rutinas", icon: ClipboardList, group: "Entrenamiento" },
     { href: "/app/templates", label: "Plantillas", icon: LayoutTemplate, group: "Entrenamiento" },
     { href: "/app/calendar", label: "Calendario", icon: CalendarDays, group: "Entrenamiento" },

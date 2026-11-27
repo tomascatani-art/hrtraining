@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Notice } from "@/components/routine-notice";
 import { currentRoutine } from "@/lib/routine-server";
-import { todayPlan, sanitizeRoutine } from "@/lib/routine";
+import { todayPlan, sanitizeRoutine, planEnd } from "@/lib/routine";
 import { avatarSrc } from "@/lib/avatar";
 import { Users, CalendarCheck, Percent, AlertTriangle, ClipboardList, Trophy, ArrowRight, Flame, HeartPulse, CreditCard, MessageCircle } from "lucide-react";
 import { requireUser } from "@/lib/auth";
@@ -106,6 +106,7 @@ async function AthleteHome({ userId, name }: { userId: string; name: string }) {
               {plan.today ? <div className="font-display text-xl font-bold leading-tight text-white">Semana {plan.week + 1} · {plan.today.name}</div>
                 : <div className="font-display text-lg font-bold leading-tight text-white">Día libre{plan.next ? <span className="block text-sm font-normal muted">Próximo: Semana {plan.week + 1} · {plan.next.name} ({plan.next.weekday})</span> : null}</div>}
               <div className="truncate text-xs muted">{mainRoutine.name}</div>
+              {(() => { const left = planEnd(sanitizeRoutine(mainRoutine.data), mainRoutine.createdAt, now).daysLeft; return left <= 7 ? <div className="mt-1.5 inline-block rounded-full bg-white px-2.5 py-0.5 text-[11px] font-bold text-black">{left > 0 ? (left === 1 ? "Último día del plan" : `Te queda ${left === 7 ? "1 semana" : `${left} días`} de plan`) : "Terminaste el plan · tu preparador arma el siguiente"}</div> : null; })()}
             </div>
           </div>
           <div className="border-t border-ink-700 px-4 py-3 sm:px-5">
