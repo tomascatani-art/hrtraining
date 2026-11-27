@@ -99,6 +99,7 @@ model User {
   routines            Routine[]            @relation("routineAthlete")
   routinesCoached     Routine[]            @relation("routineCoach")
   routineChecks       RoutineCheck[]       @relation("routineChecks")
+  routineSessions     RoutineSession[]     @relation("routineSessions")
 
   @@index([orgId, role])
 }
@@ -609,6 +610,7 @@ model Routine {
 
   snapshots RoutineSnapshot[]
   checks    RoutineCheck[]
+  sessions  RoutineSession[]
 
   @@index([athleteId, active])
   @@index([orgId, template])
@@ -642,6 +644,24 @@ model ExerciseLink {
 }
 
 /// Tic del deportista: "ya hice este ejercicio" en la rutina, por día.
+/// El alumno da por terminado un día de su rutina: esfuerzo (1-10) y duración. Alimenta la carga (sRPE).
+model RoutineSession {
+  id          String   @id @default(cuid())
+  routineId   String
+  routine     Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  athleteId   String
+  athlete     User     @relation("routineSessions", fields: [athleteId], references: [id], onDelete: Cascade)
+  date        DateTime @db.Date
+  dayId       String
+  rpe         Int
+  durationMin Int
+  load        Int
+  createdAt   DateTime @default(now())
+
+  @@unique([routineId, date, dayId])
+  @@index([athleteId, date])
+}
+
 model RoutineCheck {
   id        String   @id @default(cuid())
   routineId String

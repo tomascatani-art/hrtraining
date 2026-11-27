@@ -5,7 +5,7 @@ import { Check, HeartPulse, X, PencilLine, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { type RoutineData, FOCUS, type FocusMap, blockSummary, WEEKDAYS } from "@/lib/routine";
 import { VideoButton } from "@/components/video-player";
-import { toggleCheck, saveCheckNote } from "@/app/app/routine/actions";
+import { toggleCheck, saveCheckNote, finishDay } from "@/app/app/routine/actions";
 
 type RowNote = { kg: string; note: string; molestia: boolean };
 type Checks = { routineId: string; done: string[]; wellnessDone?: boolean; notes?: Record<string, RowNote> };
@@ -22,6 +22,9 @@ export function RoutineView({ data, week, checks, roles = FOCUS, initialDay, tod
   });
   const [done, setDone] = useState<Set<string>>(() => new Set(checks?.done ?? []));
   const [askWellness, setAskWellness] = useState(false);
+  const [step, setStep] = useState<"effort" | "done">("effort");
+  const [finSaving, setFinSaving] = useState(false);
+  const [finErr, setFinErr] = useState("");
   const [notes, setNotes] = useState<Record<string, RowNote>>(() => checks?.notes ?? {});
   const [editing, setEditing] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -113,6 +116,13 @@ export function RoutineView({ data, week, checks, roles = FOCUS, initialDay, tod
         <div className="fixed inset-0 z-[80] grid place-items-end bg-black/75 p-4 sm:place-items-center" onClick={() => setAskWellness(false)}>
           <div className="card card-pad w-full max-w-sm border-volt/60 text-center animate-rise" onClick={(e) => e.stopPropagation()} style={{ marginBottom: "env(safe-area-inset-bottom)" }}>
             <button type="button" onClick={() => setAskWellness(false)} className="float-right -mr-2 -mt-2 p-2 text-neutral-500 hover:text-white" aria-label="Cerrar"><X size={18} /></button>
+            {step === "effort" && checks && day ? (
+              <EffortStep saving={finSaving} error={finErr} onSkip={() => setStep("done")} onSave={async (rpe, min) => {
+                setFinSaving(true); setFinErr("");
+                try { await finishDay(checks.routineId, day.id, rpe, min); setStep("done"); } catch { setFinErr("No se pudo guardar. Probá de nuevo."); }
+                setFinSaving(false);
+              }} />
+            ) : (<>
             <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-volt text-black"><HeartPulse size={26} /></div>
             <div className="font-display text-xl font-bold text-white">¡Terminaste el entrenamiento!</div>
             {checks?.wellnessDone ? (<>
@@ -122,6 +132,7 @@ export function RoutineView({ data, week, checks, roles = FOCUS, initialDay, tod
               <p className="mt-1 text-sm muted">Contale a tu preparador cómo te sentiste. Son 30 segundos.</p>
               <Link href="/app/wellness?desde=rutina" className="btn-primary mt-4 w-full">Responder encuesta de bienestar</Link>
               <button type="button" onClick={() => setAskWellness(false)} className="mt-2 w-full py-2 text-sm text-neutral-400 hover:text-white">Ahora no</button>
+            </>)}
             </>)}
           </div>
         </div>, document.body
@@ -183,7 +194,7 @@ export function RoutineView({ data, week, checks, roles = FOCUS, initialDay, tod
       ))}
       {day && !day.blocks.some((b) => b.rows.some((r) => r.name)) && <div className="card card-pad text-sm muted">Este día todavía no tiene ejercicios.</div>}
       {checks && day && rowsOf(day).length > 0 && (
-        <button type="button" onClick={() => setAskWellness(true)} className="btn-primary w-full justify-center py-3 text-base"><Check size={18} strokeWidth={3} />Finalizar entrenamiento</button>
+        <button type="button" onClick={() => { setStep("effort"); setAskWellness(true); }} className="btn-primary w-full justify-center py-3 text-base"><Check size={18} strokeWidth={3} />Finalizar entrenamiento</button>
       )}
     </div>
   );
@@ -208,6 +219,37 @@ function NoteForm({ initial, saving, error, onSave, onCancel }: { initial?: RowN
         <button type="button" disabled={saving} onClick={() => onSave({ kg: kg.trim(), note: note.trim(), molestia })} className="btn-primary flex-1 justify-center">{saving ? "Guardando…" : "Guardar"}</button>
         <button type="button" onClick={onCancel} className="btn-ghost">Cancelar</button>
       </div>
+    </div>
+  );
+}
+
+const EFFORT = ["", "Muy fácil", "Fácil", "Moderado", "Algo duro", "Duro", "Duro", "Muy duro", "Muy duro", "Casi al máximo", "Máximo"];
+
+/** Paso 1 al finalizar: cuánto costó (1-10) y cuánto duró. Con eso se calcula la carga del día. */
+function EffortStep({ saving, error, onSave, onSkip }: { saving: boolean; error: string; onSave: (rpe: number, min: number) => void; onSkip: () => void }) {
+  const [rpe, setRpe] = useState(0);
+  const [min, setMin] = useState(60);
+  return (
+    <div className="text-left">
+      <div className="font-display text-xl font-bold text-white">¿Cuánto te costó hoy?</div>
+      <p className="mt-0.5 text-sm muted">Del 1 (muy fácil) al 10 (máximo esfuerzo).</p>
+      <div className="mt-3 grid grid-cols-5 gap-2">
+        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+          <button key={n} type="button" onClick={() => setRpe(n)} aria-pressed={rpe === n}
+            className={`h-11 rounded-xl border-2 font-display text-lg font-bold transition active:scale-95 ${rpe === n ? "border-volt bg-volt text-black" : "border-ink-600 text-white hover:border-ink-500"}`}>{n}</button>
+        ))}
+      </div>
+      <div className="mt-1.5 h-5 text-sm font-semibold text-volt">{rpe ? EFFORT[rpe] : ""}</div>
+      <div className="mt-2 font-semibold text-white">¿Cuánto duró?</div>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        {[30, 45, 60, 75, 90].map((m) => (
+          <button key={m} type="button" onClick={() => setMin(m)} className={min === m ? "chip-volt" : "chip-mute hover:text-white"}>{m} min</button>
+        ))}
+        <label className="flex items-center gap-1.5 text-sm muted"><input type="number" inputMode="numeric" min={5} max={300} value={min} onChange={(e) => setMin(Number(e.target.value))} className="input w-20 py-1 text-center" />min</label>
+      </div>
+      {error && <div className="mt-2 text-sm text-volt">{error}</div>}
+      <button type="button" disabled={!rpe || saving} onClick={() => onSave(rpe, min)} className={`btn-primary mt-4 w-full justify-center ${!rpe ? "opacity-50" : ""}`}>{saving ? "Guardando…" : "Guardar y terminar"}</button>
+      <button type="button" onClick={onSkip} className="mt-1 w-full py-2 text-sm text-neutral-400 hover:text-white">Saltear</button>
     </div>
   );
 }

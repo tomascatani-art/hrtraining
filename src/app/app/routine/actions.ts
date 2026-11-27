@@ -46,3 +46,20 @@ export async function saveCheckNote(routineId: string, dayId: string, rowId: str
   }
   return { ok: true };
 }
+
+/** El alumno da por terminado el día: cuánto le costó (1-10) y cuántos minutos duró. */
+export async function finishDay(routineId: string, dayId: string, rpe: number, minutes: number) {
+  const u = await requireUser(["ATHLETE"]);
+  const r = await db.routine.findUnique({ where: { id: routineId }, select: { athleteId: true } });
+  if (!r || r.athleteId !== u.id) throw new Error("Rutina no encontrada");
+  const e = Math.min(10, Math.max(1, Math.round(Number(rpe) || 0)));
+  const m = Math.min(300, Math.max(5, Math.round(Number(minutes) || 0)));
+  const date = dateOnly(new Date());
+  const data = { rpe: e, durationMin: m, load: e * m };
+  await db.routineSession.upsert({
+    where: { routineId_date_dayId: { routineId, date, dayId: dayId.slice(0, 40) } },
+    create: { routineId, athleteId: u.id, date, dayId: dayId.slice(0, 40), ...data },
+    update: data,
+  });
+  return { ok: true };
+}
