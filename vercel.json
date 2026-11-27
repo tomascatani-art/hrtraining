@@ -1,4 +1,7 @@
 {
   "buildCommand": "npm run deploy:build",
-  "regions": ["pdx1"]
+  "regions": [
+    "pdx1"
+  ],
+  "fluid": true
 }
