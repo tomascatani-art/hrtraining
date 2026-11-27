@@ -126,6 +126,7 @@ export default async function AthleteDetail({ params, searchParams }: { params: 
               <Field label="Sexo"><select name="sex" defaultValue={p?.sex ?? ""} className="input"><option value="">—</option><option value="F">Femenino</option><option value="M">Masculino</option><option value="X">Otro</option></select></Field>
               <Field label="Altura (cm)"><input name="heightCm" type="number" step="0.1" defaultValue={p?.heightCm ?? ""} className="input" /></Field>
               <Field label="Peso (kg)"><input name="weightKg" type="number" step="0.1" defaultValue={p?.weightKg ?? ""} className="input" /></Field>
+              <Field label="Celular / WhatsApp"><input name="phone" type="tel" inputMode="tel" defaultValue={p?.phone ?? ""} placeholder="Ej: 11 2345 6789" className="input" /></Field>
               <Field label="Nivel"><select name="level" defaultValue={p?.level ?? ""} className="input"><option>Iniciación</option><option>Intermedio</option><option>Avanzado</option><option>Élite</option></select></Field>
               <label className="flex items-center gap-2 self-end pb-3 text-sm text-neutral-300"><input type="checkbox" name="active" defaultChecked={a.active} /> Cuenta activa</label>
               <Field label="Objetivo principal" className="sm:col-span-2"><textarea name="objective" defaultValue={p?.objective ?? ""} className="input" /></Field>

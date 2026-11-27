@@ -20,6 +20,8 @@ model Organization {
   isDemo      Boolean  @default(false)
   createdAt   DateTime @default(now())
   whatsapp    String? // número de contacto para cuotas (formato internacional, solo dígitos)
+  feeRunOn    String? // último día (YYYY-MM-DD) en que corrieron los recordatorios automáticos de cuota
+  feeCoachOn  String? // período (YYYY-MM) en que ya se le avisó al preparador la lista de vencidos
   payLink     String? // link de pago de la cuota (ej. Mercado Pago) que carga el preparador
   focusRoles  Json?   // roles de los ejercicios ("Rol en la sesión") propios del preparador; null = los de siempre
   feeDueDay   Int      @default(10)
@@ -121,6 +123,7 @@ model AthleteProfile {
   notes     String?
   feeAmount Float? // cuota mensual propia (si es distinta de la del club)
   paused    Boolean   @default(false) // cuenta pausada por falta de pago
+  phone     String? // WhatsApp del alumno (solo dígitos, formato internacional)
 }
 
 model Group {
@@ -553,6 +556,7 @@ model Fee {
   isDemo      Boolean      @default(false)
   createdAt   DateTime     @default(now())
 
+  autoNotice  Int          @default(0) // 1 = avisado que vence pronto, 2 = avisado que venció
   @@unique([athleteId, period])
   @@index([orgId, period])
 }

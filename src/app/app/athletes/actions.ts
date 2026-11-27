@@ -38,6 +38,7 @@ async function _createAthlete(fd: FormData) {
           coachId: str(fd.get("coachId")) ?? u.id, sport: String(fd.get("sport") ?? "GENERAL"), position: str(fd.get("position")),
           sex: str(fd.get("sex")), heightCm: num(fd.get("heightCm")), weightKg: num(fd.get("weightKg")), level: str(fd.get("level")),
           objective: str(fd.get("objective")), birthDate: str(fd.get("birthDate")) ? parseDay(String(fd.get("birthDate")), 12) : null,
+          phone: waPhone(fd.get("phone")),
         },
       },
       ...(groupId ? { memberships: { create: { groupId } } } : {}),
@@ -65,6 +66,7 @@ async function _updateAthlete(fd: FormData) {
           sport: String(fd.get("sport") ?? "GENERAL"), position: str(fd.get("position")), sex: str(fd.get("sex")),
           heightCm: num(fd.get("heightCm")), weightKg: num(fd.get("weightKg")), level: str(fd.get("level")), objective: str(fd.get("objective")),
           notes: str(fd.get("notes")), coachId: str(fd.get("coachId")) ?? undefined,
+          ...(fd.has("phone") ? { phone: waPhone(fd.get("phone")) } : {}),
           birthDate: str(fd.get("birthDate")) ? parseDay(String(fd.get("birthDate")), 12) : null,
         },
       },
@@ -157,3 +159,12 @@ export async function saveGoal(fd: FormData) { return runAction("saveGoal", _sav
 export async function toggleGoal(fd: FormData) { return runAction("toggleGoal", _toggleGoal, fd); }
 export async function deleteGoal(fd: FormData) { return runAction("deleteGoal", _deleteGoal, fd); }
 export async function setAthletePassword(fd: FormData) { return runAction("setAthletePassword", _setAthletePassword, fd); }
+
+/** Celular para WhatsApp: solo dígitos y con 549 adelante si es un número argentino sin código de país. */
+function waPhone(v: FormDataEntryValue | null) {
+  let d = String(v ?? "").replace(/\D/g, "");
+  if (!d) return null;
+  if (d.startsWith("0")) d = d.slice(1);
+  if (d.length === 10) d = "549" + d;
+  return d.slice(0, 15);
+}

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
+import { runFeeReminders } from "@/lib/fee-reminders";
 import { Shell } from "@/components/shell";
 import { accentVars, logoUrl } from "@/lib/brand";
 import { startOfDay } from "@/lib/metrics";
@@ -24,6 +25,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // Se anota después de responder, así la pantalla no espera esta escritura.
     after(() => db.user.update({ where: { id: u.id }, data: { lastSeenAt: now, ...(newDay ? { firstSeenAt: now } : {}) } }).catch(() => {}));
   }
+  // Recordatorios automáticos de cuota (una vez por día, después de responder)
+  after(() => runFeeReminders(u.orgId).catch(() => {}));
   // Los mensajes internos ya no se usan: solo se cuentan las notificaciones (una consulta menos por pantalla).
   const unreadNotifications = await db.notification.count({ where: { userId: u.id, readAt: null } });
   const o = u.org;

@@ -8,6 +8,7 @@ import { monthKey, monthLabel, shiftMonth } from "@/lib/fees";
 import { PageHeader, Card, Stat, Empty, Avatar, DemoBadge, fmtDate } from "@/components/ui";
 import { Submit } from "@/components/forms";
 import { setFeeStatus, setPaused, remindFee, setAthleteFee } from "./actions";
+import { feeWhatsApp } from "@/lib/fee-reminders";
 
 export const metadata = { title: "Cuotas" };
 const money = (n: number | null | undefined) => (n == null ? "—" : `$ ${n.toLocaleString("es-AR", { maximumFractionDigits: 0 })}`);
@@ -55,6 +56,13 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
         <Stat label="Cuentas pausadas" value={rows.filter((r) => r.a.athleteProfile?.paused).length} hint="solo ven su cuota" />
       </div>
 
+      {overdue && pending.length > 0 && filter !== "pendientes" && (
+        <Link href={q("pendientes")} className="card card-hover card-pad mt-6 flex items-center gap-3 border-volt/60">
+          <MessageCircle className="text-volt" size={22} />
+          <div className="flex-1"><div className="font-semibold text-white">A quién escribirle: {pending.length} {pending.length === 1 ? "alumno" : "alumnos"} con la cuota vencida</div><div className="text-sm muted">Cada uno tiene un botón de WhatsApp con el mensaje ya escrito{org.payLink ? " y tu link de pago" : ""}.</div></div>
+          <ChevronRight className="text-volt" />
+        </Link>
+      )}
       <div className="mt-6 mb-3 flex flex-wrap gap-1.5">
         {[["todos", "Todos"], ["pendientes", "Pendientes"], ["al-dia", "Al día"], ["pausados", "Pausados"]].map(([k, l]) => (
           <Link key={k} href={q(k)} className={filter === k ? "tab tab-active" : "tab border border-ink-700"}>{l}</Link>
@@ -78,6 +86,7 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
                       <form key={s} action={setFeeStatus}><input type="hidden" name="athleteId" value={a.id} /><input type="hidden" name="period" value={period} /><input type="hidden" name="status" value={s} />{s === "PAGADO" && amount != null && <input type="hidden" name="amount" value={amount} />}
                         <Submit className={s === "PAGADO" ? "btn-primary btn-sm" : "btn-ghost btn-sm"} pendingText="…">{s === "PAGADO" ? "Pagó" : s === "PENDIENTE" ? "Pendiente" : "Bonificar"}</Submit></form>
                     ))}
+                    {status === "PENDIENTE" && <a href={feeWhatsApp(a.athleteProfile?.phone, a.name, monthLabel(period).toLowerCase(), amount, org.payLink)} target="_blank" rel="noopener noreferrer" className="btn-primary btn-sm"><MessageCircle size={13} />WhatsApp</a>}
                     {status === "PENDIENTE" && <form action={remindFee}><input type="hidden" name="athleteId" value={a.id} /><input type="hidden" name="period" value={period} /><Submit className="btn-ghost btn-sm" pendingText="…"><Bell size={13} />Recordar</Submit></form>}
                     <form action={setPaused}><input type="hidden" name="athleteId" value={a.id} /><input type="hidden" name="paused" value={paused ? "0" : "1"} /><Submit className={paused ? "btn-ghost btn-sm text-volt" : "btn-ghost btn-sm"} pendingText="…">{paused ? "Reactivar" : "Pausar cuenta"}</Submit></form>
                   </div>
@@ -91,7 +100,8 @@ export default async function FeesPage({ searchParams }: { searchParams: Promise
           </ul>
         ) : <div className="p-5"><Empty title="Nadie en este filtro" /></div>}
       </Card>
-      <p className="mt-3 flex items-center gap-1.5 text-xs muted"><MessageCircle size={13} />Una cuenta pausada solo ve la pantalla de su cuota, con el link de pago y tu WhatsApp. Al marcar «Pagó» se reactiva sola.</p>
+      <p className="mt-3 text-xs muted">Recordatorios automáticos: 3 días antes del vencimiento y el día que vence, a cada alumno que no pagó le llega un aviso en la app{org.payLink ? " con tu link de pago" : ""}. Para que el botón de WhatsApp abra directo su chat, cargá el celular del alumno en su perfil.</p>
+      <p className="mt-2 flex items-center gap-1.5 text-xs muted"><MessageCircle size={13} />Una cuenta pausada solo ve la pantalla de su cuota, con el link de pago y tu WhatsApp. Al marcar «Pagó» se reactiva sola.</p>
     </>
   );
 }
