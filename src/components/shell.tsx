@@ -76,6 +76,15 @@ export function Shell({
   const warm = (href: string) => { try { router.prefetch(href, { kind: PrefetchKind.FULL }); } catch {} };
   const [open, setOpen] = useState(false);
   const nav = navFor(user.role, unreadMessages);
+  // Con la app quieta, se precargan de a una las pantallas del menú de abajo: al tocarlas aparecen al instante.
+  useEffect(() => {
+    const items = (paused ? [] : nav.mobile).map((i) => i.href).filter((h) => h !== realPath);
+    let i = 0; let t: ReturnType<typeof setTimeout>;
+    const next = () => { if (i >= items.length) return; warm(items[i++]); t = setTimeout(next, 700); };
+    t = setTimeout(next, 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realPath]);
   // Cuenta pausada: solo cuota y chat
   const pausedNav: Item[] = [{ href: "/app/paused", label: "Mi cuota", icon: Wallet }];
   const { main, mobile } = paused ? { main: pausedNav, mobile: pausedNav } : nav;
