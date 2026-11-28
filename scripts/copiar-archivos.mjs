@@ -21,7 +21,12 @@ async function list(s, prefix = "") {
 }
 
 const mk = await fetch(`${NEW.url}/storage/v1/bucket`, { method: "POST", headers: h(NEW, { "Content-Type": "application/json" }), body: JSON.stringify({ id: B, name: B, public: false }) });
-if (!mk.ok && mk.status !== 409 && !/already exists/i.test(await mk.text())) throw new Error("No pude crear el bucket nuevo");
+if (!mk.ok) {
+  const why = await mk.text();
+  // Si ya existe, seguimos; si no, mostramos el motivo exacto
+  const has = await fetch(`${NEW.url}/storage/v1/bucket/${B}`, { headers: h(NEW) });
+  if (!has.ok) throw new Error(`No pude crear el bucket nuevo (${mk.status}): ${why.slice(0, 300)} · URL nueva: ${NEW.url.replace(/^(https:\/\/[a-z]{4}).*?(\.supabase\.co)$/, "$1…$2")}`);
+}
 
 const files = await list(OLD);
 console.log(`Archivos a copiar: ${files.length}`);

@@ -4,6 +4,11 @@
 name: Mudar la base a San Pablo
 on:
   workflow_dispatch:
+    inputs:
+      solo_archivos:
+        description: "Copiar solo los archivos (la base ya está copiada)"
+        type: boolean
+        default: false
 jobs:
   mudar:
     runs-on: ubuntu-latest
@@ -26,23 +31,27 @@ jobs:
           echo "OLD=${OLD_DB_URL%%\?*}" >> $GITHUB_ENV
           echo "NEW=${NEW_DB_URL%%\?*}" >> $GITHUB_ENV
       - name: Instalar Postgres 17 (cliente)
+        if: ${{ !inputs.solo_archivos }}
         run: |
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo curl -fsSo /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17
       - name: Frenar si la base nueva ya tiene datos
+        if: ${{ !inputs.solo_archivos }}
         run: |
           n=$(/usr/lib/postgresql/17/bin/psql "$NEW" -tAc "select count(*) from information_schema.tables where table_schema='public'")
           echo "Tablas en la base nueva: $n"
           if [ "$n" != "0" ]; then echo "La base nueva no está vacía. No toco nada."; exit 1; fi
       - name: Copiar la base de datos
+        if: ${{ !inputs.solo_archivos }}
         run: |
           /usr/lib/postgresql/17/bin/pg_dump "$OLD" --schema=public --no-owner --no-privileges --format=plain \
             | grep -v -E '^(CREATE SCHEMA public;|COMMENT ON SCHEMA public)' > dump.sql
           echo "Tamaño de la copia: $(du -h dump.sql | cut -f1)"
           /usr/lib/postgresql/17/bin/psql "$NEW" -v ON_ERROR_STOP=1 -q -f dump.sql
       - name: Comparar cantidades (vieja vs nueva)
+        if: ${{ !inputs.solo_archivos }}
         run: |
           q="select string_agg(format('%s=%s', t, (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from public.%I', t), false, true, '')))[1]::text), ' ' order by t) from (select table_name t from information_schema.tables where table_schema='public' and table_type='BASE TABLE') x"
           a=$(/usr/lib/postgresql/17/bin/psql "$OLD" -tAc "$q"); b=$(/usr/lib/postgresql/17/bin/psql "$NEW" -tAc "$q")
